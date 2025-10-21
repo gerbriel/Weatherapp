@@ -3,8 +3,51 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    @apply text-github-fg-default bg-github-canvas-default;
+  }
+  
+  html.dark {
+    @apply text-github-dark-fg-default bg-github-dark-canvas-default;
+  }
+  
   body {
-    @apply transition-colors duration-200 min-h-screen;
+    @apply transition-colors duration-200 min-h-screen font-sans;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    line-height: 1.5;
+  }
+  
+  * {
+    @apply border-github-border-default dark:border-github-dark-border-default;
+  }
+}
+
+@layer components {
+  .gh-btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-gh border transition-colors duration-150;
+    @apply bg-github-canvas-subtle text-github-fg-default border-github-border-default;
+    @apply hover:bg-github-neutral-muted active:bg-github-neutral-emphasis;
+    @apply dark:bg-github-dark-canvas-subtle dark:text-github-dark-fg-default dark:border-github-dark-border-default;
+    @apply dark:hover:bg-github-dark-neutral-muted;
+  }
+  
+  .gh-btn-primary {
+    @apply bg-github-accent-emphasis text-github-fg-onEmphasis border-github-accent-emphasis;
+    @apply hover:bg-blue-700 active:bg-blue-800;
+    @apply dark:bg-github-dark-accent-emphasis dark:border-github-dark-accent-emphasis;
+    @apply dark:hover:bg-blue-600;
+  }
+  
+  .gh-card {
+    @apply bg-github-canvas-default border border-github-border-default rounded-gh shadow-gh-sm;
+    @apply dark:bg-github-dark-canvas-default dark:border-github-dark-border-default;
+  }
+  
+  .gh-input {
+    @apply px-3 py-2 border rounded-gh text-github-fg-default bg-github-canvas-default border-github-border-default;
+    @apply focus:ring-2 focus:ring-github-accent-muted focus:border-github-accent-emphasis outline-none;
+    @apply dark:text-github-dark-fg-default dark:bg-github-dark-canvas-default dark:border-github-dark-border-default;
+    @apply dark:focus:ring-github-dark-accent-muted dark:focus:border-github-dark-accent-emphasis;
   }
 }
 

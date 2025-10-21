@@ -3,6 +3,7 @@ import { Droplets, Gauge, MapPin, RefreshCw } from 'lucide-react';
 import { weatherService } from '../services/weatherService';
 import { WeatherCard } from './WeatherCard';
 import { WeatherCharts } from './WeatherCharts';
+import { LocationInput } from './LocationInput';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../contexts/ThemeContext';
 import type { WeatherApiResponse, LocationData } from '../types/weather';
@@ -55,30 +56,35 @@ export const WeatherDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
-          <span className="text-gray-700 dark:text-gray-300">Loading weather data...</span>
+      <div className="min-h-screen bg-github-canvas-default dark:bg-github-dark-canvas-default flex items-center justify-center">
+        <div className="flex items-center space-x-3 gh-card p-6">
+          <RefreshCw className="h-5 w-5 animate-spin text-github-accent-emphasis dark:text-github-dark-accent-emphasis" />
+          <span className="text-github-fg-default dark:text-github-dark-fg-default">Loading weather data...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-github-canvas-default dark:bg-github-dark-canvas-default transition-colors">
+      <div className="container mx-auto px-4 py-6">
         {/* Header */}
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-3">
-            <Gauge className="h-8 w-8 text-blue-500" />
+        <header className="flex items-center justify-between mb-6 pb-6 border-b border-github-border-default dark:border-github-dark-border-default">
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-github-canvas-subtle dark:bg-github-dark-canvas-subtle rounded-gh">
+              <Gauge className="h-7 w-7 text-github-accent-emphasis dark:text-github-dark-accent-emphasis" />
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-2xl font-semibold text-github-fg-default dark:text-github-dark-fg-default">
                 Weather & ET Dashboard
               </h1>
+              <p className="text-sm text-github-fg-muted dark:text-github-dark-fg-muted mt-1">
+                NCEP GFS Seamless Model • 14-day Forecast
+              </p>
               {location && (
-                <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                <div className="flex items-center space-x-2 text-github-fg-subtle dark:text-github-dark-fg-subtle mt-2">
                   <MapPin className="h-4 w-4" />
-                  <span>{location.name || `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}</span>
+                  <span className="text-sm font-mono">{location.name || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}</span>
                 </div>
               )}
             </div>
@@ -87,20 +93,30 @@ export const WeatherDashboard: React.FC = () => {
           <div className="flex items-center space-x-3">
             <button
               onClick={() => fetchWeatherData()}
-              className="p-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+              className="gh-btn gh-btn-primary"
               disabled={loading}
             >
-              <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
             </button>
             <ThemeToggle />
           </div>
         </header>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
-            <p className="text-red-700 dark:text-red-400">{error}</p>
+          <div className="mb-6 p-4 bg-github-danger-subtle dark:bg-github-dark-danger-subtle border border-github-danger-muted dark:border-github-dark-danger-muted rounded-gh">
+            <p className="text-github-danger-fg dark:text-github-dark-danger-fg text-sm">{error}</p>
           </div>
         )}
+
+        {/* Location Input */}
+        <div className="mb-6">
+          <LocationInput
+            onLocationSubmit={fetchWeatherData}
+            currentLocation={location}
+            loading={loading}
+          />
+        </div>
 
         {/* Today's Data Cards */}
         {todayData && (
@@ -141,54 +157,54 @@ export const WeatherDashboard: React.FC = () => {
 
         {/* 14-day forecast table */}
         {weatherData && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                14-Day Forecast
+          <div className="gh-card overflow-hidden">
+            <div className="px-6 py-4 border-b border-github-border-default dark:border-github-dark-border-default bg-github-canvas-subtle dark:bg-github-dark-canvas-subtle">
+              <h2 className="text-lg font-semibold text-github-fg-default dark:text-github-dark-fg-default">
+                14-Day Forecast Data
               </h2>
             </div>
             
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-900">
+              <table className="min-w-full divide-y divide-github-border-default dark:divide-github-dark-border-default">
+                <thead className="bg-github-canvas-subtle dark:bg-github-dark-canvas-subtle">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-github-fg-muted dark:text-github-dark-fg-muted uppercase tracking-wider">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-github-fg-muted dark:text-github-dark-fg-muted uppercase tracking-wider">
                       Precipitation (in)
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-github-fg-muted dark:text-github-dark-fg-muted uppercase tracking-wider">
                       Rain (in)
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-github-fg-muted dark:text-github-dark-fg-muted uppercase tracking-wider">
                       ET₀ Daily (mm)
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-github-fg-muted dark:text-github-dark-fg-muted uppercase tracking-wider">
                       ET₀ Sum (mm)
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-github-canvas-default dark:bg-github-dark-canvas-default divide-y divide-github-border-default dark:divide-github-dark-border-default">
                   {weatherData.daily.time.map((date, index) => (
-                    <tr key={date} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <tr key={date} className="hover:bg-github-canvas-subtle dark:hover:bg-github-dark-canvas-subtle transition-colors">
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-github-fg-default dark:text-github-dark-fg-default">
                         {new Date(date).toLocaleDateString('en-US', { 
                           weekday: 'short', 
                           month: 'short', 
                           day: 'numeric' 
                         })}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-github-fg-default dark:text-github-dark-fg-default">
                         {weatherData.daily.precipitation_sum[index]?.toFixed(2) || '0.00'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-github-fg-default dark:text-github-dark-fg-default">
                         {weatherData.daily.rain_sum[index]?.toFixed(2) || '0.00'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-github-fg-default dark:text-github-dark-fg-default">
                         {weatherData.daily.et0_fao_evapotranspiration[index]?.toFixed(2) || '0.00'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                      <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-github-fg-default dark:text-github-dark-fg-default">
                         {weatherData.daily.et0_fao_evapotranspiration_sum[index]?.toFixed(2) || '0.00'}
                       </td>
                     </tr>

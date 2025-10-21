@@ -28,14 +28,15 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
     et0_sum: weatherData.daily.et0_fao_evapotranspiration_sum[index] || 0,
   }));
 
-  const textColor = isDarkMode ? '#e5e7eb' : '#374151';
-  const gridColor = isDarkMode ? '#374151' : '#e5e7eb';
+  const textColor = isDarkMode ? '#7d8590' : '#656d76';
+  const gridColor = isDarkMode ? '#21262d' : '#d1d9e0';
+  const backgroundColor = isDarkMode ? '#0d1117' : '#ffffff';
   
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Precipitation Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="gh-card p-6">
+        <h3 className="text-lg font-semibold text-github-fg-default dark:text-github-dark-fg-default mb-4">
           Precipitation Forecast (14 Days)
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -58,10 +59,11 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                backgroundColor: backgroundColor,
                 border: `1px solid ${gridColor}`,
-                borderRadius: '8px',
+                borderRadius: '6px',
                 color: textColor,
+                fontSize: '12px'
               }}
               formatter={(value: number, name: string) => [
                 `${value.toFixed(2)} inches`,
@@ -70,20 +72,20 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
               labelFormatter={(label) => `Date: ${label}`}
             />
             <Legend 
-              wrapperStyle={{ color: textColor }}
+              wrapperStyle={{ color: textColor, fontSize: '12px' }}
               formatter={(value) => 
                 value === 'precipitation' ? 'Total Precipitation' : 'Rain'
               }
             />
-            <Bar dataKey="precipitation" fill="#3b82f6" name="precipitation" />
-            <Bar dataKey="rain" fill="#06b6d4" name="rain" />
+            <Bar dataKey="precipitation" fill={isDarkMode ? '#2f81f7' : '#0969da'} name="precipitation" />
+            <Bar dataKey="rain" fill={isDarkMode ? '#3fb950' : '#1a7f37'} name="rain" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Evapotranspiration Chart */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+      <div className="gh-card p-6">
+        <h3 className="text-lg font-semibold text-github-fg-default dark:text-github-dark-fg-default mb-4">
           Evapotranspiration (ET₀) Forecast
         </h3>
         <ResponsiveContainer width="100%" height={300}>
@@ -106,10 +108,11 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+                backgroundColor: backgroundColor,
                 border: `1px solid ${gridColor}`,
-                borderRadius: '8px',
+                borderRadius: '6px',
                 color: textColor,
+                fontSize: '12px'
               }}
               formatter={(value: number, name: string) => [
                 `${value.toFixed(2)} mm`,
@@ -118,7 +121,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
               labelFormatter={(label) => `Date: ${label}`}
             />
             <Legend 
-              wrapperStyle={{ color: textColor }}
+              wrapperStyle={{ color: textColor, fontSize: '12px' }}
               formatter={(value) => 
                 value === 'et0_daily' ? 'Daily ET₀' : 'Cumulative ET₀'
               }
@@ -126,18 +129,18 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
             <Line 
               type="monotone" 
               dataKey="et0_daily" 
-              stroke="#f59e0b" 
+              stroke={isDarkMode ? '#d29922' : '#9a6700'}
               strokeWidth={2}
               name="et0_daily"
-              dot={{ fill: '#f59e0b', strokeWidth: 2, r: 4 }}
+              dot={{ fill: isDarkMode ? '#d29922' : '#9a6700', strokeWidth: 2, r: 4 }}
             />
             <Line 
               type="monotone" 
               dataKey="et0_sum" 
-              stroke="#ef4444" 
+              stroke={isDarkMode ? '#da7633' : '#bc4c00'}
               strokeWidth={2}
               name="et0_sum"
-              dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+              dot={{ fill: isDarkMode ? '#da7633' : '#bc4c00', strokeWidth: 2, r: 4 }}
             />
           </LineChart>
         </ResponsiveContainer>
