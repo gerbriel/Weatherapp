@@ -1,5 +1,5 @@
 import React from 'react';
-import { Droplets, Gauge, TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 interface WeatherCardProps {
   title: string;
@@ -27,7 +27,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   };
 
   return (
-    <div className="gh-card p-4">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-github-canvas-subtle dark:bg-github-dark-canvas-subtle rounded-gh text-github-accent-emphasis dark:text-github-dark-accent-emphasis">

@@ -3,7 +3,7 @@ import { MapPin, Search } from 'lucide-react';
 import type { LocationData } from '../types/weather';
 
 interface LocationInputProps {
-  onLocationSubmit: (location: LocationData) => void;
+  onLocationSubmit: (location: Omit<LocationData, 'id' | 'isFavorite'>) => void;
   currentLocation: LocationData | null;
   loading: boolean;
 }
@@ -66,7 +66,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   };
 
   return (
-    <div className="gh-card p-4">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-github-canvas-subtle dark:bg-github-dark-canvas-subtle rounded-gh">

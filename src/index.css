@@ -3,51 +3,34 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    @apply text-github-fg-default bg-github-canvas-default;
-  }
-  
-  html.dark {
-    @apply text-github-dark-fg-default bg-github-dark-canvas-default;
-  }
-  
   body {
-    @apply transition-colors duration-200 min-h-screen font-sans;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
     line-height: 1.5;
-  }
-  
-  * {
-    @apply border-github-border-default dark:border-github-dark-border-default;
   }
 }
 
 @layer components {
   .gh-btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-gh border transition-colors duration-150;
-    @apply bg-github-canvas-subtle text-github-fg-default border-github-border-default;
-    @apply hover:bg-github-neutral-muted active:bg-github-neutral-emphasis;
-    @apply dark:bg-github-dark-canvas-subtle dark:text-github-dark-fg-default dark:border-github-dark-border-default;
-    @apply dark:hover:bg-github-dark-neutral-muted;
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded border transition-colors duration-150;
+    @apply bg-gray-50 text-gray-900 border-gray-300 hover:bg-gray-100 active:bg-gray-200;
+    @apply dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700 dark:active:bg-gray-600;
   }
   
   .gh-btn-primary {
-    @apply bg-github-accent-emphasis text-github-fg-onEmphasis border-github-accent-emphasis;
-    @apply hover:bg-blue-700 active:bg-blue-800;
-    @apply dark:bg-github-dark-accent-emphasis dark:border-github-dark-accent-emphasis;
-    @apply dark:hover:bg-blue-600;
+    @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700 active:bg-blue-800;
+    @apply dark:bg-blue-500 dark:border-blue-500 dark:hover:bg-blue-600;
   }
   
   .gh-card {
-    @apply bg-github-canvas-default border border-github-border-default rounded-gh shadow-gh-sm;
-    @apply dark:bg-github-dark-canvas-default dark:border-github-dark-border-default;
+    @apply bg-white border border-gray-200 rounded-lg shadow-sm;
+    @apply dark:bg-gray-800 dark:border-gray-700;
   }
   
   .gh-input {
-    @apply px-3 py-2 border rounded-gh text-github-fg-default bg-github-canvas-default border-github-border-default;
-    @apply focus:ring-2 focus:ring-github-accent-muted focus:border-github-accent-emphasis outline-none;
-    @apply dark:text-github-dark-fg-default dark:bg-github-dark-canvas-default dark:border-github-dark-border-default;
-    @apply dark:focus:ring-github-dark-accent-muted dark:focus:border-github-dark-accent-emphasis;
+    @apply px-3 py-2 border rounded text-gray-900 bg-white border-gray-300;
+    @apply focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none;
+    @apply dark:text-gray-100 dark:bg-gray-800 dark:border-gray-600;
+    @apply dark:focus:ring-blue-400 dark:focus:border-blue-400;
   }
 }
 

@@ -32,7 +32,7 @@ class WeatherService {
   }
 
   // Get user's current location
-  async getCurrentLocation(): Promise<LocationData> {
+  async getCurrentLocation(): Promise<Omit<LocationData, 'id' | 'isFavorite'>> {
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('Geolocation is not supported by this browser.'));
@@ -44,6 +44,7 @@ class WeatherService {
           resolve({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
+            name: 'Current Location'
           });
         },
         (error) => {

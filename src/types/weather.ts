@@ -26,7 +26,36 @@ export interface WeatherApiResponse {
 }
 
 export interface LocationData {
+  id: string;
   latitude: number;
   longitude: number;
-  name?: string;
+  name: string;
+  isFavorite: boolean;
+  lastUpdated?: string;
+}
+
+export interface LocationWithWeather extends LocationData {
+  weatherData?: WeatherApiResponse;
+  loading?: boolean;
+  error?: string;
+  lastUpdated?: string;
+}
+
+export interface EmailPreferences {
+  id: string;
+  email: string;
+  name: string;
+  enabled: boolean;
+  selectedLocationIds: string[];
+  dayOfWeek: number; // 1 = Monday, 7 = Sunday
+  hour: number; // 0-23
+  timezone: string;
+  createdAt: string;
+  lastSent?: string;
+}
+
+export interface EmailSubscription {
+  id: string;
+  preferences: EmailPreferences;
+  active: boolean;
 }

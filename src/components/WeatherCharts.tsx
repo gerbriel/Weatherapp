@@ -35,7 +35,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
   return (
     <div className="space-y-6">
       {/* Precipitation Chart */}
-      <div className="gh-card p-6">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold text-github-fg-default dark:text-github-dark-fg-default mb-4">
           Precipitation Forecast (14 Days)
         </h3>
@@ -84,7 +84,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
       </div>
 
       {/* Evapotranspiration Chart */}
-      <div className="gh-card p-6">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6">
         <h3 className="text-lg font-semibold text-github-fg-default dark:text-github-dark-fg-default mb-4">
           Evapotranspiration (ET₀) Forecast
         </h3>
