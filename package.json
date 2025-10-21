@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@supabase/supabase-js": "^2.76.1",
     "autoprefixer": "^10.4.21",
     "axios": "^1.12.2",
     "lucide-react": "^0.546.0",

@@ -9,6 +9,9 @@ class WeatherService {
       latitude: location.latitude,
       longitude: location.longitude,
       daily: [
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'wind_speed_10m_max',
         'precipitation_sum',
         'rain_sum', 
         'et0_fao_evapotranspiration',

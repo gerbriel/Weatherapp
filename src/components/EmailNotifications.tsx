@@ -1,20 +1,25 @@
-import React, { useState } from 'react';
-import { Mail, Clock, MapPin, Send, Trash2, Settings, Plus } from 'lucide-react';
-import { useEmail } from '../contexts/EmailContext';
+import React, { useState, useEffect } from 'react';
+import { Mail, Plus, Trash2, Clock, MapPin, CheckCircle, AlertCircle, Calendar, Repeat, CalendarDays, Send } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
+import { EmailSubscriptionService } from '../services/supabaseService';
+import type { EmailSubscription } from '../types/weather';
 
 export const EmailNotifications: React.FC = () => {
-  const { subscriptions, addSubscription, updateSubscription, removeSubscription, sendTestEmail, loading, error } = useEmail();
   const { locations } = useLocations();
+  const [subscriptions, setSubscriptions] = useState<EmailSubscription[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [testEmailSent, setTestEmailSent] = useState<string | null>(null);
-  
   const [newSubscription, setNewSubscription] = useState({
     email: '',
     name: '',
-    selectedLocationIds: [] as string[],
-    dayOfWeek: 1, // Monday
-    hour: 8, // 8 AM
+    selected_location_ids: [] as string[],
+    is_recurring: true,
+    schedule_day_of_week: 1, // Monday
+    schedule_hour: 8, // 8 AM
+    schedule_minute: 0, // 0 minutes
+    schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    scheduled_at: '', // For one-time emails
     enabled: true,
   });
 
@@ -28,341 +33,421 @@ export const EmailNotifications: React.FC = () => {
     { value: 7, label: 'Sunday' },
   ];
 
-  const hours = Array.from({ length: 24 }, (_, i) => ({
-    value: i,
-    label: `${i.toString().padStart(2, '0')}:00`,
-  }));
+  // Load subscriptions on component mount
+  useEffect(() => {
+    loadSubscriptions();
+  }, []);
 
-  const handleAddSubscription = () => {
-    if (!newSubscription.email.trim() || !newSubscription.name.trim()) {
-      alert('Please enter both email and name');
-      return;
-    }
-
-    if (newSubscription.selectedLocationIds.length === 0) {
-      alert('Please select at least one location');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newSubscription.email)) {
-      alert('Please enter a valid email address');
-      return;
-    }
-
-    addSubscription({
-      ...newSubscription,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    });
-
-    setNewSubscription({
-      email: '',
-      name: '',
-      selectedLocationIds: [],
-      dayOfWeek: 1,
-      hour: 8,
-      enabled: true,
-    });
-    setShowAddForm(false);
-  };
-
-  const handleLocationToggle = (locationId: string, isSubscription: boolean = false, subscriptionId?: string) => {
-    if (isSubscription && subscriptionId) {
-      const subscription = subscriptions.find(sub => sub.id === subscriptionId);
-      if (subscription) {
-        const currentIds = subscription.preferences.selectedLocationIds;
-        const newIds = currentIds.includes(locationId)
-          ? currentIds.filter(id => id !== locationId)
-          : [...currentIds, locationId];
-        
-        updateSubscription(subscriptionId, { selectedLocationIds: newIds });
-      }
-    } else {
-      setNewSubscription(prev => ({
-        ...prev,
-        selectedLocationIds: prev.selectedLocationIds.includes(locationId)
-          ? prev.selectedLocationIds.filter(id => id !== locationId)
-          : [...prev.selectedLocationIds, locationId]
-      }));
-    }
-  };
-
-  const handleSendTestEmail = async (subscriptionId: string) => {
+  const loadSubscriptions = async () => {
     try {
-      const subscription = subscriptions.find(sub => sub.id === subscriptionId);
-      if (!subscription) return;
-
-      const selectedLocations = locations.filter(loc => 
-        subscription.preferences.selectedLocationIds.includes(loc.id) && loc.weatherData
-      );
-
-      if (selectedLocations.length === 0) {
-        alert('No locations with weather data available. Please ensure your locations have loaded weather data first.');
-        return;
-      }
-
-      await sendTestEmail(subscription.preferences.email, selectedLocations);
-      setTestEmailSent(subscriptionId);
-      setTimeout(() => setTestEmailSent(null), 3000);
+      setLoading(true);
+      const data = await EmailSubscriptionService.getActiveSubscriptions();
+      setSubscriptions(data);
     } catch (err) {
-      console.error('Failed to send test email:', err);
-      alert('Failed to send test email. Please check your email settings.');
+      setError(err instanceof Error ? err.message : 'Failed to load subscriptions');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getDayLabel = (dayOfWeek: number) => {
-    return daysOfWeek.find(day => day.value === dayOfWeek)?.label || 'Monday';
+  const handleLocationToggle = (locationId: string) => {
+    setNewSubscription(prev => ({
+      ...prev,
+      selected_location_ids: prev.selected_location_ids.includes(locationId)
+        ? prev.selected_location_ids.filter(id => id !== locationId)
+        : [...prev.selected_location_ids, locationId]
+    }));
   };
 
-  const getTimeLabel = (hour: number) => {
-    return `${hour.toString().padStart(2, '0')}:00`;
+  const handleAddSubscription = async () => {
+    if (!newSubscription.email || !newSubscription.name) {
+      setError('Email and name are required');
+      return;
+    }
+
+    if (newSubscription.selected_location_ids.length === 0) {
+      setError('Please select at least one location');
+      return;
+    }
+
+    if (!newSubscription.is_recurring && !newSubscription.scheduled_at) {
+      setError('Please set a scheduled date/time for one-time emails');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const subscriptionData = {
+        ...newSubscription,
+        scheduled_at: newSubscription.is_recurring ? undefined : new Date(newSubscription.scheduled_at).toISOString(),
+        schedule_day_of_week: newSubscription.is_recurring ? newSubscription.schedule_day_of_week : undefined,
+        schedule_hour: newSubscription.is_recurring ? newSubscription.schedule_hour : undefined,
+        schedule_minute: newSubscription.is_recurring ? newSubscription.schedule_minute : undefined,
+      };
+
+      const created = await EmailSubscriptionService.createSubscription(subscriptionData);
+      setSubscriptions(prev => [created, ...prev]);
+      
+      // Reset form
+      setNewSubscription({
+        email: '',
+        name: '',
+        selected_location_ids: [],
+        is_recurring: true,
+        schedule_day_of_week: 1,
+        schedule_hour: 8,
+        schedule_minute: 0,
+        schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        scheduled_at: '',
+        enabled: true,
+      });
+      setShowAddForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create subscription');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteSubscription = async (id: string) => {
+    try {
+      setLoading(true);
+      await EmailSubscriptionService.deleteSubscription(id);
+      setSubscriptions(prev => prev.filter(sub => sub.id !== id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete subscription');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleSubscription = async (id: string, enabled: boolean) => {
+    try {
+      setLoading(true);
+      const updated = await EmailSubscriptionService.updateSubscription(id, { enabled });
+      setSubscriptions(prev => 
+        prev.map(sub => sub.id === id ? updated : sub)
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update subscription');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getScheduleDisplay = (subscription: EmailSubscription) => {
+    if (subscription.is_recurring) {
+      const dayName = daysOfWeek.find(d => d.value === subscription.schedule_day_of_week)?.label;
+      const time = `${subscription.schedule_hour?.toString().padStart(2, '0')}:${subscription.schedule_minute?.toString().padStart(2, '0')}`;
+      return `Every ${dayName} at ${time} (${subscription.schedule_timezone})`;
+    } else {
+      return `Once on ${new Date(subscription.scheduled_at!).toLocaleDateString()} at ${new Date(subscription.scheduled_at!).toLocaleTimeString()}`;
+    }
+  };
+
+  const getNextSendDisplay = (subscription: EmailSubscription) => {
+    if (!subscription.next_send_at) return 'Not scheduled';
+    
+    const nextSend = new Date(subscription.next_send_at);
+    const now = new Date();
+    const diff = nextSend.getTime() - now.getTime();
+    
+    if (diff < 0) return 'Overdue';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (days > 0) return `In ${days}d ${hours}h`;
+    if (hours > 0) return `In ${hours}h ${minutes}m`;
+    return `In ${minutes}m`;
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-            <Mail className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-            Email Notifications
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Get weekly weather reports delivered to your inbox
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Email Notifications</h2>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Automated weather reports sent via Supabase Edge Functions
           </p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="gh-btn gh-btn-primary text-sm"
+          onClick={() => setShowAddForm(true)}
+          className="gh-btn gh-btn-primary"
+          disabled={loading}
         >
-          <Plus className="h-4 w-4 mr-1" />
+          <Plus className="h-4 w-4 mr-2" />
           Add Subscription
         </button>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-700 dark:text-red-400 text-sm">{error}</p>
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-2">
+          <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-300">{error}</span>
         </div>
       )}
 
       {/* Add Subscription Form */}
       {showAddForm && (
-        <div className="p-6 border border-blue-200 dark:border-blue-700 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-4">Add Email Subscription</h3>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create Email Subscription</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Email Address
-              </label>
-              <input
-                type="email"
-                value={newSubscription.email}
-                onChange={(e) => setNewSubscription(prev => ({ ...prev, email: e.target.value }))}
-                className="gh-input w-full"
-                placeholder="your@email.com"
-              />
+          <div className="space-y-4">
+            {/* Basic Info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={newSubscription.name}
+                  onChange={(e) => setNewSubscription(prev => ({ ...prev, name: e.target.value }))}
+                  className="gh-input w-full"
+                  placeholder="Your name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={newSubscription.email}
+                  onChange={(e) => setNewSubscription(prev => ({ ...prev, email: e.target.value }))}
+                  className="gh-input w-full"
+                  placeholder="your@email.com"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Name
-              </label>
-              <input
-                type="text"
-                value={newSubscription.name}
-                onChange={(e) => setNewSubscription(prev => ({ ...prev, name: e.target.value }))}
-                className="gh-input w-full"
-                placeholder="Your Name"
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {/* Recurring vs One-time */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Day of Week
+                Schedule Type
               </label>
-              <select
-                value={newSubscription.dayOfWeek}
-                onChange={(e) => setNewSubscription(prev => ({ ...prev, dayOfWeek: parseInt(e.target.value) }))}
-                className="gh-input w-full"
-              >
-                {daysOfWeek.map(day => (
-                  <option key={day.value} value={day.value}>{day.label}</option>
-                ))}
-              </select>
+              <div className="flex space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="scheduleType"
+                    checked={newSubscription.is_recurring}
+                    onChange={() => setNewSubscription(prev => ({ ...prev, is_recurring: true }))}
+                    className="mr-2"
+                  />
+                  <Repeat className="h-4 w-4 mr-1" />
+                  Recurring
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="scheduleType"
+                    checked={!newSubscription.is_recurring}
+                    onChange={() => setNewSubscription(prev => ({ ...prev, is_recurring: false }))}
+                    className="mr-2"
+                  />
+                  <CalendarDays className="h-4 w-4 mr-1" />
+                  One-time
+                </label>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Time
-              </label>
-              <select
-                value={newSubscription.hour}
-                onChange={(e) => setNewSubscription(prev => ({ ...prev, hour: parseInt(e.target.value) }))}
-                className="gh-input w-full"
-              >
-                {hours.map(hour => (
-                  <option key={hour.value} value={hour.value}>{hour.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Select Locations ({newSubscription.selectedLocationIds.length} selected)
-            </label>
-            <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded p-3">
-              {locations.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No locations available. Please add some locations first.</p>
-              ) : (
-                locations.map(location => (
-                  <label key={location.id} className="flex items-center space-x-3 cursor-pointer">
+            {/* Schedule Settings */}
+            {newSubscription.is_recurring ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Day of Week
+                  </label>
+                  <select
+                    value={newSubscription.schedule_day_of_week}
+                    onChange={(e) => setNewSubscription(prev => ({ ...prev, schedule_day_of_week: Number(e.target.value) }))}
+                    className="gh-input w-full"
+                  >
+                    {daysOfWeek.map(day => (
+                      <option key={day.value} value={day.value}>{day.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Hour
+                  </label>
+                  <select
+                    value={newSubscription.schedule_hour}
+                    onChange={(e) => setNewSubscription(prev => ({ ...prev, schedule_hour: Number(e.target.value) }))}
+                    className="gh-input w-full"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => (
+                      <option key={i} value={i}>{i.toString().padStart(2, '0')}:00</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Minute
+                  </label>
+                  <select
+                    value={newSubscription.schedule_minute}
+                    onChange={(e) => setNewSubscription(prev => ({ ...prev, schedule_minute: Number(e.target.value) }))}
+                    className="gh-input w-full"
+                  >
+                    {Array.from({ length: 60 }, (_, i) => (
+                      <option key={i} value={i}>{i.toString().padStart(2, '0')}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Timezone
+                  </label>
+                  <input
+                    type="text"
+                    value={newSubscription.schedule_timezone}
+                    onChange={(e) => setNewSubscription(prev => ({ ...prev, schedule_timezone: e.target.value }))}
+                    className="gh-input w-full"
+                    placeholder="UTC"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Scheduled Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={newSubscription.scheduled_at}
+                  onChange={(e) => setNewSubscription(prev => ({ ...prev, scheduled_at: e.target.value }))}
+                  className="gh-input w-full"
+                />
+              </div>
+            )}
+
+            {/* Location Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Locations
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-40 overflow-y-auto">
+                {locations.map((location) => (
+                  <label
+                    key={location.id}
+                    className="flex items-center space-x-2 p-2 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
                     <input
                       type="checkbox"
-                      checked={newSubscription.selectedLocationIds.includes(location.id)}
+                      checked={newSubscription.selected_location_ids.includes(location.id)}
                       onChange={() => handleLocationToggle(location.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 text-blue-600"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{location.name}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                      {location.latitude.toFixed(2)}, {location.longitude.toFixed(2)}
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                      {location.name}
                     </span>
                   </label>
-                ))
-              )}
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => setShowAddForm(false)}
-              className="gh-btn text-sm"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAddSubscription}
-              className="gh-btn gh-btn-primary text-sm"
-            >
-              Add Subscription
-            </button>
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <button
+                onClick={() => setShowAddForm(false)}
+                className="gh-btn"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddSubscription}
+                className="gh-btn gh-btn-primary"
+                disabled={loading || !newSubscription.email || !newSubscription.name}
+              >
+                {loading ? 'Creating...' : 'Create Subscription'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Existing Subscriptions */}
+      {/* Subscriptions List */}
       <div className="space-y-4">
         {subscriptions.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-            <Mail className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-            <p>No email subscriptions yet</p>
-            <p className="text-sm">Add a subscription to get weekly weather reports</p>
+            <Mail className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No email subscriptions configured</p>
+            <p className="text-sm">Click "Add Subscription" to get started</p>
           </div>
         ) : (
-          subscriptions.map(subscription => (
-            <div key={subscription.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+          subscriptions.map((subscription) => (
+            <div key={subscription.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="font-medium text-gray-900 dark:text-white">
-                      {subscription.preferences.name}
-                    </h3>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      subscription.preferences.enabled 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
-                    }`}>
-                      {subscription.preferences.enabled ? 'Enabled' : 'Disabled'}
-                    </span>
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                    <span className="font-medium text-gray-900 dark:text-white">{subscription.name}</span>
+                    <span className="text-sm text-gray-500">({subscription.email})</span>
+                    {subscription.enabled ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-gray-400" />
+                    )}
                   </div>
                   
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    {subscription.preferences.email}
-                  </p>
-                  
-                  <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center space-x-1">
+                  <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center space-x-2">
+                      {subscription.is_recurring ? (
+                        <Repeat className="h-4 w-4" />
+                      ) : (
+                        <Calendar className="h-4 w-4" />
+                      )}
+                      <span>{getScheduleDisplay(subscription)}</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
                       <Clock className="h-4 w-4" />
-                      <span>{getDayLabel(subscription.preferences.dayOfWeek)}s at {getTimeLabel(subscription.preferences.hour)}</span>
+                      <span>Next: {getNextSendDisplay(subscription)}</span>
                     </div>
-                    <div className="flex items-center space-x-1">
+                    
+                    <div className="flex items-center space-x-2">
                       <MapPin className="h-4 w-4" />
-                      <span>{subscription.preferences.selectedLocationIds.length} locations</span>
+                      <span>{subscription.selected_location_ids.length} location(s)</span>
                     </div>
+                    
+                    {subscription.last_sent_at && (
+                      <div className="flex items-center space-x-2">
+                        <Send className="h-4 w-4" />
+                        <span>Last sent: {new Date(subscription.last_sent_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
                   </div>
-
-                  {subscription.preferences.lastSent && (
-                    <p className="text-xs text-gray-400 mt-2">
-                      Last sent: {new Date(subscription.preferences.lastSent).toLocaleDateString()}
-                    </p>
-                  )}
                 </div>
-
-                <div className="flex items-center space-x-2">
+                
+                <div className="flex items-center space-x-2 ml-4">
                   <button
-                    onClick={() => handleSendTestEmail(subscription.id)}
+                    onClick={() => handleToggleSubscription(subscription.id, !subscription.enabled)}
+                    className={`gh-btn ${subscription.enabled ? '' : 'gh-btn-primary'}`}
                     disabled={loading}
-                    className="gh-btn text-sm"
-                    title="Send test email"
                   >
-                    <Send className="h-4 w-4" />
-                    {testEmailSent === subscription.id ? '✓' : ''}
+                    {subscription.enabled ? 'Disable' : 'Enable'}
                   </button>
-                  
                   <button
-                    onClick={() => updateSubscription(subscription.id, { 
-                      enabled: !subscription.preferences.enabled 
-                    })}
-                    className="gh-btn text-sm"
-                    title={subscription.preferences.enabled ? 'Disable' : 'Enable'}
-                  >
-                    <Settings className="h-4 w-4" />
-                  </button>
-                  
-                  <button
-                    onClick={() => removeSubscription(subscription.id)}
-                    className="gh-btn text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                    title="Delete subscription"
+                    onClick={() => handleDeleteSubscription(subscription.id)}
+                    className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                    disabled={loading}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-
-              {/* Location list for this subscription */}
-              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Selected Locations:</p>
-                <div className="flex flex-wrap gap-2">
-                  {subscription.preferences.selectedLocationIds.map(locationId => {
-                    const location = locations.find(loc => loc.id === locationId);
-                    return location ? (
-                      <span
-                        key={locationId}
-                        className="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded"
-                      >
-                        {location.name}
-                      </span>
-                    ) : null;
-                  })}
-                </div>
-              </div>
             </div>
           ))
         )}
-      </div>
-
-      {/* Instructions */}
-      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-        <h3 className="font-medium text-blue-900 dark:text-blue-300 mb-2">Setup Instructions</h3>
-        <div className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
-          <p>1. Add your email and select the locations you want to monitor</p>
-          <p>2. Choose when you want to receive reports (day and time)</p>
-          <p>3. Use the "Send Test" button to preview your email format</p>
-          <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-            Note: Email scheduling requires the browser to be open at the scheduled time. For production use, consider setting up a backend service.
-          </p>
-        </div>
       </div>
     </div>
   );

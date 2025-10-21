@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Droplets, Gauge, MapPin, Menu, X } from 'lucide-react';
+import { Droplets, Gauge, MapPin, Menu, X, Thermometer, Wind } from 'lucide-react';
 import { WeatherCard } from './WeatherCard';
 import { WeatherCharts } from './WeatherCharts';
 import { LocationsList } from './LocationsList';
@@ -26,6 +26,9 @@ export const WeatherDashboard: React.FC = () => {
     if (todayIndex === -1) return null;
     
     return {
+      tempMax: selectedLocation.weatherData.daily.temperature_2m_max[todayIndex] || 0,
+      tempMin: selectedLocation.weatherData.daily.temperature_2m_min[todayIndex] || 0,
+      windSpeed: selectedLocation.weatherData.daily.wind_speed_10m_max[todayIndex] || 0,
       precipitation: selectedLocation.weatherData.daily.precipitation_sum[todayIndex] || 0,
       rain: selectedLocation.weatherData.daily.rain_sum[todayIndex] || 0,
       et0: selectedLocation.weatherData.daily.et0_fao_evapotranspiration[todayIndex] || 0,
@@ -37,7 +40,7 @@ export const WeatherDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
-      <div className="flex h-screen">
+      <div className="flex h-screen w-full">
         {/* Sidebar */}
         <div className={`
           fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
@@ -104,7 +107,7 @@ export const WeatherDashboard: React.FC = () => {
           </header>
 
           {/* Content */}
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className="flex-1 overflow-y-auto p-6 w-full">
             {selectedLocation ? (
               <>
                 {/* Error Display */}
@@ -116,21 +119,37 @@ export const WeatherDashboard: React.FC = () => {
 
                 {/* Today's Data Cards */}
                 {todayData && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
                     <WeatherCard
-                      title="Total Precipitation"
-                      value={todayData.precipitation}
-                      unit="inches"
-                      icon={<Droplets className="h-6 w-6" />}
-                      description="Total precipitation for today"
+                      title="High Temp"
+                      value={todayData.tempMax}
+                      unit="°F"
+                      icon={<Thermometer className="h-6 w-6" />}
+                      description="Maximum temperature today"
                     />
                     
                     <WeatherCard
-                      title="Rain Sum"
-                      value={todayData.rain}
-                      unit="inches"
+                      title="Low Temp"
+                      value={todayData.tempMin}
+                      unit="°F"
+                      icon={<Thermometer className="h-6 w-6" />}
+                      description="Minimum temperature today"
+                    />
+                    
+                    <WeatherCard
+                      title="Wind Speed"
+                      value={todayData.windSpeed}
+                      unit="mph"
+                      icon={<Wind className="h-6 w-6" />}
+                      description="Maximum wind speed today"
+                    />
+                    
+                    <WeatherCard
+                      title="Precipitation"
+                      value={todayData.precipitation}
+                      unit="in"
                       icon={<Droplets className="h-6 w-6" />}
-                      description="Rain amount for today"
+                      description="Total precipitation today"
                     />
                     
                     <WeatherCard
@@ -164,47 +183,56 @@ export const WeatherDashboard: React.FC = () => {
                       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-800">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Date
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Precipitation (in)
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              High (°F)
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Rain (in)
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Low (°F)
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              ET₀ Daily (mm)
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Wind (mph)
                             </th>
-                            <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              ET₀ Sum (mm)
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Precip (in)
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              ET₀ (mm)
                             </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                          {selectedLocation.weatherData.daily.time.map((date, index) => (
-                            <tr key={date} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                              <td className="px-6 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                                {new Date(date).toLocaleDateString('en-US', { 
-                                  weekday: 'short', 
-                                  month: 'short', 
-                                  day: 'numeric' 
-                                })}
-                              </td>
-                              <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
-                                {selectedLocation.weatherData?.daily.precipitation_sum[index]?.toFixed(2) || '0.00'}
-                              </td>
-                              <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
-                                {selectedLocation.weatherData?.daily.rain_sum[index]?.toFixed(2) || '0.00'}
-                              </td>
-                              <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
-                                {selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index]?.toFixed(2) || '0.00'}
-                              </td>
-                              <td className="px-6 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
-                                {selectedLocation.weatherData?.daily.et0_fao_evapotranspiration_sum[index]?.toFixed(2) || '0.00'}
-                              </td>
-                            </tr>
-                          ))}
+                          {selectedLocation.weatherData.daily.time.map((date, index) => {
+                            const formattedDate = new Date(date).toLocaleDateString('en-GB', { 
+                              day: '2-digit', 
+                              month: '2-digit', 
+                              year: 'numeric' 
+                            });
+                            return (
+                              <tr key={date} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                  {formattedDate}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
+                                  {selectedLocation.weatherData?.daily.temperature_2m_max[index]?.toFixed(0) || '--'}°
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
+                                  {selectedLocation.weatherData?.daily.temperature_2m_min[index]?.toFixed(0) || '--'}°
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
+                                  {selectedLocation.weatherData?.daily.wind_speed_10m_max[index]?.toFixed(1) || '0.0'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
+                                  {selectedLocation.weatherData?.daily.precipitation_sum[index]?.toFixed(2) || '0.00'}
+                                </td>
+                                <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
+                                  {selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index]?.toFixed(2) || '0.00'}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

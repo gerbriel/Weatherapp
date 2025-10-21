@@ -20,7 +20,7 @@ interface WeatherChartsProps {
 
 export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDarkMode }) => {
   const chartData = weatherData.daily.time.map((date, index) => ({
-    date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    date: new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
     fullDate: date,
     precipitation: weatherData.daily.precipitation_sum[index] || 0,
     rain: weatherData.daily.rain_sum[index] || 0,
