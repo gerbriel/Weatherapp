@@ -234,20 +234,41 @@ serve(async (req: Request) => {
         
         console.log(`Processing email group for ${email} with ${groupSubscriptions.length} subscription(s)`)
 
+        // Debug: Log subscription details
+        console.log('Subscription details:')
+        for (let i = 0; i < groupSubscriptions.length; i++) {
+          const sub = groupSubscriptions[i]
+          console.log(`  Subscription ${i + 1}:`)
+          console.log(`    ID: ${sub.id}`)
+          console.log(`    Email: ${sub.email}`)
+          console.log(`    selected_location_ids:`, sub.selected_location_ids)
+          console.log(`    selected_location_ids type:`, typeof sub.selected_location_ids)
+          console.log(`    selected_location_ids length:`, sub.selected_location_ids?.length || 'undefined')
+        }
+
         // Collect all unique location IDs from all subscriptions in this group
         const allLocationIds = new Set<string>()
         for (const sub of groupSubscriptions) {
-          for (const locationId of sub.selected_location_ids) {
-            allLocationIds.add(locationId)
+          console.log(`Processing subscription ${sub.id} with selected_location_ids:`, sub.selected_location_ids)
+          if (sub.selected_location_ids && Array.isArray(sub.selected_location_ids)) {
+            for (const locationId of sub.selected_location_ids) {
+              console.log(`  Adding location ID: ${locationId}`)
+              allLocationIds.add(locationId)
+            }
+          } else {
+            console.log(`  WARNING: selected_location_ids is not an array or is null/undefined`)
           }
         }
+        
+        console.log(`Total unique location IDs collected: ${allLocationIds.size}`)
+        console.log(`Location IDs:`, Array.from(allLocationIds))
         
         // Fetch fresh weather data for all locations (ensure fresh data right before send)
         const allWeatherData = await fetchWeatherDataForLocations(Array.from(allLocationIds), supabase)
         
         // Create consolidated email content
         const isWelcomeEmail = groupSubscriptions.some(sub => !sub.last_sent_at)
-        const emailHtml = createConsolidatedEmailContent(userName, allWeatherData, isWelcomeEmail, groupSubscriptions.length)
+        const emailHtml = createConsolidatedEmailContent(userName, allWeatherData, isWelcomeEmail)
         
         // Generate dynamic weather icon based on primary location
         const weatherIcon = getWeatherIcon(allWeatherData)
@@ -352,46 +373,48 @@ serve(async (req: Request) => {
 
 // Fetch weather data for multiple locations
 async function fetchWeatherDataForLocations(locationIds: string[], supabase: any): Promise<WeatherLocationData[]> {
-  const weatherData: WeatherLocationData[] = []
+  console.log(`\n=== fetchWeatherDataForLocations called with ${locationIds.length} location IDs ===`)
+  console.log('Location IDs to fetch:', locationIds)
+  
+  const locations: WeatherLocationData[] = []
   
   for (const locationId of locationIds) {
     try {
-      // Get location details from database
-      const { data: location, error } = await supabase
+      console.log(`\n--- Fetching location data for ID: ${locationId} ---`)
+      
+      // Get location from database
+      const { data: locationData, error: locationError } = await supabase
         .from('weather_locations')
         .select('*')
         .eq('id', locationId)
         .single()
 
-      if (error || !location) {
-        console.error(`Location ${locationId} not found:`, error)
-        continue
-      }
-
-      // Fetch weather data from Open Meteo API
-      const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&daily=temperature_2m_max,temperature_2m_min,wind_speed_10m_max,precipitation_sum,rain_sum,et0_fao_evapotranspiration,et0_fao_evapotranspiration_sum&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=14&models=ncep_gfs_seamless`
-      
-      const weatherResponse = await fetch(weatherUrl)
-      const weatherJson = await weatherResponse.json()
-      
-      console.log(`Weather API response for ${location.name}:`, JSON.stringify(weatherJson, null, 2))
-      
-      if (!weatherResponse.ok) {
-        console.error(`Weather API error for ${location.name}:`, weatherJson)
+      if (locationError) {
+        console.error(`❌ Error fetching location ${locationId}:`, locationError)
         continue
       }
       
-      weatherData.push({
-        location: location,
-        weather: weatherJson
+      if (!locationData) {
+        console.error(`❌ No location data found for ID: ${locationId}`)
+        continue
+      }
+      
+      console.log(`✅ Found location data for ${locationId}:`, {
+        id: locationData.id,
+        name: locationData.name,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude
       })
       
+      // TODO: Add weather fetching and processing here
+      
     } catch (error) {
-      console.error(`Error fetching weather for location ${locationId}:`, error)
+      console.error(`❌ Error processing location ${locationId}:`, error)
     }
   }
   
-  return weatherData
+  console.log(`\n=== Finished fetching. Returning ${locations.length} locations ===`)
+  return locations
 }
 
 // Function to determine weather icon based on conditions

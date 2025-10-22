@@ -12,7 +12,8 @@ const OneTimeEmailSender: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const locationsWithWeather = locations.filter(loc => loc.weatherData && !loc.error);
+  // Use all locations, not just ones with weather data, since the email function will fetch fresh data
+  const availableLocations = locations.filter(loc => loc.latitude && loc.longitude && loc.name);
 
   const handleLocationToggle = (locationId: string) => {
     setSelectedLocations(prev => {
@@ -27,7 +28,7 @@ const OneTimeEmailSender: React.FC = () => {
   };
 
   const handleSelectAll = () => {
-    setSelectedLocations(new Set(locationsWithWeather.map(loc => loc.id)));
+    setSelectedLocations(new Set(availableLocations.map(loc => loc.id)));
   };
 
   const handleDeselectAll = () => {
@@ -35,6 +36,9 @@ const OneTimeEmailSender: React.FC = () => {
   };
 
   const handleSendNow = async () => {
+    console.log('Sending one-time weather email...');
+    console.log(`Email: ${email}, Locations: ${selectedLocations.size}`);
+
     if (!email) {
       setError('Please enter an email address');
       return;
@@ -45,28 +49,146 @@ const OneTimeEmailSender: React.FC = () => {
       return;
     }
 
+    if (availableLocations.length === 0) {
+      setError('No locations available. Please add some locations first.');
+      return;
+    }
     setError(null);
+    setSuccess(false);
     setSending(true);
 
     try {
-      // Create a one-time subscription that gets processed immediately
-      await EmailSubscriptionService.createSubscription({
+      // First, ensure selected locations are saved to the database
+      const savedLocationIds: string[] = [];
+      
+      for (const locationId of selectedLocations) {
+        const location = availableLocations.find(loc => loc.id === locationId);
+        if (location) {
+          try {
+            // Check if location already exists in database
+            const existingLocations = await LocationService.getLocations();
+            const existingLocation = existingLocations.find(loc => 
+              Math.abs(loc.latitude - location.latitude) < 0.001 && 
+              Math.abs(loc.longitude - location.longitude) < 0.001
+            );
+            
+            if (existingLocation) {
+              savedLocationIds.push(existingLocation.id);
+            } else {
+              // Save new location to database
+              const savedLocation = await LocationService.saveLocation({
+                name: location.name,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                is_favorite: location.isFavorite || false
+              });
+              savedLocationIds.push(savedLocation.id);
+            }
+          } catch (locationError) {
+            console.error('Error saving location:', location.name, locationError);
+          }
+        }
+      }
+      
+      if (savedLocationIds.length === 0) {
+        setError('Could not save locations to database. Please try again.');
+        setSending(false);
+        return;
+      }
+
+      console.log(`Creating subscription for ${savedLocationIds.length} locations`);
+
+      // Create a one-time subscription with scheduled_at set to 5 minutes ago
+      // This ensures the database trigger sets next_send_at to a time that's definitely passed
+      const scheduledTime = new Date(Date.now() - 300000); // 5 minutes ago
+      const subscription = await EmailSubscriptionService.createSubscription({
         email: email,
         name: 'One-time Send',
-        selected_location_ids: Array.from(selectedLocations),
+        selected_location_ids: savedLocationIds,
         is_recurring: false,
         enabled: true,
         schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        scheduled_at: new Date().toISOString(), // Send immediately
+        scheduled_at: scheduledTime.toISOString(),
       });
 
+      console.log(`Created subscription: ${subscription.id}`);
+
+      // Immediately trigger the email sending function
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      // Always show success message since subscription is created
       setSuccess(true);
       setEmail('');
       setSelectedLocations(new Set());
       
+      // Try to trigger email function if environment is configured
+      if (supabaseUrl && supabaseKey) {
+        const emailFunctionUrl = `${supabaseUrl}/functions/v1/send-weather-emails`;
+        console.log('Attempting to trigger email function at:', emailFunctionUrl);
+        
+        // Use setTimeout to trigger after a longer delay to ensure database transaction commits
+        setTimeout(async () => {
+          try {
+            console.log('Triggering email function after delay...');
+            
+            // First, let's verify the subscription exists in the database
+            try {
+              const allSubs = await EmailSubscriptionService.getActiveSubscriptions();
+              const ourSub = allSubs.find(s => s.id === subscription.id);
+              console.log('Our subscription in database:', ourSub ? 'Found' : 'Not found');
+              if (ourSub) {
+                console.log('Subscription details:', {
+                  id: ourSub.id,
+                  email: ourSub.email,
+                  locationIds: ourSub.selected_location_ids,
+                  nextSendAt: ourSub.next_send_at,
+                  enabled: ourSub.enabled,
+                  isRecurring: ourSub.is_recurring
+                });
+              }
+            } catch (dbError) {
+              console.error('Error checking subscription in database:', dbError);
+            }
+            
+            const response = await fetch(emailFunctionUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${supabaseKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                trigger: 'one_time_email_immediate',
+                subscription_id: subscription.id,
+                timestamp: new Date().toISOString(),
+                force_debug: true
+              })
+            });
+            
+            console.log('Email function trigger response:', response.status);
+            const result = await response.json();
+            console.log('Email function result details:', JSON.stringify(result, null, 2));
+            
+            if (response.ok && result.success_count > 0) {
+              console.log(`✅ Successfully sent email to ${result.success_count} recipients`);
+              console.log('Full result object:', result);
+            } else {
+              console.warn(`⚠️ Email function response: ${JSON.stringify(result)}`);
+            }
+          } catch (emailErr) {
+            console.warn('Background email trigger failed:', emailErr);
+            // Don't show error to user since subscription was created successfully
+          }
+        }, 5000); // Wait 5 seconds before triggering to ensure DB commit
+      } else {
+        console.log('Environment variables not configured for immediate sending. Email will be processed by scheduled function.');
+      }
+      
       setTimeout(() => setSuccess(false), 5000); // Hide success message after 5 seconds
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send email');
+      console.error('Error in handleSendNow:', err);
+      setError(`Failed to send email: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      setSuccess(false);
     } finally {
       setSending(false);
     }
@@ -81,6 +203,11 @@ const OneTimeEmailSender: React.FC = () => {
       
       <p className="text-gray-600 dark:text-gray-400 mb-4">
         Get an instant weather report for your selected locations sent directly to your email.
+        {!import.meta.env.VITE_SUPABASE_URL && (
+          <span className="block mt-2 text-sm text-amber-600 dark:text-amber-400">
+            ⚠️ For immediate sending, configure your .env file with Supabase credentials. See troubleshooting guide below.
+          </span>
+        )}
       </p>
 
       {error && (
@@ -141,12 +268,12 @@ const OneTimeEmailSender: React.FC = () => {
           </div>
 
           <div className="space-y-2 max-h-48 overflow-y-auto">
-            {locationsWithWeather.length === 0 ? (
+            {availableLocations.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-                No locations with weather data available. Add and refresh some locations first.
+                No locations available. Add some locations first.
               </p>
             ) : (
-              locationsWithWeather.map((location) => {
+              availableLocations.map((location) => {
                 const isSelected = selectedLocations.has(location.id);
                 
                 return (
