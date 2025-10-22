@@ -466,10 +466,11 @@ export const EmailNotifications: React.FC = () => {
                   </button>
                   <button
                     onClick={() => handleDeleteSubscription(subscription.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                    className="gh-btn bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-sm"
                     disabled={loading}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
                   </button>
                 </div>
               </div>
