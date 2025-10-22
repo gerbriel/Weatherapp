@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Plus, Trash2, Clock, MapPin, CheckCircle, AlertCircle, Calendar, Repeat, CalendarDays, Send } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
-import { EmailSubscriptionService } from '../services/supabaseService';
+import { EmailSubscriptionService, LocationService } from '../services/supabaseService';
 import type { EmailSubscription } from '../types/weather';
 
 export const EmailNotifications: React.FC = () => {
@@ -79,8 +79,36 @@ export const EmailNotifications: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      // Save selected locations to Supabase first to get proper UUIDs
+      const selectedLocations = locations.filter(loc => 
+        newSubscription.selected_location_ids.includes(loc.id)
+      );
+      
+      const supabaseLocationIds: string[] = [];
+      
+      for (const location of selectedLocations) {
+        try {
+          const savedLocation = await LocationService.saveLocation({
+            name: location.name,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            is_favorite: location.isFavorite,
+          });
+          supabaseLocationIds.push(savedLocation.id);
+        } catch (err) {
+          // Location might already exist, skip it for now
+          console.warn('Could not save location:', location.name, err);
+        }
+      }
+      
+      if (supabaseLocationIds.length === 0) {
+        setError('Could not save locations to database. Please try again.');
+        return;
+      }
+      
       const subscriptionData = {
         ...newSubscription,
+        selected_location_ids: supabaseLocationIds, // Use Supabase UUIDs
         scheduled_at: newSubscription.is_recurring ? undefined : new Date(newSubscription.scheduled_at).toISOString(),
         schedule_day_of_week: newSubscription.is_recurring ? newSubscription.schedule_day_of_week : undefined,
         schedule_hour: newSubscription.is_recurring ? newSubscription.schedule_hour : undefined,
