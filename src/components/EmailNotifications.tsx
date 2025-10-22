@@ -10,6 +10,8 @@ export const EmailNotifications: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [newSubscription, setNewSubscription] = useState({
     email: '',
     name: '',
@@ -118,6 +120,19 @@ export const EmailNotifications: React.FC = () => {
       const created = await EmailSubscriptionService.createSubscription(subscriptionData);
       setSubscriptions(prev => [created, ...prev]);
       
+      // Show success modal
+      setSuccessMessage(
+        `Success! Your ${newSubscription.is_recurring ? 'recurring' : 'one-time'} weather email subscription has been created. ` +
+        `You'll receive your first email shortly at ${newSubscription.email}. ` +
+        `${newSubscription.is_recurring ? 
+          `Then you'll get emails every ${daysOfWeek.find(d => d.value === newSubscription.schedule_day_of_week)?.label} at ${String(newSubscription.schedule_hour).padStart(2, '0')}:${String(newSubscription.schedule_minute).padStart(2, '0')}.` :
+          'This is a one-time email.'}`
+      );
+      setShowSuccessModal(true);
+      
+      // Hide form after successful submission
+      setShowAddForm(false);
+      
       // Reset form
       setNewSubscription({
         email: '',
@@ -131,7 +146,6 @@ export const EmailNotifications: React.FC = () => {
         scheduled_at: '',
         enabled: true,
       });
-      setShowAddForm(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create subscription');
     } finally {
@@ -202,14 +216,21 @@ export const EmailNotifications: React.FC = () => {
             Automated weather reports sent via Supabase Edge Functions
           </p>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="gh-btn gh-btn-primary"
-          disabled={loading}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Subscription
-        </button>
+        {!showAddForm && subscriptions.length === 0 && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="gh-btn gh-btn-primary"
+            disabled={loading}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Subscription
+          </button>
+        )}
+        {subscriptions.length > 0 && (
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Subscription created! Check your email for updates.
+          </div>
+        )}
       </div>
 
       {error && (
@@ -478,6 +499,39 @@ export const EmailNotifications: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="h-8 w-8 text-green-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Subscription Created!
+                  </h3>
+                </div>
+              </div>
+              
+              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                {successMessage}
+              </p>
+              
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowSuccessModal(false)}
+                  className="gh-btn gh-btn-primary"
+                >
+                  Got it!
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
