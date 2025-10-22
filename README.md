@@ -80,6 +80,22 @@ The app is configured for automatic deployment to GitHub Pages:
 - **Recharts** for data visualization
 - **Lucide React** for icons
 
+## 🚀 Deployment
+
+This application is ready for production deployment on GitHub Pages with automated email functionality.
+
+### Quick Deployment Links
+- 📋 **[GitHub Deployment Guide](./GITHUB_DEPLOYMENT.md)** - Complete setup instructions
+- 🔐 **[Secrets Setup Checklist](./SECRETS_SETUP.md)** - Required repository secrets
+- 🔧 **[Supabase Production Setup](./SUPABASE_PRODUCTION.md)** - Edge Function deployment
+
+### Production Features
+- ✅ **GitHub Pages hosting** with automated builds
+- ✅ **Email consolidation** - Multiple locations in one email
+- ✅ **Fresh weather data** - API calls made before each send
+- ✅ **Dashboard styling** - Beautiful HTML email templates
+- ✅ **Automated scheduling** - GitHub Actions every 5 minutes
+
 ## API Data Source
 
 Weather data is provided by [Open Meteo](https://open-meteo.com/):

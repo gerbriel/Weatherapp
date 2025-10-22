@@ -107,3 +107,109 @@ export interface EmailPreferences {
   createdAt: string;
   lastSent?: string;
 }
+
+// Enhanced interfaces for admin analytics
+export interface EmailStats {
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  recurringSubscriptions: number;
+  oneTimeSubscriptions: number;
+  totalEmailsSent: number;
+  successfulSends: number;
+  failedSends: number;
+  recentSends: EnhancedEmailSendLog[];
+  subscriptionsByDay: { [key: string]: number };
+  emailsByStatus: { [key: string]: number };
+}
+
+export interface EnhancedEmailSendLog extends EmailSendLog {
+  subscription?: {
+    email: string;
+    name: string;
+  };
+  email_subscriptions?: {
+    email: string;
+    name: string;
+    is_recurring?: boolean;
+  };
+}
+
+export interface SubscriptionAnalytics {
+  creationTimeline: Array<{
+    created_at: string;
+    is_recurring: boolean;
+  }>;
+  sendTimeline: Array<{
+    sent_at: string;
+    status: string;
+  }>;
+}
+
+// Subscriber Profile System
+export interface SubscriberProfile {
+  email: string;
+  name: string;
+  subscriptions: EmailSubscription[];
+  
+  // Overall totals
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  totalEmailsSent: number;
+  successfulSends: number;
+  failedSends: number;
+  
+  // Recurring vs Single Send breakdown
+  recurringSubscriptions: number;
+  singleSends: number;
+  activeRecurringSubscriptions: number;
+  completedSingleSends: number;
+  pendingSingleSends: number;
+  
+  // Analytics
+  firstSubscribed: string;
+  lastActive: string;
+  uniqueLocations: number;
+  locationNames: string[];
+  recentActivity: EnhancedEmailSendLog[];
+  apiRequestCount?: number;
+  avgEmailsPerMonth?: number;
+  preferredSchedule?: {
+    days: number[];
+    times: string[];
+  };
+}
+
+export interface SubscriberStats {
+  // Overall metrics
+  totalSubscribers: number;
+  activeSubscribers: number;
+  totalApiRequests: number;
+  avgSubscriptionsPerUser: number;
+  
+  // Recurring vs Single Send breakdown
+  recurringSubscribers: number;
+  singleSendUsers: number;
+  activeRecurringSubscriptions: number;
+  totalSingleSends: number;
+  completedSingleSends: number;
+  pendingSingleSends: number;
+  
+  // Analytics
+  topLocations: Array<{
+    locationId: string;
+    locationName: string;
+    subscriberCount: number;
+    singleSendCount?: number;
+  }>;
+  recentSubscribers: SubscriberProfile[];
+}export interface ApiUsageLog {
+  id: string;
+  subscriber_email: string;
+  endpoint: string;
+  method: string;
+  timestamp: string;
+  ip_address?: string;
+  user_agent?: string;
+  response_status: number;
+  response_time_ms?: number;
+}

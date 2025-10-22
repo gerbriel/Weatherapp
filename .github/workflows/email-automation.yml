@@ -11,15 +11,46 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Trigger Weather Email Function
+      - name: Check Required Secrets
         run: |
-          response=$(curl -s -X POST \
+          if [ -z "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ]; then
+            echo "❌ Error: SUPABASE_SERVICE_ROLE_KEY secret is not set"
+            exit 1
+          fi
+          echo "✅ All required secrets are configured"
+
+      - name: Trigger Weather Email Function
+        id: trigger_emails
+        run: |
+          echo "🚀 Triggering weather email automation..."
+          
+          response=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             "https://uflvdccamhbgaqnbygfw.supabase.co/functions/v1/send-weather-emails")
-          echo "Response: $response"
+          
+          # Extract HTTP status code and response body
+          http_code=$(echo "$response" | tail -n1)
+          response_body=$(echo "$response" | sed '$d')
+          
+          echo "📡 HTTP Status: $http_code"
+          echo "📄 Response Body: $response_body"
+          
+          # Check if the request was successful
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "✅ Weather email function executed successfully"
+          else
+            echo "⚠️ Warning: HTTP $http_code - $response_body"
+          fi
         continue-on-error: true
 
-      - name: Log Status
+      - name: Log Execution Status
         run: |
-          echo "Weather email automation check completed at $(date)"
+          echo "📊 Weather Email Automation Summary"
+          echo "⏰ Execution Time: $(date '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "🔄 Workflow: ${{ github.workflow }}"
+          echo "📍 Repository: ${{ github.repository }}"
+          echo "🔧 Run ID: ${{ github.run_id }}"
+          echo ""
+          echo "ℹ️  This automation checks for scheduled weather emails every 5 minutes"
+          echo "ℹ️  The Edge Function handles email consolidation and fresh weather data"

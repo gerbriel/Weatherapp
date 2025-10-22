@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Droplets, Gauge, MapPin, Menu, X, Thermometer, Wind } from 'lucide-react';
+import { Droplets, Gauge, MapPin, Menu, X, Thermometer, Wind, Shield, FileText } from 'lucide-react';
 import { WeatherCard } from './WeatherCard';
 import { WeatherCharts } from './WeatherCharts';
 import { LocationsList } from './LocationsList';
+import { ReportView } from './ReportView';
 import { ThemeToggle } from './ThemeToggle';
+import { AdminPanel } from './AdminPanel';
 import { useTheme } from '../contexts/ThemeContext';
 import type { LocationWithWeather } from '../types/weather';
 
@@ -11,6 +13,8 @@ export const WeatherDashboard: React.FC = () => {
   const { isDarkMode } = useTheme();
   const [selectedLocation, setSelectedLocation] = useState<LocationWithWeather | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [currentView, setCurrentView] = useState<'location' | 'report'>('location');
 
   const handleLocationSelect = (location: LocationWithWeather) => {
     setSelectedLocation(location);
@@ -102,13 +106,50 @@ export const WeatherDashboard: React.FC = () => {
                 </div>
               </div>
               
-              <ThemeToggle />
+              <div className="flex items-center space-x-3">
+                {/* View Navigation Buttons */}
+                <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                  <button
+                    onClick={() => setCurrentView('location')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      currentView === 'location'
+                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4 mr-1 inline" />
+                    Location View
+                  </button>
+                  <button
+                    onClick={() => setCurrentView('report')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      currentView === 'report'
+                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <FileText className="h-4 w-4 mr-1 inline" />
+                    View Report
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setShowAdminPanel(true)}
+                  className="p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  title="Admin Panel"
+                >
+                  <Shield className="h-5 w-5" />
+                </button>
+                <ThemeToggle />
+              </div>
             </div>
           </header>
 
           {/* Content */}
           <main className="flex-1 overflow-y-auto p-6 w-full">
-            {selectedLocation ? (
+            {currentView === 'report' ? (
+              <ReportView />
+            ) : selectedLocation ? (
               <>
                 {/* Error Display */}
                 {selectedLocation.error && (
@@ -264,6 +305,11 @@ export const WeatherDashboard: React.FC = () => {
           </main>
         </div>
       </div>
+      
+      {/* Admin Panel Modal */}
+      {showAdminPanel && (
+        <AdminPanel onClose={() => setShowAdminPanel(false)} />
+      )}
     </div>
   );
 };
