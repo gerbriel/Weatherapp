@@ -15,7 +15,7 @@ jobs:
         run: |
           response=$(curl -s -X POST \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmbHZkY2NhbWhiZ2FxbmJ5Z2Z3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTA4MTI2MywiZXhwIjoyMDc2NjU3MjYzfQ.Er53-sA447g3oOufA_UQbqIAkkC6Ydyg0L647zOfZ84" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             "https://uflvdccamhbgaqnbygfw.supabase.co/functions/v1/send-weather-emails")
           echo "Response: $response"
         continue-on-error: true
