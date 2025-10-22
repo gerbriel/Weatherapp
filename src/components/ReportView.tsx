@@ -2,6 +2,7 @@ import React from 'react';
 import { MapPin, Thermometer, Wind, Droplets, Gauge, Calendar, Download, FileSpreadsheet } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
+import { WeatherCharts } from './LocationWeatherCharts';
 
 export const ReportView: React.FC = () => {
   const { locations } = useLocations();
@@ -250,6 +251,11 @@ export const ReportView: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            {/* Weather Charts */}
+            <div className="mt-6">
+              <WeatherCharts location={location} />
             </div>
           </div>
         );
