@@ -1,0 +1,24 @@
+name: Email Automation
+
+on:
+  schedule:
+    # Run every minute
+    - cron: '* * * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  send-weather-emails:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Trigger Weather Email Function
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            "https://uflvdccamhbgaqnbygfw.supabase.co/functions/v1/send-weather-emails"
+        continue-on-error: true
+
+      - name: Log Status
+        run: |
+          echo "Weather email automation check completed at $(date)"

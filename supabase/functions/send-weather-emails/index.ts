@@ -189,6 +189,13 @@ async function fetchWeatherDataForLocations(locationIds: string[], supabase: any
       const weatherResponse = await fetch(weatherUrl)
       const weatherJson = await weatherResponse.json()
       
+      console.log(`Weather API response for ${location.name}:`, JSON.stringify(weatherJson, null, 2))
+      
+      if (!weatherResponse.ok) {
+        console.error(`Weather API error for ${location.name}:`, weatherJson)
+        continue
+      }
+      
       weatherData.push({
         location: location,
         weather: weatherJson
@@ -219,13 +226,13 @@ function createEmailContent(userName: string, weatherData: WeatherLocationData[]
   `
   
   weatherData.forEach(({ location, weather }) => {
-    const today = weather.daily
+    const today = weather?.daily || {}
     const todayData = {
-      tempMax: today.temperature_2m_max?.[0]?.toFixed(1) || 'N/A',
-      tempMin: today.temperature_2m_min?.[0]?.toFixed(1) || 'N/A',
-      windSpeed: today.wind_speed_10m_max?.[0]?.toFixed(1) || 'N/A',
-      precipitation: today.precipitation_sum?.[0]?.toFixed(2) || 'N/A',
-      et0: today.et0_fao_evapotranspiration?.[0]?.toFixed(2) || 'N/A'
+      tempMax: today.temperature_2m_max?.[0]?.toFixed?.(1) || 'N/A',
+      tempMin: today.temperature_2m_min?.[0]?.toFixed?.(1) || 'N/A',
+      windSpeed: today.wind_speed_10m_max?.[0]?.toFixed?.(1) || 'N/A',
+      precipitation: today.precipitation_sum?.[0]?.toFixed?.(2) || 'N/A',
+      et0: today.et0_fao_evapotranspiration?.[0]?.toFixed?.(2) || 'N/A'
     }
     
     emailHTML += `
