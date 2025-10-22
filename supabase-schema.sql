@@ -134,15 +134,63 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Function to clean up sent emails for privacy/security
+CREATE OR REPLACE FUNCTION cleanup_sent_emails()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- For one-time emails: Delete the subscription after logging the send
+    IF NEW.status = 'sent' THEN
+        DELETE FROM email_subscriptions 
+        WHERE id = NEW.subscription_id 
+        AND is_recurring = false;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to auto-delete one-time subscriptions after they're sent
+CREATE TRIGGER trigger_cleanup_sent_emails
+    AFTER INSERT OR UPDATE ON email_send_logs
+    FOR EACH ROW
+    WHEN (NEW.status = 'sent')
+    EXECUTE FUNCTION cleanup_sent_emails();
+
 CREATE TRIGGER trigger_update_next_send_time
     BEFORE INSERT OR UPDATE ON email_subscriptions
     FOR EACH ROW
     EXECUTE FUNCTION update_next_send_time();
 
+-- Function for manual cleanup of old data (for privacy)
+CREATE OR REPLACE FUNCTION cleanup_old_data()
+RETURNS TEXT AS $$
+DECLARE
+    deleted_logs INTEGER;
+    disabled_subs INTEGER;
+BEGIN
+    -- Delete email logs older than 30 days
+    DELETE FROM email_send_logs 
+    WHERE sent_at < NOW() - INTERVAL '30 days';
+    GET DIAGNOSTICS deleted_logs = ROW_COUNT;
+    
+    -- Optionally disable recurring subscriptions older than 90 days with no recent sends
+    UPDATE email_subscriptions 
+    SET enabled = false 
+    WHERE is_recurring = true 
+    AND (last_sent_at IS NULL OR last_sent_at < NOW() - INTERVAL '90 days')
+    AND created_at < NOW() - INTERVAL '90 days';
+    GET DIAGNOSTICS disabled_subs = ROW_COUNT;
+    
+    RETURN FORMAT('Cleaned up %s old logs, disabled %s old subscriptions', deleted_logs, disabled_subs);
+END;
+$$ LANGUAGE plpgsql;
+
 -- Sample data (optional)
 -- INSERT INTO weather_locations (name, latitude, longitude, is_favorite) 
 -- VALUES ('Los Angeles, CA', 34.0522, -118.2437, true);
 
-COMMENT ON TABLE email_subscriptions IS 'Email subscription preferences with recurring and one-time scheduling';
-COMMENT ON TABLE email_send_logs IS 'Log of all email send attempts and results';
+COMMENT ON TABLE email_subscriptions IS 'Email subscription preferences with recurring and one-time scheduling (auto-cleanup after send for one-time)';
+COMMENT ON TABLE email_send_logs IS 'Log of all email send attempts and results (auto-cleanup after 30 days)';
 COMMENT ON TABLE weather_locations IS 'Weather locations for weather data fetching';
+COMMENT ON FUNCTION cleanup_sent_emails() IS 'Auto-deletes one-time subscriptions after successful email send for privacy';
+COMMENT ON FUNCTION cleanup_old_data() IS 'Manual cleanup of old logs and inactive subscriptions for privacy';
