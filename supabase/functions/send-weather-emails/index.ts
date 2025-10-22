@@ -6,32 +6,42 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface EmailData {
-  to_name: string;
-  to_email: string;
-  weather_data: string;
-  locations_count: number;
+interface WeatherLocationData {
+  location: {
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+  };
+  weather: any;
 }
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    // Get environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    const fromEmail = Deno.env.get('FROM_EMAIL') || 'weather@resend.dev'
+
+    if (!supabaseUrl || !supabaseKey || !resendApiKey) {
+      throw new Error('Missing required environment variables')
+    }
+
     // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
     // Get current time
     const now = new Date()
     console.log(`Checking for emails to send at ${now.toISOString()}`)
 
     // Get subscriptions due for sending
-    const { data: subscriptions, error: subscriptionsError } = await supabaseClient
+    const { data: subscriptions, error: subscriptionsError } = await supabase
       .from('email_subscriptions')
       .select('*')
       .eq('enabled', true)
@@ -59,55 +69,67 @@ serve(async (req) => {
         console.log(`Processing subscription ${subscription.id} for ${subscription.email}`)
 
         // Fetch weather data for selected locations
-        const weatherData = await fetchWeatherDataForLocations(subscription.selected_location_ids)
+        const weatherData = await fetchWeatherDataForLocations(subscription.selected_location_ids, supabase)
         
         // Create email content
-        const emailContent = createEmailContent(subscription.name, weatherData)
+        const emailHtml = createEmailContent(subscription.name, weatherData)
         
-        // Send email via EmailJS API (or your preferred email service)
-        const emailResult = await sendEmailViaService({
-          to_name: subscription.name,
-          to_email: subscription.email,
-          weather_data: emailContent,
-          locations_count: subscription.selected_location_ids.length
+        // Send email via Resend API
+        const emailResponse = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [subscription.email],
+            subject: `🌤️ Weather Report - ${new Date().toLocaleDateString('en-GB')}`,
+            html: emailHtml,
+            reply_to: fromEmail
+          }),
         })
 
+        const emailResult = await emailResponse.json()
+        const success = emailResponse.ok
+
         // Log the send attempt
-        await supabaseClient
+        await supabase
           .from('email_send_logs')
           .insert([{
             subscription_id: subscription.id,
-            status: emailResult.success ? 'sent' : 'failed',
-            error_message: emailResult.success ? null : emailResult.error,
+            status: success ? 'sent' : 'failed',
+            error_message: success ? null : (emailResult.message || 'Unknown error'),
             locations_count: subscription.selected_location_ids.length,
             weather_data: { locations: weatherData }
           }])
 
-        if (emailResult.success) {
+        if (success) {
           // Update subscription with last_sent and calculate next_send_at
-          await updateSubscriptionAfterSend(supabaseClient, subscription)
+          await updateSubscriptionAfterSend(supabase, subscription)
           console.log(`Successfully sent email to ${subscription.email}`)
         } else {
-          console.error(`Failed to send email to ${subscription.email}:`, emailResult.error)
+          console.error(`Failed to send email to ${subscription.email}:`, emailResult.message)
         }
 
         results.push({
           subscription_id: subscription.id,
           email: subscription.email,
-          success: emailResult.success,
-          error: emailResult.error
+          success: success,
+          error: success ? null : emailResult.message
         })
 
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         console.error(`Error processing subscription ${subscription.id}:`, error)
         
         // Log the failure
-        await supabaseClient
+        await supabase
           .from('email_send_logs')
           .insert([{
             subscription_id: subscription.id,
             status: 'failed',
-            error_message: error.message,
+            error_message: errorMessage,
             locations_count: subscription.selected_location_ids.length
           }])
 
@@ -115,7 +137,7 @@ serve(async (req) => {
           subscription_id: subscription.id,
           email: subscription.email,
           success: false,
-          error: error.message
+          error: errorMessage
         })
       }
     }
@@ -134,27 +156,23 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Function error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
 })
 
 // Fetch weather data for multiple locations
-async function fetchWeatherDataForLocations(locationIds: string[]): Promise<any[]> {
-  const weatherData = []
+async function fetchWeatherDataForLocations(locationIds: string[], supabase: any): Promise<WeatherLocationData[]> {
+  const weatherData: WeatherLocationData[] = []
   
   for (const locationId of locationIds) {
     try {
       // Get location details from database
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
-      
-      const { data: location, error } = await supabaseClient
+      const { data: location, error } = await supabase
         .from('weather_locations')
         .select('*')
         .eq('id', locationId)
@@ -185,7 +203,7 @@ async function fetchWeatherDataForLocations(locationIds: string[]): Promise<any[
 }
 
 // Create HTML email content
-function createEmailContent(userName: string, weatherData: any[]): string {
+function createEmailContent(userName: string, weatherData: WeatherLocationData[]): string {
   const currentDate = new Date().toLocaleDateString('en-GB', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -196,18 +214,18 @@ function createEmailContent(userName: string, weatherData: any[]): string {
   let emailHTML = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
       <div style="background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <h1 style="color: #0969da; margin-bottom: 8px; font-size: 24px;">🌤️ Weekly Weather Report</h1>
+        <h1 style="color: #0969da; margin-bottom: 8px; font-size: 24px;">🌤️ Weather Report</h1>
         <p style="color: #656d76; margin-bottom: 30px; font-size: 16px;">Hello ${userName}! Here's your weather update for ${currentDate}</p>
   `
   
   weatherData.forEach(({ location, weather }) => {
     const today = weather.daily
     const todayData = {
-      tempMax: today.temperature_2m_max?.[0] || 'N/A',
-      tempMin: today.temperature_2m_min?.[0] || 'N/A',
-      windSpeed: today.wind_speed_10m_max?.[0] || 'N/A',
-      precipitation: today.precipitation_sum?.[0] || 'N/A',
-      et0: today.et0_fao_evapotranspiration?.[0] || 'N/A'
+      tempMax: today.temperature_2m_max?.[0]?.toFixed(1) || 'N/A',
+      tempMin: today.temperature_2m_min?.[0]?.toFixed(1) || 'N/A',
+      windSpeed: today.wind_speed_10m_max?.[0]?.toFixed(1) || 'N/A',
+      precipitation: today.precipitation_sum?.[0]?.toFixed(2) || 'N/A',
+      et0: today.et0_fao_evapotranspiration?.[0]?.toFixed(2) || 'N/A'
     }
     
     emailHTML += `
@@ -240,7 +258,8 @@ function createEmailContent(userName: string, weatherData: any[]): string {
   
   emailHTML += `
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #d1d9e0;">
-          <p style="color: #656d76; font-size: 14px;">This report was generated by ET Weather App</p>
+          <p style="color: #656d76; font-size: 14px;">This report was generated automatically by ET Weather App</p>
+          <p style="color: #656d76; font-size: 12px;">Powered by Open Meteo API & Supabase</p>
         </div>
       </div>
     </div>
@@ -249,60 +268,20 @@ function createEmailContent(userName: string, weatherData: any[]): string {
   return emailHTML
 }
 
-// Send email via external service (EmailJS or other)
-async function sendEmailViaService(emailData: EmailData): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Use EmailJS API directly
-    const emailJSUrl = 'https://api.emailjs.com/api/v1.0/email/send'
-    
-    const payload = {
-      service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-      template_id: Deno.env.get('EMAILJS_TEMPLATE_ID'),
-      user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-      template_params: {
-        to_name: emailData.to_name,
-        to_email: emailData.to_email,
-        from_name: 'ET Weather App',
-        subject: `🌤️ Weekly Weather Report - ${new Date().toLocaleDateString('en-GB')}`,
-        message_html: emailData.weather_data,
-        reply_to: 'noreply@etweather.app'
-      }
-    }
-    
-    const response = await fetch(emailJSUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload)
-    })
-    
-    if (response.ok) {
-      return { success: true }
-    } else {
-      const errorText = await response.text()
-      return { success: false, error: `EmailJS API error: ${response.status} - ${errorText}` }
-    }
-    
-  } catch (error) {
-    return { success: false, error: `Email send failed: ${error.message}` }
-  }
-}
-
 // Update subscription after successful send
-async function updateSubscriptionAfterSend(supabaseClient: any, subscription: any) {
+async function updateSubscriptionAfterSend(supabase: any, subscription: any) {
   const now = new Date().toISOString()
   
   let nextSendAt = null
   
   // If recurring, calculate next send time
   if (subscription.is_recurring) {
-    const { data: nextSendResult, error: nextSendError } = await supabaseClient
-      .rpc('calculate_next_send_time', {
-        day_of_week: subscription.schedule_day_of_week,
-        hour: subscription.schedule_hour,
-        minute: subscription.schedule_minute,
-        timezone: subscription.schedule_timezone || 'UTC'
+    const { data: nextSendResult, error: nextSendError } = await supabase
+      .rpc('calculate_next_send_at', {
+        p_schedule_day_of_week: subscription.schedule_day_of_week,
+        p_schedule_hour: subscription.schedule_hour,
+        p_schedule_minute: subscription.schedule_minute,
+        p_timezone: subscription.schedule_timezone || 'UTC'
       })
 
     if (!nextSendError) {
@@ -311,7 +290,7 @@ async function updateSubscriptionAfterSend(supabaseClient: any, subscription: an
   }
   
   // Update the subscription
-  await supabaseClient
+  await supabase
     .from('email_subscriptions')
     .update({
       last_sent_at: now,

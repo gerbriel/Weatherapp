@@ -1,11 +1,11 @@
 # 🚀 Supabase Email Automation Setup Guide
 
-This guide will help you set up automated weather emails using Supabase Edge Functions with minute-level precision scheduling.
+This guide will help you set up automated weather emails using Supabase Edge Functions with Resend API for reliable email delivery and minute-level precision scheduling.
 
 ## 📋 Prerequisites
 
 - Supabase project: `https://uflvdccamhbgaqnbygfw.supabase.co`
-- EmailJS account (for email sending service)
+- Resend account (for email sending service) - **Much better than EmailJS!**
 - GitHub repository with secrets access
 
 ## 🗄️ Step 1: Set Up Database Schema
@@ -18,29 +18,31 @@ This guide will help you set up automated weather emails using Supabase Edge Fun
    - Paste and execute in the SQL editor
    - This creates tables: `email_subscriptions`, `email_send_logs`, `weather_locations`
 
-## 📧 Step 2: Configure EmailJS
+## 📧 Step 2: Configure Resend (Much Better than EmailJS!)
 
-1. **Create EmailJS Account**
-   - Go to https://www.emailjs.com/
-   - Create a free account
+### Why Resend?
+- ✅ **No personal email required** - uses professional domains
+- ✅ **Higher reliability** - server-side API, not browser-dependent
+- ✅ **Better deliverability** - emails don't go to spam
+- ✅ **More generous free tier** - 3,000 emails/month vs 200
+- ✅ **Professional appearance** - from `weather@resend.dev`
 
-2. **Set Up Email Service**
-   - Add email service (Gmail, Outlook, etc.)
-   - Note your `SERVICE_ID`
+### Setup Steps:
 
-3. **Create Email Template**
-   - Create a new template with these variables:
-     - `to_name` - Recipient name
-     - `to_email` - Recipient email
-     - `from_name` - Sender name
-     - `subject` - Email subject
-     - `message_html` - HTML content
-     - `reply_to` - Reply-to email
-   - Note your `TEMPLATE_ID`
+1. **Create Resend Account**
+   - Go to https://resend.com
+   - Sign up for free account
 
-4. **Get Public Key**
-   - Go to Account settings
-   - Copy your `PUBLIC_KEY`
+2. **Get API Key**
+   - Go to Dashboard → API Keys
+   - Click "Create API Key"
+   - Copy your key (starts with `re_`)
+
+3. **Choose From Email**
+   - **Option 1**: Use `weather@resend.dev` (no setup required)
+   - **Option 2**: Add your own domain (advanced users)
+
+**That's it!** No templates, no SMTP, no personal email configuration needed!
 
 ## 🔧 Step 3: Configure Supabase Edge Function
 
@@ -59,9 +61,8 @@ This guide will help you set up automated weather emails using Supabase Edge Fun
 3. **Set Environment Variables in Supabase**
    Go to Project Settings > Edge Functions > Environment Variables:
    ```
-   EMAILJS_SERVICE_ID=your_service_id
-   EMAILJS_TEMPLATE_ID=your_template_id  
-   EMAILJS_PUBLIC_KEY=your_public_key
+   RESEND_API_KEY=re_your_api_key_here
+   FROM_EMAIL=weather@resend.dev
    ```
 
 4. **Deploy Edge Function**
@@ -98,10 +99,9 @@ Add these secrets in GitHub repository settings (Settings > Secrets and variable
 ```
 VITE_SUPABASE_URL=https://uflvdccamhbgaqnbygfw.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmbHZkY2NhbWhiZ2FxbmJ5Z2Z3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEwODEyNjMsImV4cCI6MjA3NjY1NzI2M30.GkHxIZvHsijAgfCGdCHZgYu58pTUy8UGGhIpFwJKu4I
-VITE_EMAILJS_SERVICE_ID=your_service_id
-VITE_EMAILJS_TEMPLATE_ID=your_template_id
-VITE_EMAILJS_PUBLIC_KEY=your_public_key
 ```
+
+**Note**: Email credentials are now configured in Supabase Edge Functions environment variables, not GitHub secrets. This is more secure!
 
 ## 🧪 Step 6: Test the System
 
@@ -148,9 +148,10 @@ VITE_EMAILJS_PUBLIC_KEY=your_public_key
 - Check function logs in Supabase dashboard
 
 ### **Emails Not Sending**
-- Verify EmailJS credentials and template
-- Check `email_send_logs` table for error messages
-- Test EmailJS template manually
+- Verify Resend API key is correct in Supabase environment variables
+- Check `email_send_logs` table for error messages  
+- Test Resend API key with curl command
+- Ensure FROM_EMAIL is valid (weather@resend.dev works without setup)
 
 ### **Cron Job Issues**
 - Verify pg_cron extension is enabled
