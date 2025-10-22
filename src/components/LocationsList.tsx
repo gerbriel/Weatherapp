@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Star, Trash2, RefreshCw, MapPin, Plus, X, Mail, CheckSquare, Square } from 'lucide-react';
+import { Star, Trash2, RefreshCw, MapPin, Plus, X, CheckSquare, Square } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
-import { EmailNotifications } from './EmailNotifications';
 import { DEFAULT_CALIFORNIA_LOCATIONS } from '../constants/defaultLocations';
 import type { LocationWithWeather } from '../types/weather';
 
@@ -28,7 +27,6 @@ export const LocationsList: React.FC<LocationsListProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDefaultLocations, setShowDefaultLocations] = useState(false);
   const [selectedDefaultLocations, setSelectedDefaultLocations] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<'locations' | 'emails'>('locations');
   const [newLocation, setNewLocation] = useState({
     name: '',
     latitude: '',
@@ -228,37 +226,6 @@ export const LocationsList: React.FC<LocationsListProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('locations')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'locations'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-            }`}
-          >
-            <MapPin className="h-4 w-4 mr-1 inline" />
-            Locations ({locations.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('emails')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'emails'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-            }`}
-          >
-            <Mail className="h-4 w-4 mr-1 inline" />
-            Email Reports
-          </button>
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === 'locations' ? (
-        <>
           {/* Header */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -483,10 +450,6 @@ export const LocationsList: React.FC<LocationsListProps> = ({
               <p className="text-sm">Add a location to get started</p>
             </div>
           )}
-        </>
-      ) : (
-        <EmailNotifications />
-      )}
     </div>
   );
 };

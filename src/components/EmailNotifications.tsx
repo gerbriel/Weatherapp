@@ -1,7 +1,207 @@
 import React, { useState } from 'react';
-import { Mail, Plus, MapPin, CheckCircle, AlertCircle, CalendarDays, Repeat } from 'lucide-react';
+import { Mail, Plus, MapPin, CheckCircle, AlertCircle, CalendarDays, Repeat, Send, Square, CheckSquare } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { EmailSubscriptionService, LocationService } from '../services/supabaseService';
+
+// One-time email sender component
+const OneTimeEmailSender: React.FC = () => {
+  const { locations } = useLocations();
+  const [email, setEmail] = useState('');
+  const [selectedLocations, setSelectedLocations] = useState<Set<string>>(new Set());
+  const [sending, setSending] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const locationsWithWeather = locations.filter(loc => loc.weatherData && !loc.error);
+
+  const handleLocationToggle = (locationId: string) => {
+    setSelectedLocations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(locationId)) {
+        newSet.delete(locationId);
+      } else {
+        newSet.add(locationId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedLocations(new Set(locationsWithWeather.map(loc => loc.id)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedLocations(new Set());
+  };
+
+  const handleSendNow = async () => {
+    if (!email) {
+      setError('Please enter an email address');
+      return;
+    }
+
+    if (selectedLocations.size === 0) {
+      setError('Please select at least one location');
+      return;
+    }
+
+    setError(null);
+    setSending(true);
+
+    try {
+      // Create a one-time subscription that gets processed immediately
+      await EmailSubscriptionService.createSubscription({
+        email: email,
+        name: 'One-time Send',
+        selected_location_ids: Array.from(selectedLocations),
+        is_recurring: false,
+        enabled: true,
+        schedule_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        scheduled_at: new Date().toISOString(), // Send immediately
+      });
+
+      setSuccess(true);
+      setEmail('');
+      setSelectedLocations(new Set());
+      
+      setTimeout(() => setSuccess(false), 5000); // Hide success message after 5 seconds
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send email');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
+      <div className="flex items-center mb-4">
+        <Send className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Send Weather Report Now</h3>
+      </div>
+      
+      <p className="text-gray-600 dark:text-gray-400 mb-4">
+        Get an instant weather report for your selected locations sent directly to your email.
+      </p>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center space-x-2">
+          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <span className="text-red-700 dark:text-red-300 text-sm">{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center space-x-2">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <span className="text-green-700 dark:text-green-300 text-sm">
+            Weather report sent successfully to {email}!
+          </span>
+        </div>
+      )}
+
+      <div className="space-y-4">
+        {/* Email Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Email Address
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="gh-input w-full"
+            placeholder="your.email@example.com"
+            disabled={sending}
+          />
+        </div>
+
+        {/* Location Selection */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Select Locations ({selectedLocations.size} selected)
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSelectAll}
+                disabled={sending}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                Select All
+              </button>
+              <span className="text-gray-400">•</span>
+              <button
+                onClick={handleDeselectAll}
+                disabled={sending}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {locationsWithWeather.length === 0 ? (
+              <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                No locations with weather data available. Add and refresh some locations first.
+              </p>
+            ) : (
+              locationsWithWeather.map((location) => {
+                const isSelected = selectedLocations.has(location.id);
+                
+                return (
+                  <div
+                    key={location.id}
+                    className="flex items-center p-2 rounded border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <button
+                      onClick={() => handleLocationToggle(location.id)}
+                      disabled={sending}
+                      className="mr-3"
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      ) : (
+                        <Square className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {location.name}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                        {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Send Button */}
+        <button
+          onClick={handleSendNow}
+          disabled={sending || !email || selectedLocations.size === 0}
+          className="gh-btn gh-btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {sending ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Sending Weather Report...
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <Send className="h-4 w-4 mr-2" />
+              Send Now ({selectedLocations.size} location{selectedLocations.size !== 1 ? 's' : ''})
+            </div>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const EmailNotifications: React.FC = () => {
   const { locations } = useLocations();
@@ -172,6 +372,9 @@ export const EmailNotifications: React.FC = () => {
           <span className="text-red-700 dark:text-red-300">{error}</span>
         </div>
       )}
+
+      {/* One-Time Email Send */}
+      <OneTimeEmailSender />
 
       {/* Add Subscription Form */}
       {showAddForm && (

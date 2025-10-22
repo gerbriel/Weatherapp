@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Droplets, Gauge, MapPin, Menu, X, Thermometer, Wind, Shield, FileText } from 'lucide-react';
+import { Droplets, Gauge, MapPin, Menu, X, Thermometer, Wind, Shield, FileText, Mail } from 'lucide-react';
 import { WeatherCard } from './WeatherCard';
 import { WeatherCharts } from './WeatherCharts';
 import { LocationsList } from './LocationsList';
 import { ReportView } from './ReportView';
+import { EmailNotifications } from './EmailNotifications';
 import { ThemeToggle } from './ThemeToggle';
 import { AdminPanel } from './AdminPanel';
 import { useTheme } from '../contexts/ThemeContext';
@@ -14,7 +15,7 @@ export const WeatherDashboard: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<LocationWithWeather | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [currentView, setCurrentView] = useState<'location' | 'report'>('location');
+  const [currentView, setCurrentView] = useState<'location' | 'report' | 'emails'>('location');
 
   const handleLocationSelect = (location: LocationWithWeather) => {
     setSelectedLocation(location);
@@ -131,6 +132,17 @@ export const WeatherDashboard: React.FC = () => {
                     <FileText className="h-4 w-4 mr-1 inline" />
                     View Report
                   </button>
+                  <button
+                    onClick={() => setCurrentView('emails')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                      currentView === 'emails'
+                        ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <Mail className="h-4 w-4 mr-1 inline" />
+                    Email Reports
+                  </button>
                 </div>
 
                 <button
@@ -149,6 +161,8 @@ export const WeatherDashboard: React.FC = () => {
           <main className="flex-1 overflow-y-auto p-6 w-full">
             {currentView === 'report' ? (
               <ReportView />
+            ) : currentView === 'emails' ? (
+              <EmailNotifications />
             ) : selectedLocation ? (
               <>
                 {/* Error Display */}
