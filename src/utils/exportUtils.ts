@@ -1,14 +1,14 @@
 import * as XLSX from 'xlsx';
 import type { LocationWithWeather } from '../types/weather';
 
-export interface WeatherExportData {
-  location: string;
+export interface DetailedExportData {
   date: string;
+  location: string;
   high_temp_f: number | string;
   low_temp_f: number | string;
   wind_speed_mph: number | string;
   precipitation_in: number | string;
-  et0_mm: number | string;
+  et0_inches: number | string;
 }
 
 export interface TodayExportData {
@@ -17,15 +17,15 @@ export interface TodayExportData {
   low_temp_f: number | string;
   wind_speed_mph: number | string;
   precipitation_in: number | string;
-  et0_mm: number | string;
-  et0_sum_mm: number | string;
+  et0_inches: number | string;
+  et0_sum_inches: number | string;
 }
 
 /**
  * Convert locations data to exportable format for 14-day forecast
  */
-export function prepareWeatherExportData(locations: LocationWithWeather[]): WeatherExportData[] {
-  const exportData: WeatherExportData[] = [];
+export function prepareWeatherExportData(locations: LocationWithWeather[]): DetailedExportData[] {
+  const exportData: DetailedExportData[] = [];
 
   locations.forEach(location => {
     if (!location.weatherData) return;
@@ -64,7 +64,7 @@ export function prepareWeatherExportData(locations: LocationWithWeather[]): Weat
         low_temp_f: tempMin[i] !== undefined ? Number(tempMin[i]).toFixed(0) : '—',
         wind_speed_mph: windSpeed[i] !== undefined ? Number(windSpeed[i]).toFixed(1) : '—',
         precipitation_in: precipitation[i] !== undefined ? Number(precipitation[i]).toFixed(2) : '—',
-        et0_mm: et0[i] !== undefined ? Number(et0[i]).toFixed(2) : '—'
+        et0_inches: et0[i] !== undefined ? Number(et0[i] * 0.0393701).toFixed(3) : '—'
       });
     }
   });
@@ -91,8 +91,8 @@ export function prepareTodayExportData(locations: LocationWithWeather[]): TodayE
       low_temp_f: daily.temperature_2m_min?.[0] !== undefined ? Number(daily.temperature_2m_min[0]).toFixed(0) : '—',
       wind_speed_mph: daily.wind_speed_10m_max?.[0] !== undefined ? Number(daily.wind_speed_10m_max[0]).toFixed(1) : '—',
       precipitation_in: daily.precipitation_sum?.[0] !== undefined ? Number(daily.precipitation_sum[0]).toFixed(2) : '—',
-      et0_mm: daily.et0_fao_evapotranspiration?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration[0]).toFixed(2) : '—',
-      et0_sum_mm: daily.et0_fao_evapotranspiration_sum?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration_sum[0]).toFixed(2) : '—'
+      et0_inches: daily.et0_fao_evapotranspiration?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration[0] * 0.0393701).toFixed(3) : '—',
+      et0_sum_inches: daily.et0_fao_evapotranspiration_sum?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration_sum[0] * 0.0393701).toFixed(3) : '—'
     });
   });
 
@@ -140,7 +140,7 @@ export function exportToExcel(locations: LocationWithWeather[], includeToday: bo
       { wch: 18 }, // humidity_percent
       { wch: 18 }, // wind_speed_mph
       { wch: 18 }, // precipitation_in
-      { wch: 12 }  // et0_mm
+      { wch: 12 }  // et0_inches
     ];
     todayWorksheet['!cols'] = todayColWidths;
     
@@ -159,7 +159,7 @@ export function exportToExcel(locations: LocationWithWeather[], includeToday: bo
     { wch: 15 }, // low_temp_f
     { wch: 18 }, // wind_speed_mph
     { wch: 18 }, // precipitation_in
-    { wch: 12 }  // et0_mm
+    { wch: 12 }  // et0_inches
   ];
   forecastWorksheet['!cols'] = forecastColWidths;
   

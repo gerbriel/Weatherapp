@@ -24,8 +24,9 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
     fullDate: date,
     precipitation: weatherData.daily.precipitation_sum[index] || 0,
     rain: weatherData.daily.rain_sum[index] || 0,
-    et0_daily: weatherData.daily.et0_fao_evapotranspiration[index] || 0,
-    et0_sum: weatherData.daily.et0_fao_evapotranspiration_sum[index] || 0,
+    // Convert ET₀ values from mm to inches
+    et0_daily: (weatherData.daily.et0_fao_evapotranspiration[index] || 0) * 0.0393701,
+    et0_sum: (weatherData.daily.et0_fao_evapotranspiration_sum[index] || 0) * 0.0393701,
   }));
 
   const textColor = isDarkMode ? '#7d8590' : '#656d76';
@@ -100,7 +101,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
               tick={{ fill: textColor, fontSize: 12 }}
               axisLine={{ stroke: gridColor }}
               label={{ 
-                value: 'mm', 
+                value: 'inches', 
                 angle: -90, 
                 position: 'insideLeft',
                 style: { textAnchor: 'middle', fill: textColor }
@@ -115,7 +116,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ weatherData, isDar
                 fontSize: '12px'
               }}
               formatter={(value: number, name: string) => [
-                `${value.toFixed(2)} mm`,
+                `${value.toFixed(3)} inches`,
                 name === 'et0_daily' ? 'Daily ET₀' : 'Cumulative ET₀'
               ]}
               labelFormatter={(label) => `Date: ${label}`}

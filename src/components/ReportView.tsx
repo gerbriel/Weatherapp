@@ -80,8 +80,8 @@ export const ReportView: React.FC = () => {
           tempMin: safe(weather.daily.temperature_2m_min[0]?.toFixed(0)),
           windSpeed: safe(weather.daily.wind_speed_10m_max[0]?.toFixed(1)),
           precipitation: safe(weather.daily.precipitation_sum[0]?.toFixed(2)),
-          et0: safe(weather.daily.et0_fao_evapotranspiration[0]?.toFixed(2)),
-          et0_sum: safe(weather.daily.et0_fao_evapotranspiration_sum[0]?.toFixed(2)),
+          et0: weather.daily.et0_fao_evapotranspiration[0] * 0.0393701 || 0,
+          et0_sum: weather.daily.et0_fao_evapotranspiration_sum[0] * 0.0393701 || 0,
         };
 
         return (
@@ -170,7 +170,7 @@ export const ReportView: React.FC = () => {
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀</span>
                   </div>
                   <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {todayData.et0} mm
+                    {todayData.et0.toFixed(3)} inches
                   </div>
                 </div>
 
@@ -181,7 +181,7 @@ export const ReportView: React.FC = () => {
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀ Sum</span>
                   </div>
                   <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {todayData.et0_sum} mm
+                    {todayData.et0_sum.toFixed(3)} inches
                   </div>
                 </div>
               </div>
@@ -212,10 +212,10 @@ export const ReportView: React.FC = () => {
                         Precip (in)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        ET₀ (mm)
+                        ET₀ (inches)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        ET₀ Sum (mm)
+                        ET₀ Sum (inches)
                       </th>
                     </tr>
                   </thead>
@@ -241,10 +241,10 @@ export const ReportView: React.FC = () => {
                           {safe(weather.daily.precipitation_sum[index]?.toFixed(2))}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                          {safe(weather.daily.et0_fao_evapotranspiration[index]?.toFixed(2))}
+                          {safe((weather.daily.et0_fao_evapotranspiration[index] * 0.0393701)?.toFixed(3))}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                          {safe(weather.daily.et0_fao_evapotranspiration_sum[index]?.toFixed(2))}
+                          {safe((weather.daily.et0_fao_evapotranspiration_sum[index] * 0.0393701)?.toFixed(3))}
                         </td>
                       </tr>
                     ))}

@@ -209,16 +209,16 @@ export const WeatherDashboard: React.FC = () => {
                     
                     <WeatherCard
                       title="ET₀ (Daily)"
-                      value={todayData.et0}
-                      unit="mm"
+                      value={todayData.et0 * 0.0393701}
+                      unit="inches"
                       icon={<Gauge className="h-6 w-6" />}
                       description="Daily evapotranspiration"
                     />
                     
                     <WeatherCard
                       title="ET₀ (Sum)"
-                      value={todayData.et0_sum}
-                      unit="mm"
+                      value={todayData.et0_sum * 0.0393701}
+                      unit="inches"
                       icon={<Gauge className="h-6 w-6" />}
                       description="Cumulative evapotranspiration"
                     />
@@ -254,7 +254,7 @@ export const WeatherDashboard: React.FC = () => {
                               Precip (in)
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              ET₀ (mm)
+                              ET₀ (inches)
                             </th>
                           </tr>
                         </thead>
@@ -283,7 +283,7 @@ export const WeatherDashboard: React.FC = () => {
                                   {selectedLocation.weatherData?.daily.precipitation_sum[index]?.toFixed(2) || '0.00'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
-                                  {selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index]?.toFixed(2) || '0.00'}
+                                  {selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index] ? (selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index] * 0.0393701).toFixed(3) : '0.000'}
                                 </td>
                               </tr>
                             );
