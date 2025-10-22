@@ -36,7 +36,8 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
     const dates = daily.time.slice(0, 14); // 14 days
     const precipitation = daily.precipitation_sum.slice(0, 14);
     const rain = daily.rain_sum.slice(0, 14);
-    const et0 = daily.et0_fao_evapotranspiration.slice(0, 14);
+    // Convert ET₀ from mm to inches (1 mm = 0.0393701 inches)
+    const et0 = daily.et0_fao_evapotranspiration.slice(0, 14).map((value: number) => value * 0.0393701);
 
     // Format dates for display (Oct 21, Oct 22, etc.)
     const labels = dates.map(date => {
@@ -194,7 +195,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
         borderWidth: 1,
         callbacks: {
           label: function(context: any) {
-            return `Daily ET₀: ${context.parsed.y.toFixed(2)} mm`;
+            return `Daily ET₀: ${context.parsed.y.toFixed(3)} inches`;
           }
         }
       }
@@ -222,12 +223,12 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
             size: 11,
           },
           callback: function(value: any) {
-            return `${value} mm`;
+            return `${value} inches`;
           }
         },
         title: {
           display: true,
-          text: 'mm',
+          text: 'inches',
           color: 'rgb(203, 213, 225)',
           font: {
             size: 12,
@@ -264,7 +265,8 @@ export const generateEmailChartData = (location: LocationWithWeather) => {
   const dates = daily.time.slice(0, 14);
   const precipitation = daily.precipitation_sum.slice(0, 14);
   const rain = daily.rain_sum.slice(0, 14);
-  const et0 = daily.et0_fao_evapotranspiration.slice(0, 14);
+  // Convert ET₀ from mm to inches (1 mm = 0.0393701 inches)
+  const et0 = daily.et0_fao_evapotranspiration.slice(0, 14).map((value: number) => value * 0.0393701);
 
   // Format dates for display
   const labels = dates.map(date => {
