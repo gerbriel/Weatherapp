@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Star, Trash2, RefreshCw, MapPin, Plus, X, Mail } from 'lucide-react';
+import { Star, Trash2, RefreshCw, MapPin, Plus, X, Mail, CheckSquare, Square } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { EmailNotifications } from './EmailNotifications';
+import { DEFAULT_CALIFORNIA_LOCATIONS } from '../constants/defaultLocations';
 import type { LocationWithWeather } from '../types/weather';
 
 interface LocationsListProps {
@@ -25,6 +26,8 @@ export const LocationsList: React.FC<LocationsListProps> = ({
   } = useLocations();
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showDefaultLocations, setShowDefaultLocations] = useState(false);
+  const [selectedDefaultLocations, setSelectedDefaultLocations] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'locations' | 'emails'>('locations');
   const [newLocation, setNewLocation] = useState({
     name: '',
@@ -71,6 +74,59 @@ export const LocationsList: React.FC<LocationsListProps> = ({
       console.error('Error getting current location:', error);
       alert('Could not get your current location');
     }
+  };
+
+  const handleToggleDefaultLocation = (locationId: string) => {
+    setSelectedDefaultLocations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(locationId)) {
+        newSet.delete(locationId);
+      } else {
+        newSet.add(locationId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAllDefaultLocations = () => {
+    const allIds = DEFAULT_CALIFORNIA_LOCATIONS.map(loc => loc.id);
+    setSelectedDefaultLocations(new Set(allIds));
+  };
+
+  const handleDeselectAllDefaultLocations = () => {
+    setSelectedDefaultLocations(new Set());
+  };
+
+  const handleAddSelectedDefaultLocations = () => {
+    const locationsToAdd = DEFAULT_CALIFORNIA_LOCATIONS.filter(loc => 
+      selectedDefaultLocations.has(loc.id)
+    );
+
+    // Filter out locations that already exist
+    const existingNames = locations.map(loc => loc.name.toLowerCase());
+    const newLocations = locationsToAdd.filter(loc => 
+      !existingNames.includes(loc.name.toLowerCase())
+    );
+
+    if (newLocations.length === 0) {
+      alert('All selected locations are already added!');
+      return;
+    }
+
+    // Add each new location
+    newLocations.forEach(loc => {
+      addLocation({
+        name: loc.name,
+        latitude: loc.latitude,
+        longitude: loc.longitude
+      });
+    });
+
+    // Reset selection and close form
+    setSelectedDefaultLocations(new Set());
+    setShowDefaultLocations(false);
+
+    alert(`Added ${newLocations.length} new location${newLocations.length !== 1 ? 's' : ''}!`);
   };
 
   const LocationCard: React.FC<{ location: LocationWithWeather }> = ({ location }) => {
@@ -204,11 +260,11 @@ export const LocationsList: React.FC<LocationsListProps> = ({
       {activeTab === 'locations' ? (
         <>
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Manage Locations
-            </h2>
-            <div className="flex items-center space-x-2">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Manage Locations
+              </h2>
               <button
                 onClick={refreshAllLocations}
                 disabled={globalLoading}
@@ -217,12 +273,21 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 <RefreshCw className={`h-4 w-4 mr-1 ${globalLoading ? 'animate-spin' : ''}`} />
                 Refresh All
               </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
-                className="gh-btn gh-btn-primary text-sm"
+                className="gh-btn gh-btn-primary text-sm w-full"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Location
+              </button>
+              <button
+                onClick={() => setShowDefaultLocations(!showDefaultLocations)}
+                className="gh-btn text-sm w-full"
+              >
+                <CheckSquare className="h-4 w-4 mr-1" />
+                CA Defaults
               </button>
             </div>
           </div>
@@ -283,6 +348,103 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 Use Current
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Default California Locations Form */}
+      {showDefaultLocations && (
+        <div className="p-4 border border-green-200 dark:border-green-700 rounded-lg bg-green-50 dark:bg-green-900/20 mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-medium text-gray-900 dark:text-white">California Default Locations</h3>
+            <button
+              onClick={() => setShowDefaultLocations(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Select common California locations to add to your weather tracking:
+          </p>
+
+          {/* Select All/None Controls */}
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={handleSelectAllDefaultLocations}
+              className="gh-btn text-xs"
+            >
+              Select All
+            </button>
+            <button
+              onClick={handleDeselectAllDefaultLocations}
+              className="gh-btn text-xs"
+            >
+              Select None
+            </button>
+          </div>
+
+          {/* Location Checkboxes */}
+          <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+            {DEFAULT_CALIFORNIA_LOCATIONS.map((location) => {
+              const isSelected = selectedDefaultLocations.has(location.id);
+              const alreadyExists = locations.some(loc => 
+                loc.name.toLowerCase() === location.name.toLowerCase()
+              );
+              
+              return (
+                <div
+                  key={location.id}
+                  className={`flex items-center justify-between p-2 rounded border ${
+                    alreadyExists 
+                      ? 'bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 opacity-60'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750'
+                  }`}
+                >
+                  <div className="flex items-center flex-1">
+                    <button
+                      onClick={() => !alreadyExists && handleToggleDefaultLocation(location.id)}
+                      disabled={alreadyExists}
+                      className={`mr-3 ${alreadyExists ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Square className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {location.name}
+                        {alreadyExists && (
+                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                            (Already added)
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                        {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Add Selected Button */}
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {selectedDefaultLocations.size} location{selectedDefaultLocations.size !== 1 ? 's' : ''} selected
+            </span>
+            <button
+              onClick={handleAddSelectedDefaultLocations}
+              disabled={selectedDefaultLocations.size === 0}
+              className="gh-btn gh-btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add Selected ({selectedDefaultLocations.size})
+            </button>
           </div>
         </div>
       )}
