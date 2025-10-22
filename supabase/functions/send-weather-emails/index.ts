@@ -72,7 +72,8 @@ serve(async (req: Request) => {
         const weatherData = await fetchWeatherDataForLocations(subscription.selected_location_ids, supabase)
         
         // Create email content
-        const emailHtml = createEmailContent(subscription.name, weatherData)
+        const isWelcomeEmail = !subscription.last_sent_at
+        const emailHtml = createEmailContent(subscription.name, weatherData, isWelcomeEmail)
         
         // Send email via Resend API
         const emailResponse = await fetch('https://api.resend.com/emails', {
@@ -210,7 +211,7 @@ async function fetchWeatherDataForLocations(locationIds: string[], supabase: any
 }
 
 // Create HTML email content
-function createEmailContent(userName: string, weatherData: WeatherLocationData[]): string {
+function createEmailContent(userName: string, weatherData: WeatherLocationData[], isWelcome: boolean = false): string {
   const currentDate = new Date().toLocaleDateString('en-GB', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -222,7 +223,7 @@ function createEmailContent(userName: string, weatherData: WeatherLocationData[]
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
       <div style="background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         <h1 style="color: #0969da; margin-bottom: 8px; font-size: 24px;">🌤️ Weather Report</h1>
-        <p style="color: #656d76; margin-bottom: 30px; font-size: 16px;">Hello ${userName}! Here's your weather update for ${currentDate}</p>
+        <p style="color: #656d76; margin-bottom: 30px; font-size: 16px;">Hello ${userName}! ${isWelcome ? 'Welcome to ET Weather! Here\'s your first' : 'Here\'s your'} weather update for ${currentDate}</p>
   `
   
   weatherData.forEach(({ location, weather }) => {
@@ -284,11 +285,11 @@ async function updateSubscriptionAfterSend(supabase: any, subscription: any) {
   // If recurring, calculate next send time
   if (subscription.is_recurring) {
     const { data: nextSendResult, error: nextSendError } = await supabase
-      .rpc('calculate_next_send_at', {
-        p_schedule_day_of_week: subscription.schedule_day_of_week,
-        p_schedule_hour: subscription.schedule_hour,
-        p_schedule_minute: subscription.schedule_minute,
-        p_timezone: subscription.schedule_timezone || 'UTC'
+      .rpc('calculate_next_send_time', {
+        day_of_week: subscription.schedule_day_of_week,
+        hour: subscription.schedule_hour,
+        minute: subscription.schedule_minute,
+        timezone: subscription.schedule_timezone || 'UTC'
       })
 
     if (!nextSendError) {
