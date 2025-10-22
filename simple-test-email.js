@@ -238,7 +238,12 @@ async function sendTestEmail() {
   console.log(`📧 Subject: ${subject}`);
   console.log(`📧 HTML Length: ${emailHTML.length} characters\n`);
   
-  const resendApiKey = process.env.RESEND_API_KEY || 're_Y8QJJ4f6_LAzk7qfPPZv9ZL1kfQZnhsej';
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    console.error('❌ RESEND_API_KEY environment variable is required');
+    console.log('💡 Set it by running: export RESEND_API_KEY=your_key_here');
+    process.exit(1);
+  }
   const fromEmail = process.env.FROM_EMAIL || 'weather@resend.dev';
   
   try {

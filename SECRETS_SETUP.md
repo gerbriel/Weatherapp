@@ -31,11 +31,11 @@ Before deploying to GitHub, configure these secrets in your repository:
    - **service_role**: `SUPABASE_SERVICE_ROLE_KEY` (⚠️ Keep secret!)
 
 ### Resend API Key (Edge Function Environment)
-The Resend API key (`re_Y8QJJ4f6_LAzk7qfPPZv9ZL1kfQZnhsej`) should be set as an environment variable in Supabase, not GitHub:
+The Resend API key should be set as an environment variable in Supabase, not GitHub:
 
 1. Go to Supabase Dashboard → Edge Functions
 2. Navigate to Environment Variables
-3. Add: `RESEND_API_KEY=re_Y8QJJ4f6_LAzk7qfPPZv9ZL1kfQZnhsej`
+3. Add: `RESEND_API_KEY=your_resend_api_key_here`
 
 ## ⚡ Quick Setup Commands
 
