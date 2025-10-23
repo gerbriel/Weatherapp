@@ -11,7 +11,7 @@ Go to your GitHub repository → **Settings** → **Secrets and variables** → 
 |-------------|-------------|---------|
 | `VITE_SUPABASE_URL` | Your Supabase project URL | `https://abcdefghijk.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Your Supabase anon/public key | `eyJhbGciOiJIUzI1NiIsIn...` |
-| `SUPABASE_ACCESS_TOKEN` | Supabase CLI access token for deployments | Get from [Supabase CLI](https://supabase.com/dashboard/account/tokens) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key for admin operations | `eyJhbGciOiJIUzI1NiIsIn...` (service_role key) |
 
 ### Email Configuration  
 | Secret Name | Description | Example |
@@ -23,7 +23,7 @@ Go to your GitHub repository → **Settings** → **Secrets and variables** → 
 ### Supabase Secrets
 1. **VITE_SUPABASE_URL**: Go to your [Supabase Dashboard](https://supabase.com/dashboard) → Project → Settings → API → Project URL
 2. **VITE_SUPABASE_ANON_KEY**: Same page → Project → Settings → API → `anon` `public` key
-3. **SUPABASE_ACCESS_TOKEN**: Go to [Account Tokens](https://supabase.com/dashboard/account/tokens) → Generate new token
+3. **SUPABASE_SERVICE_ROLE_KEY**: Same page → Project → Settings → API → `service_role` `secret` key
 
 ### Resend API Key
 1. **RESEND_API_KEY**: Go to [Resend Dashboard](https://resend.com/api-keys) → Create API Key
