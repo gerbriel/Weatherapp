@@ -24,12 +24,11 @@ jobs:
         run: |
           echo "🚀 Triggering weather email automation..."
           
-          run: |
-          curl -X POST \
+          response=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
-            -d '{"emails": ["${{ secrets.TEST_EMAIL }}"]}' \
-            "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/send-weather-emails"
+            -d '{"emails": ["weather@example.com"]}' \
+            "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/send-weather-emails")
           
           # Extract HTTP status code and response body
           http_code=$(echo "$response" | tail -n1)
