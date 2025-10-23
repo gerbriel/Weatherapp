@@ -9,9 +9,6 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: Checkout
@@ -26,6 +23,19 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Validate environment variables
+      run: |
+        echo "� Checking environment variables..."
+        if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ]; then
+          echo "❌ VITE_SUPABASE_URL is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
+          echo "❌ VITE_SUPABASE_ANON_KEY is not set"
+          exit 1
+        fi
+        echo "✅ Environment variables validated"
+
     - name: Build application
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
@@ -36,62 +46,53 @@ jobs:
         npm run build
         echo "✅ Build completed successfully"
 
-    - name: Setup Supabase CLI (main branch only)
-      if: github.ref == 'refs/heads/main'
-      uses: supabase/setup-cli@v1
-      with:
-        version: latest
-
-    - name: Deploy Supabase (main branch only)
-      if: github.ref == 'refs/heads/main'
-      run: |
-        echo "🔗 Linking to Supabase project..."
-        supabase link --project-ref fvymxoeupxojvdzqahuw
-        
-        echo "📊 Pushing database migrations..."
-        supabase db push
-        
-        echo "⚡ Deploying edge functions..."
-        supabase functions deploy send-weather-emails
-        
-        echo "🔐 Setting up secrets..."
-        supabase secrets set RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}"
-        supabase secrets set FROM_EMAIL="weather@resend.dev"
-        
-        echo "✅ Supabase deployment completed"
-      env:
-        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-
     - name: Prepare GitHub Pages deployment
+      if: github.ref == 'refs/heads/main'
       run: |
         echo "📁 Preparing dist folder for GitHub Pages..."
-        cp .nojekyll dist/.nojekyll
         
-        # Create a 404.html that redirects to index.html for SPA routing
+        # Ensure dist directory exists
+        if [ ! -d "dist" ]; then
+          echo "❌ dist directory not found!"
+          exit 1
+        fi
+        
+        # Copy nojekyll file
+        if [ -f ".nojekyll" ]; then
+          cp .nojekyll dist/.nojekyll
+          echo "✅ Copied .nojekyll"
+        else
+          echo "⚠️  .nojekyll file not found, creating one"
+          touch dist/.nojekyll
+        fi
+        
+        # Create 404.html for SPA routing
         cp dist/index.html dist/404.html
+        echo "✅ Created 404.html for SPA routing"
         
-        echo "📋 Listing dist contents:"
+        echo "📋 Final dist contents:"
         ls -la dist/
 
     - name: Setup Pages
+      if: github.ref == 'refs/heads/main'
       uses: actions/configure-pages@v4
       
     - name: Upload artifact
+      if: github.ref == 'refs/heads/main'
       uses: actions/upload-pages-artifact@v4
       with:
         path: ./dist
 
     - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
       id: deployment
       uses: actions/deploy-pages@v4
-      if: github.ref == 'refs/heads/main'
 
 # Permissions needed for GitHub Pages deployment
 permissions:
   contents: read
   pages: write
   id-token: write
-  actions: read
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 concurrency:
