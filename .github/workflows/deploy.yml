@@ -30,7 +30,11 @@ jobs:
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      run: npm run build
+      run: |
+        echo "🔨 Building application with Vite..."
+        echo "📍 Base URL will be: /Weatherapp/"
+        npm run build
+        echo "✅ Build completed successfully"
 
     - name: Setup Supabase CLI (main branch only)
       if: github.ref == 'refs/heads/main'
@@ -58,8 +62,16 @@ jobs:
       env:
         SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
-    - name: Copy .nojekyll to dist
-      run: cp .nojekyll dist/.nojekyll
+    - name: Prepare GitHub Pages deployment
+      run: |
+        echo "📁 Preparing dist folder for GitHub Pages..."
+        cp .nojekyll dist/.nojekyll
+        
+        # Create a 404.html that redirects to index.html for SPA routing
+        cp dist/index.html dist/404.html
+        
+        echo "📋 Listing dist contents:"
+        ls -la dist/
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -79,6 +91,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
 concurrency:
