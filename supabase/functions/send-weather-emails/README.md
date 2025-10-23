@@ -43,10 +43,11 @@ SELECT cron.schedule(
   'send-weather-emails-every-minute',
   '* * * * *',
   $$
-  SELECT net.http_post(
-    url:='https://uflvdccamhbgaqnbygfw.supabase.co/functions/v1/send-weather-emails',
-    headers:='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_SERVICE_ROLE_KEY"}'::jsonb
-  );
+  curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer your_supabase_anon_key" \
+  -d '{"emails": ["test@example.com"]}' \
+    url:='https://your-project-id.supabase.co/functions/v1/send-weather-emails',
   $$
 );
 ```

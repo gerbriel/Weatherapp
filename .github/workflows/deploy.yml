@@ -26,11 +26,27 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Setup Supabase CLI
+      uses: supabase/setup-cli@v1
+      with:
+        version: latest
+
     - name: Build application
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       run: npm run build
+
+    - name: Deploy Supabase (main branch only)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        supabase link --project-ref fvymxoeupxojvdzqahuw
+        supabase db push
+        supabase functions deploy send-weather-emails
+        supabase secrets set RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}"
+        supabase secrets set FROM_EMAIL="weather@resend.dev"
+      env:
+        SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
     - name: Copy .nojekyll to dist
       run: cp .nojekyll dist/.nojekyll
