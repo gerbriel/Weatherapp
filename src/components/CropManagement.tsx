@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sprout, Search, Calculator, Plus, Trash2, Info } from 'lucide-react';
+import { Sprout, Search, Calculator, Plus, Trash2, Info, Edit3, Save, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLocations } from '../contexts/LocationsContext';
 import type { LocationWithWeather } from '../types/weather';
@@ -57,6 +57,24 @@ export const CropManagement: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<LocationWithWeather | null>(null);
   const [loading, setLoading] = useState(true);
   const [addingCrop, setAddingCrop] = useState(false);
+  const [showAddVariety, setShowAddVariety] = useState(false);
+  const [showEditCoefficients, setShowEditCoefficients] = useState(false);
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newVariety, setNewVariety] = useState({
+    common_name: '',
+    scientific_name: '',
+    variety_name: '',
+    strain_name: '',
+    category_id: '',
+    maturity_days: 90,
+    planting_season: 'spring',
+    description: ''
+  });
+  const [newCategory, setNewCategory] = useState({
+    category_name: '',
+    description: ''
+  });
+  const [editingCoefficients, setEditingCoefficients] = useState<CropCoefficient[]>([]);
 
   useEffect(() => {
     loadData();
@@ -185,6 +203,87 @@ export const CropManagement: React.FC = () => {
     return et0 * kcValue;
   };
 
+  const addNewVariety = async () => {
+    try {
+      const { error } = await supabase
+        .from('crop_varieties')
+        .insert({
+          ...newVariety,
+          variety_name: newVariety.variety_name || null,
+          strain_name: newVariety.strain_name || null,
+          scientific_name: newVariety.scientific_name || null,
+          description: newVariety.description || null
+        });
+
+      if (error) throw error;
+
+      // Reset form and reload data
+      setNewVariety({
+        common_name: '',
+        scientific_name: '',
+        variety_name: '',
+        strain_name: '',
+        category_id: '',
+        maturity_days: 90,
+        planting_season: 'spring',
+        description: ''
+      });
+      setShowAddVariety(false);
+      loadData();
+    } catch (error) {
+      console.error('Error adding variety:', error);
+    }
+  };
+
+  const addNewCategory = async () => {
+    try {
+      const { error } = await supabase
+        .from('crop_categories')
+        .insert(newCategory);
+
+      if (error) throw error;
+
+      // Reset form and reload data
+      setNewCategory({
+        category_name: '',
+        description: ''
+      });
+      setShowAddCategory(false);
+      loadData();
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
+  };
+
+  const updateCoefficients = async () => {
+    try {
+      // Update existing coefficients
+      for (const coeff of editingCoefficients) {
+        const { error } = await supabase
+          .from('crop_coefficients')
+          .upsert({
+            id: coeff.id,
+            variety_id: coeff.variety_id,
+            growth_stage_id: coeff.growth_stage_id,
+            kc_value: coeff.kc_value,
+            stage_duration_days: coeff.stage_duration_days,
+            notes: coeff.notes,
+            source: coeff.source || 'User Input'
+          });
+
+        if (error) throw error;
+      }
+
+      setShowEditCoefficients(false);
+      setEditingCoefficients([]);
+      if (selectedVariety) {
+        loadCoefficients(selectedVariety.id);
+      }
+    } catch (error) {
+      console.error('Error updating coefficients:', error);
+    }
+  };
+
   const filteredVarieties = varieties.filter(variety => {
     const matchesSearch = !searchTerm || 
       variety.common_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -219,6 +318,22 @@ export const CropManagement: React.FC = () => {
           </div>
           
           <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowAddCategory(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Category</span>
+            </button>
+            
+            <button
+              onClick={() => setShowAddVariety(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Variety</span>
+            </button>
+
             {selectedVariety && locations.length > 0 && (
               <button
                 onClick={() => setAddingCrop(true)}
@@ -226,6 +341,19 @@ export const CropManagement: React.FC = () => {
               >
                 <Plus className="h-4 w-4" />
                 <span>Add to Location</span>
+              </button>
+            )}
+            
+            {selectedVariety && coefficients.length > 0 && (
+              <button
+                onClick={() => {
+                  setEditingCoefficients([...coefficients]);
+                  setShowEditCoefficients(true);
+                }}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+              >
+                <Edit3 className="h-4 w-4" />
+                <span>Edit Coefficients</span>
               </button>
             )}
           </div>
@@ -504,6 +632,347 @@ export const CropManagement: React.FC = () => {
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
               >
                 Add Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Category Modal */}
+      {showAddCategory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Category
+              </h3>
+              <button
+                onClick={() => setShowAddCategory(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  value={newCategory.category_name}
+                  onChange={(e) => setNewCategory({...newCategory, category_name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="e.g., Vegetables, Fruits"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={newCategory.description}
+                  onChange={(e) => setNewCategory({...newCategory, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Brief description of the category"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowAddCategory(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addNewCategory}
+                disabled={!newCategory.category_name}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg"
+              >
+                Add Category
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Variety Modal */}
+      {showAddVariety && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Crop Variety
+              </h3>
+              <button
+                onClick={() => setShowAddVariety(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Common Name *
+                </label>
+                <input
+                  type="text"
+                  value={newVariety.common_name}
+                  onChange={(e) => setNewVariety({...newVariety, common_name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="e.g., Tomato, Grape"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Category *
+                </label>
+                <select
+                  value={newVariety.category_id}
+                  onChange={(e) => setNewVariety({...newVariety, category_id: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="">Select Category</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.category_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Scientific Name
+                </label>
+                <input
+                  type="text"
+                  value={newVariety.scientific_name}
+                  onChange={(e) => setNewVariety({...newVariety, scientific_name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="e.g., Solanum lycopersicum"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Variety Name
+                </label>
+                <input
+                  type="text"
+                  value={newVariety.variety_name}
+                  onChange={(e) => setNewVariety({...newVariety, variety_name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="e.g., Determinate, Cabernet Sauvignon"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Strain Name
+                </label>
+                <input
+                  type="text"
+                  value={newVariety.strain_name}
+                  onChange={(e) => setNewVariety({...newVariety, strain_name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Specific strain or clone"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Maturity Days
+                </label>
+                <input
+                  type="number"
+                  value={newVariety.maturity_days}
+                  onChange={(e) => setNewVariety({...newVariety, maturity_days: parseInt(e.target.value)})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  min="1"
+                  max="365"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Planting Season
+                </label>
+                <select
+                  value={newVariety.planting_season}
+                  onChange={(e) => setNewVariety({...newVariety, planting_season: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="spring">Spring</option>
+                  <option value="summer">Summer</option>
+                  <option value="fall">Fall</option>
+                  <option value="winter">Winter</option>
+                  <option value="year-round">Year-round</option>
+                </select>
+              </div>
+              
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  value={newVariety.description}
+                  onChange={(e) => setNewVariety({...newVariety, description: e.target.value})}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  placeholder="Additional details about this variety"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowAddVariety(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addNewVariety}
+                disabled={!newVariety.common_name || !newVariety.category_id}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg"
+              >
+                Add Variety
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Coefficients Modal */}
+      {showEditCoefficients && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Edit Crop Coefficients - {selectedVariety?.common_name}
+                {selectedVariety?.variety_name && ` (${selectedVariety.variety_name})`}
+              </h3>
+              <button
+                onClick={() => setShowEditCoefficients(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {editingCoefficients.map((coeff, index) => (
+                <div key={coeff.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Growth Stage
+                      </label>
+                      <input
+                        type="text"
+                        value={coeff.stage_name || ''}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Kc Value
+                      </label>
+                      <input
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        max="2"
+                        value={coeff.kc_value}
+                        onChange={(e) => {
+                          const newCoeffs = [...editingCoefficients];
+                          newCoeffs[index].kc_value = parseFloat(e.target.value);
+                          setEditingCoefficients(newCoeffs);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Duration (days)
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        value={coeff.stage_duration_days || ''}
+                        onChange={(e) => {
+                          const newCoeffs = [...editingCoefficients];
+                          newCoeffs[index].stage_duration_days = parseInt(e.target.value);
+                          setEditingCoefficients(newCoeffs);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Source
+                      </label>
+                      <input
+                        type="text"
+                        value={coeff.source || ''}
+                        onChange={(e) => {
+                          const newCoeffs = [...editingCoefficients];
+                          newCoeffs[index].source = e.target.value;
+                          setEditingCoefficients(newCoeffs);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="e.g., FAO-56, Research Study"
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Notes
+                      </label>
+                      <input
+                        type="text"
+                        value={coeff.notes || ''}
+                        onChange={(e) => {
+                          const newCoeffs = [...editingCoefficients];
+                          newCoeffs[index].notes = e.target.value;
+                          setEditingCoefficients(newCoeffs);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        placeholder="Additional notes about this coefficient"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowEditCoefficients(false)}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={updateCoefficients}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+              >
+                <Save className="h-4 w-4" />
+                <span>Save Changes</span>
               </button>
             </div>
           </div>
