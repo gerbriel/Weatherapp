@@ -1,10 +1,42 @@
 import React from 'react';
-import { MapPin, Thermometer, Wind, Droplets, Gauge, Calendar, Download, FileSpreadsheet } from 'lucide-react';
+import { MapPin, Thermometer, Wind, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import { WeatherCharts } from './LocationWeatherCharts';
 
-export const ReportView: React.FC = () => {
+interface CropInstance {
+  id: string;
+  cropId: string;
+  plantingDate: string;
+  currentStage: number;
+  customStageDays?: number;
+  fieldName?: string;
+  notes?: string;
+}
+
+interface RuntimeResult {
+  dailyWaterNeed: number;
+  runtimeHours: number;
+  runtimeMinutes: number;
+  weeklyHours: number;
+  efficiency: number;
+  formula: string;
+  etc: number;
+}
+
+interface ReportViewProps {
+  selectedCrops?: string[];
+  cropInstances?: CropInstance[];
+  calculatorResult?: RuntimeResult | null;
+  calculatorInputs?: any;
+}
+
+export const ReportView: React.FC<ReportViewProps> = ({ 
+  selectedCrops = [], 
+  cropInstances = [], 
+  calculatorResult = null,
+  calculatorInputs = null
+}) => {
   const { locations } = useLocations();
 
   // Filter locations that have weather data
@@ -48,29 +80,114 @@ export const ReportView: React.FC = () => {
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
           📊 Comprehensive Weather Report
         </h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          14-day forecast for all {locationsWithWeather.length} location{locationsWithWeather.length !== 1 ? 's' : ''}
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
+          Current conditions and recommendations for {locationsWithWeather.length} location{locationsWithWeather.length !== 1 ? 's' : ''}
         </p>
-        
-        {/* Export Buttons */}
-        <div className="flex justify-center gap-3">
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </button>
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Export Excel
-          </button>
-        </div>
       </div>
 
+      {/* Crop and Calculator Data Summary */}
+      {(selectedCrops.length > 0 || cropInstances.length > 0 || calculatorResult) && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+            <Sprout className="h-5 w-5 text-green-500" />
+            <span>Crop Management Summary</span>
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Selected Crops */}
+            {selectedCrops.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Active Crops ({selectedCrops.length})</h4>
+                <div className="space-y-1">
+                  {selectedCrops.slice(0, 5).map((crop, index) => (
+                    <div key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-center space-x-1">
+                      <Sprout className="h-3 w-3 text-green-500" />
+                      <span>{crop}</span>
+                    </div>
+                  ))}
+                  {selectedCrops.length > 5 && (
+                    <div className="text-sm text-gray-500 dark:text-gray-500">
+                      +{selectedCrops.length - 5} more crops
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Crop Instances */}
+            {cropInstances.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Active Plantings ({cropInstances.length})</h4>
+                <div className="space-y-1">
+                  {cropInstances.slice(0, 3).map((instance) => (
+                    <div key={instance.id} className="text-sm text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center space-x-1">
+                        <Sprout className="h-3 w-3 text-green-500" />
+                        <span>{instance.cropId}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 ml-4">
+                        Planted: {new Date(instance.plantingDate).toLocaleDateString()}
+                        {instance.fieldName && ` • ${instance.fieldName}`}
+                      </div>
+                    </div>
+                  ))}
+                  {cropInstances.length > 3 && (
+                    <div className="text-sm text-gray-500 dark:text-gray-500">
+                      +{cropInstances.length - 3} more plantings
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Calculator Results */}
+            {calculatorResult && (
+              <div>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center space-x-1">
+                  <Calculator className="h-4 w-4 text-blue-500" />
+                  <span>Current Calculation</span>
+                </h4>
+                <div className="space-y-2 text-sm">
+                  <div className="text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">Daily Water Need:</span> {calculatorResult.dailyWaterNeed.toFixed(1)} gal
+                  </div>
+                  <div className="text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">Runtime:</span> {calculatorResult.runtimeHours}h {calculatorResult.runtimeMinutes}m
+                  </div>
+                  <div className="text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">Efficiency:</span> {calculatorResult.efficiency}%
+                  </div>
+                  {calculatorInputs?.crop && (
+                    <div className="text-gray-600 dark:text-gray-400">
+                      <span className="font-medium">Crop:</span> {calculatorInputs.crop}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Export Buttons */}
+      <div className="flex justify-center gap-3 mb-6">
+        <button
+          onClick={handleExportCSV}
+          className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </button>
+        <button
+          onClick={handleExportExcel}
+          className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Export Excel
+        </button>
+      </div>
+
+      {/* Location Reports */}
       {locationsWithWeather.map((location, locationIndex) => {
         const weather = location.weatherData!;
         

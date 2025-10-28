@@ -125,7 +125,7 @@ export const ProductPage: React.FC = () => {
               onClick={() => setShowAuthModal(true)}
               className="bg-white text-blue-700 text-lg font-semibold px-8 py-4 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              Try It Free for 14 Days
+              Try Free Demo
             </button>
           </div>
         </div>
@@ -136,7 +136,7 @@ export const ProductPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              See ET Weather Pro in Action
+              See ET Weather in Action
             </h2>
             <p className="text-xl text-gray-600">
               Experience the power of professional weather monitoring
@@ -151,7 +151,7 @@ export const ProductPage: React.FC = () => {
                 <div className="w-3 h-3 bg-green-400 rounded-full"></div>
               </div>
               <div className="flex-1 text-center">
-                <span className="text-gray-300 text-sm">ET Weather Pro Dashboard</span>
+                <span className="text-gray-300 text-sm">ET Weather Dashboard</span>
               </div>
             </div>
             
@@ -341,7 +341,7 @@ export const ProductPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose ET Weather Pro?
+              Why Choose ET Weather?
             </h2>
             <p className="text-xl text-gray-600">
               See how we compare to other weather services
@@ -353,7 +353,7 @@ export const ProductPage: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-medium text-gray-900">Feature</th>
-                  <th className="px-6 py-4 text-center text-sm font-medium text-blue-600">ET Weather Pro</th>
+                  <th className="px-6 py-4 text-center text-sm font-medium text-blue-600">ET Weather</th>
                   <th className="px-6 py-4 text-center text-sm font-medium text-gray-500">Generic Weather</th>
                   <th className="px-6 py-4 text-center text-sm font-medium text-gray-500">Basic ET Tools</th>
                 </tr>
@@ -413,7 +413,7 @@ export const ProductPage: React.FC = () => {
             onClick={() => setShowAuthModal(true)}
             className="bg-white text-blue-600 text-lg font-semibold px-8 py-4 rounded-lg hover:bg-blue-50 transition-colors"
           >
-            Start Free Demo
+            Sign Up
           </button>
           <p className="text-blue-200 text-sm mt-4">
             No credit card required • Full access for 14 days

@@ -43,7 +43,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, curr
             {/* Logo */}
             <Link to="/" className="flex items-center">
               <Droplets className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">ET Weather Pro</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">ET Weather</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -143,14 +143,14 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children, curr
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
                 <Droplets className="h-8 w-8 text-blue-400" />
-                <span className="ml-2 text-xl font-bold">ET Weather Pro</span>
+                <span className="ml-2 text-xl font-bold">ET Weather</span>
               </div>
               <p className="text-gray-400 mb-4 max-w-md">
                 Professional weather monitoring and evapotranspiration calculations for agriculture, 
                 landscaping, and water management professionals.
               </p>
               <div className="flex space-x-4">
-                <span className="text-sm text-gray-400">© 2025 ET Weather Pro. All rights reserved.</span>
+                <span className="text-sm text-gray-400">© 2025 ET Weather. All rights reserved.</span>
               </div>
             </div>
 

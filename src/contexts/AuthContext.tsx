@@ -69,6 +69,7 @@ interface AuthContextType {
   updateLocation: (id: string, updates: Partial<UserLocation>) => Promise<{ data: any; error: any }>;
   deleteLocation: (id: string) => Promise<{ error: any }>;
   setDefaultLocation: (id: string) => Promise<{ error: any }>;
+  switchOrganization: (organizationId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshLocations: () => Promise<void>;
 }
@@ -95,47 +96,171 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [locations, setLocations] = useState<UserLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user profile and organization data
+  // Fetch user profile and organization data (simplified - no database dependency)
   const fetchProfile = async (userId: string) => {
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('user_profiles')
-        .select(`
-          *,
-          organization:organizations(*)
-        `)
-        .eq('id', userId)
-        .single();
+      // First check if we have saved profile data
+      const savedProfile = localStorage.getItem(`userProfile_${userId}`);
+      if (savedProfile) {
+        const parsedProfile = JSON.parse(savedProfile);
+        setProfile(parsedProfile);
+      } else {
+        // Create different demo user profiles based on email to simulate different organizational access
+        const userEmail = user?.email || '';
+        let localProfile: UserProfile;
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        return;
+        if (userEmail.includes('cvgrowers.com')) {
+          // Cooperative member
+          localProfile = {
+            id: userId,
+            organization_id: 'demo-farm-coop',
+            email: userEmail,
+            first_name: user?.user_metadata?.first_name || 'Sarah',
+            last_name: user?.user_metadata?.last_name || 'Chen',
+            display_name: user?.user_metadata?.display_name || userEmail.split('@')[0],
+            job_title: 'Farm Manager',
+            department: 'Operations',
+            role: userEmail === 'admin@cvgrowers.com' ? 'org_admin' : 'manager',
+            permissions: ['view_crops', 'manage_irrigation', 'view_reports', 'manage_blocks'],
+            preferences: {},
+            is_active: true,
+            email_verified: user?.email_confirmed_at ? true : false
+          };
+        } else if (userEmail.includes('agritech.com')) {
+          // Enterprise member
+          localProfile = {
+            id: userId,
+            organization_id: 'enterprise-ag',
+            email: userEmail,
+            first_name: user?.user_metadata?.first_name || 'Michael',
+            last_name: user?.user_metadata?.last_name || 'Rodriguez',
+            display_name: user?.user_metadata?.display_name || userEmail.split('@')[0],
+            job_title: 'Regional Manager',
+            department: 'Production',
+            role: userEmail === 'manager@agritech.com' ? 'manager' : 'user',
+            permissions: ['view_crops', 'manage_irrigation', 'view_reports', 'manage_blocks', 'view_analytics'],
+            preferences: {},
+            is_active: true,
+            email_verified: user?.email_confirmed_at ? true : false
+          };
+        } else {
+          // Personal account user
+          localProfile = {
+            id: userId,
+            organization_id: 'local-org',
+            email: userEmail,
+            first_name: user?.user_metadata?.first_name,
+            last_name: user?.user_metadata?.last_name,
+            display_name: user?.user_metadata?.display_name || userEmail.split('@')[0],
+            job_title: 'Farm Owner',
+            role: 'user',
+            permissions: ['view_crops', 'manage_irrigation', 'view_reports'],
+            preferences: {},
+            is_active: true,
+            email_verified: user?.email_confirmed_at ? true : false
+          };
+        }
+
+        setProfile(localProfile);
+        localStorage.setItem(`userProfile_${userId}`, JSON.stringify(localProfile));
       }
-
-      setProfile(profileData);
-      setOrganization(profileData.organization);
+      
+      // Set organization based on user's profile organization_id
+      const currentProfile = JSON.parse(localStorage.getItem(`userProfile_${userId}`) || '{}');
+      let currentOrg: Organization;
+      
+      if (currentProfile.organization_id === 'demo-farm-coop') {
+        currentOrg = {
+          id: 'demo-farm-coop',
+          name: 'Central Valley Growers Cooperative',
+          slug: 'cv-growers',
+          description: 'Multi-farm cooperative managing 2,500 acres',
+          subscription_plan: 'premium',
+          max_users: 25,
+          is_active: true
+        };
+      } else if (currentProfile.organization_id === 'enterprise-ag') {
+        currentOrg = {
+          id: 'enterprise-ag',
+          name: 'AgriTech Enterprises',
+          slug: 'agritech',
+          description: 'Large-scale precision agriculture operations',
+          subscription_plan: 'enterprise',
+          max_users: 100,
+          is_active: true
+        };
+      } else {
+        // Default to personal account
+        currentOrg = {
+          id: 'local-org',
+          name: 'Personal Account',
+          slug: 'personal',
+          subscription_plan: 'free',
+          max_users: 1,
+          is_active: true
+        };
+      }
+      
+      setOrganization(currentOrg);
     } catch (error) {
       console.error('Error in fetchProfile:', error);
     }
   };
 
-  // Fetch user locations
+  // Fetch user locations (simplified - no database dependency)
   const fetchLocations = async (userId: string) => {
     try {
-      const { data: locationsData, error: locationsError } = await supabase
-        .from('user_locations')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('is_active', true)
-        .order('is_default', { ascending: false })
-        .order('name');
-
-      if (locationsError) {
-        console.error('Error fetching locations:', locationsError);
-        return;
+      // Use local storage for user locations instead of database
+      const savedLocations = localStorage.getItem(`userLocations_${userId}`);
+      if (savedLocations) {
+        const parsedLocations = JSON.parse(savedLocations);
+        setLocations(parsedLocations);
+      } else {
+        // Start with demo locations for new users to give them the trial experience
+        const demoLocations: UserLocation[] = [
+          {
+            id: 'demo-1',
+            user_id: userId,
+            organization_id: 'local-org',
+            name: 'Salinas Valley Farm',
+            description: 'Central Valley operations',
+            latitude: 36.6777,
+            longitude: -121.6555,
+            elevation: 56,
+            address: 'Salinas, CA',
+            city: 'Salinas',
+            state: 'CA',
+            country: 'United States',
+            postal_code: '93901',
+            timezone: 'America/Los_Angeles',
+            is_default: true,
+            is_active: true,
+            metadata: {}
+          },
+          {
+            id: 'demo-2',
+            user_id: userId,
+            organization_id: 'local-org',
+            name: 'Fresno County Field',
+            description: 'Secondary growing location',
+            latitude: 36.7378,
+            longitude: -119.7871,
+            elevation: 94,
+            address: 'Fresno, CA',
+            city: 'Fresno',
+            state: 'CA',
+            country: 'United States',
+            postal_code: '93721',
+            timezone: 'America/Los_Angeles',
+            is_default: false,
+            is_active: true,
+            metadata: {}
+          }
+        ];
+        
+        setLocations(demoLocations);
+        localStorage.setItem(`userLocations_${userId}`, JSON.stringify(demoLocations));
       }
-
-      setLocations(locationsData || []);
     } catch (error) {
       console.error('Error in fetchLocations:', error);
     }
@@ -195,93 +320,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return { data: null, error: { message: 'No user logged in' } };
+    if (!user || !profile) return { data: null, error: { message: 'No user logged in' } };
 
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single();
+    const updatedProfile = { ...profile, ...updates };
+    setProfile(updatedProfile);
+    
+    // Save to localStorage
+    localStorage.setItem(`userProfile_${user.id}`, JSON.stringify(updatedProfile));
 
-    if (!error && data) {
-      setProfile(data);
-    }
-
-    return { data, error };
+    return { data: updatedProfile, error: null };
   };
 
   const addLocation = async (location: Omit<UserLocation, 'id' | 'user_id' | 'organization_id'>) => {
     if (!user || !profile) return { data: null, error: { message: 'No user logged in' } };
 
-    const { data, error } = await supabase
-      .from('user_locations')
-      .insert({
-        ...location,
-        user_id: user.id,
-        organization_id: profile.organization_id
-      })
-      .select()
-      .single();
+    const newLocation: UserLocation = {
+      ...location,
+      id: Date.now().toString(),
+      user_id: user.id,
+      organization_id: profile.organization_id
+    };
 
-    if (!error && data) {
-      setLocations(prev => [...prev, data]);
-    }
+    const updatedLocations = [...locations, newLocation];
+    setLocations(updatedLocations);
+    localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
 
-    return { data, error };
+    return { data: newLocation, error: null };
   };
 
   const updateLocation = async (id: string, updates: Partial<UserLocation>) => {
-    const { data, error } = await supabase
-      .from('user_locations')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    if (!user) return { data: null, error: { message: 'No user logged in' } };
 
-    if (!error && data) {
-      setLocations(prev => prev.map(loc => loc.id === id ? data : loc));
-    }
+    const updatedLocations = locations.map(loc => 
+      loc.id === id ? { ...loc, ...updates } : loc
+    );
+    
+    setLocations(updatedLocations);
+    localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
 
-    return { data, error };
+    const updatedLocation = updatedLocations.find(loc => loc.id === id);
+    return { data: updatedLocation, error: null };
   };
 
   const deleteLocation = async (id: string) => {
-    const { error } = await supabase
-      .from('user_locations')
-      .delete()
-      .eq('id', id);
+    if (!user) return { error: { message: 'No user logged in' } };
 
-    if (!error) {
-      setLocations(prev => prev.filter(loc => loc.id !== id));
-    }
+    const updatedLocations = locations.filter(loc => loc.id !== id);
+    setLocations(updatedLocations);
+    localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
 
-    return { error };
+    return { error: null };
   };
 
   const setDefaultLocation = async (id: string) => {
     if (!user) return { error: { message: 'No user logged in' } };
 
-    // First, unset all other default locations
-    await supabase
-      .from('user_locations')
-      .update({ is_default: false })
-      .eq('user_id', user.id);
+    const updatedLocations = locations.map(loc => ({
+      ...loc,
+      is_default: loc.id === id
+    }));
 
-    // Then set the new default
-    const { error } = await supabase
-      .from('user_locations')
-      .update({ is_default: true })
-      .eq('id', id);
+    setLocations(updatedLocations);
+    localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
 
-    if (!error) {
-      setLocations(prev => prev.map(loc => ({
-        ...loc,
-        is_default: loc.id === id
-      })));
-    }
-
-    return { error };
+    return { error: null };
   };
 
   const refreshProfile = async () => {
@@ -293,6 +395,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshLocations = async () => {
     if (user) {
       await fetchLocations(user.id);
+    }
+  };
+
+  const switchOrganization = async (organizationId: string) => {
+    try {
+      // Update the organization in the context
+      let newOrg: Organization;
+      
+      if (organizationId === 'demo-farm-coop') {
+        newOrg = {
+          id: 'demo-farm-coop',
+          name: 'Central Valley Growers Cooperative',
+          slug: 'cv-growers',
+          description: 'Multi-farm cooperative managing 2,500 acres',
+          subscription_plan: 'premium',
+          max_users: 25,
+          is_active: true
+        };
+      } else if (organizationId === 'enterprise-ag') {
+        newOrg = {
+          id: 'enterprise-ag',
+          name: 'AgriTech Enterprises',
+          slug: 'agritech',
+          description: 'Large-scale precision agriculture operations',
+          subscription_plan: 'enterprise',
+          max_users: 100,
+          is_active: true
+        };
+      } else {
+        // Default to personal account
+        newOrg = {
+          id: 'local-org',
+          name: 'Personal Account',
+          slug: 'personal',
+          subscription_plan: 'free',
+          max_users: 1,
+          is_active: true
+        };
+      }
+      
+      setOrganization(newOrg);
+      
+      // Optionally update user profile's default organization
+      if (profile && user) {
+        const updatedProfile = { ...profile, organization_id: organizationId };
+        setProfile(updatedProfile);
+        localStorage.setItem(`userProfile_${user.id}`, JSON.stringify(updatedProfile));
+      }
+    } catch (error) {
+      console.error('Error switching organization:', error);
     }
   };
 
@@ -311,6 +463,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateLocation,
     deleteLocation,
     setDefaultLocation,
+    switchOrganization,
     refreshProfile,
     refreshLocations
   };

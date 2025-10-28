@@ -61,7 +61,7 @@ export const HomePage: React.FC = () => {
       name: "Sarah Johnson",
       role: "Farm Manager",
       company: "Green Valley Farms",
-      content: "ET Weather Pro has revolutionized our irrigation scheduling. We've reduced water usage by 30% while improving crop yields.",
+      content: "ET Weather has revolutionized our irrigation scheduling. We've reduced water usage by 30% while improving crop yields.",
       rating: 5,
       avatar: "SJ"
     },
@@ -118,7 +118,7 @@ export const HomePage: React.FC = () => {
                   onClick={handleStartTrial}
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
-                  Start Free Demo
+                  Sign Up
                 </button>
               </div>
               <p className="text-blue-200 text-sm mt-4">
@@ -283,7 +283,7 @@ export const HomePage: React.FC = () => {
               Trusted by Professionals Worldwide
             </h2>
             <p className="text-xl text-gray-600">
-              See what our customers are saying about ET Weather Pro
+              See what our customers are saying about ET Weather
             </p>
           </div>
 
@@ -318,7 +318,7 @@ export const HomePage: React.FC = () => {
             Ready to Optimize Your Irrigation?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join thousands of professionals who trust ET Weather Pro for their irrigation decisions.
+            Join thousands of professionals who trust ET Weather for their irrigation decisions.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button

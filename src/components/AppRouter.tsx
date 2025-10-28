@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTrial } from '../contexts/TrialContext';
-import { WeatherDashboard } from './WeatherDashboard';
 import { TrialDashboard } from './TrialDashboard';
 import { HomePage } from './marketing/HomePage';
 import { ProductPage } from './marketing/ProductPage';
@@ -32,7 +31,7 @@ export const AppRouter: React.FC = () => {
         {/* Protected Routes - Only accessible when authenticated */}
         {user ? (
           <>
-            <Route path="/dashboard" element={<WeatherDashboard />} />
+            <Route path="/dashboard" element={<TrialDashboard />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             {/* Redirect all marketing routes to dashboard for authenticated users */}
             <Route path="/home" element={<Navigate to="/dashboard" replace />} />

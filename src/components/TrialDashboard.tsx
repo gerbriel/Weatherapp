@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, TrendingUp, Calculator, Plus, Trash2, Mail, Edit, Star } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, TrendingUp, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut } from 'lucide-react';
 import { useTrial } from '../contexts/TrialContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useLocations } from '../contexts/LocationsContext';
 import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
 import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
-import { WeatherCharts } from './WeatherCharts';
 import { EmailNotifications } from './EmailNotifications';
 import { AddCropInstanceModal } from './AddCropInstanceModal';
 import { SoilSelectionModal } from './SoilSelectionModal';
 import { CalculatorVisualizations } from './CalculatorVisualizations';
+import { OrganizationSwitcher } from './OrganizationSwitcher';
+import { FieldBlocksManager } from './FieldBlocksManager';
+import { OrganizationalDashboard } from './OrganizationalDashboard';
+import { ReportView } from './ReportView';
 import { type SoilType, SOIL_DATABASE } from '../data/soils';
 
 interface WeatherData {
@@ -89,13 +94,20 @@ interface RuntimeResult {
 }
 
 export const TrialDashboard: React.FC = () => {
-  const { trialLocations, disableTrialMode, removeLocation } = useTrial();
-  const [selectedLocation, setSelectedLocation] = useState(trialLocations[0]);
+  const { user, signOut } = useAuth();
+  const { trialLocations, disableTrialMode, removeLocation: removeTrialLocation } = useTrial();
+  const { locations: userLocations, removeLocation: removeUserLocation } = useLocations();
+  
+  // Use user locations if authenticated, otherwise use trial locations
+  const availableLocations = user ? userLocations : trialLocations;
+  const removeLocation = user ? removeUserLocation : removeTrialLocation;
+  
+  const [selectedLocation, setSelectedLocation] = useState(availableLocations[0] || null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [cropCoefficients, setCropCoefficients] = useState<CropCoefficient[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'emails'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'emails' | 'org-dashboard' | 'field-blocks'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
   const [cropInstances, setCropInstances] = useState<CropInstance[]>([]);
@@ -526,7 +538,29 @@ export const TrialDashboard: React.FC = () => {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading trial data for {selectedLocation.name}...</p>
+          <p className="text-gray-300">Loading {user ? 'your' : 'trial'} data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedLocation || availableLocations.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">No Locations Available</h2>
+          <p className="text-gray-400 mb-4">
+            {user ? 'Add your first location to get started' : 'Please try refreshing the page'}
+          </p>
+          {user && (
+            <button
+              onClick={() => setShowLocationModal(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Add Location
+            </button>
+          )}
         </div>
       </div>
     );
@@ -569,7 +603,7 @@ export const TrialDashboard: React.FC = () => {
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
-              {trialLocations.map((location) => (
+              {availableLocations.map((location) => (
                 <div key={location.id} className="relative group">
                   <div
                     onClick={() => setSelectedLocation(location)}
@@ -588,7 +622,9 @@ export const TrialDashboard: React.FC = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm truncate">{location.name}</div>
-                          <div className="text-xs opacity-75 mt-1">{location.region}</div>
+                          <div className="text-xs opacity-75 mt-1">
+                            {('region' in location) ? location.region : `${location.latitude}°, ${location.longitude}°`}
+                          </div>
                           {/* Coordinates Display */}
                           <div className="text-xs opacity-60 mt-1 font-mono">
                             {location.latitude?.toFixed(4)}°, {location.longitude?.toFixed(4)}°
@@ -629,13 +665,13 @@ export const TrialDashboard: React.FC = () => {
                         >
                           <Edit className="h-3 w-3" />
                         </button>
-                        {trialLocations.length > 1 && (
+                        {availableLocations.length > 1 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (selectedLocation.id === location.id && trialLocations.length > 1) {
-                                const newIndex = trialLocations.findIndex(loc => loc.id === location.id);
-                                const nextLocation = trialLocations[newIndex === 0 ? 1 : 0];
+                              if (selectedLocation.id === location.id && availableLocations.length > 1) {
+                                const newIndex = availableLocations.findIndex(loc => loc.id === location.id);
+                                const nextLocation = availableLocations[newIndex === 0 ? 1 : 0];
                                 setSelectedLocation(nextLocation);
                               }
                               removeLocation(location.id);
@@ -669,7 +705,9 @@ export const TrialDashboard: React.FC = () => {
                 </button>
                 <div>
                   <h2 className="text-xl font-semibold text-white">{selectedLocation.name}</h2>
-                  <p className="text-gray-400 text-sm">{selectedLocation.region}</p>
+                  <p className="text-gray-400 text-sm">
+                    {('region' in selectedLocation) ? selectedLocation.region : `${selectedLocation.latitude}°, ${selectedLocation.longitude}°`}
+                  </p>
                 </div>
               </div>
               
@@ -720,14 +758,56 @@ export const TrialDashboard: React.FC = () => {
                     <Mail className="h-4 w-4 mr-1 inline" />
                     Emails
                   </button>
+                  
+                  <button
+                    onClick={() => setCurrentView('org-dashboard')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
+                      currentView === 'org-dashboard'
+                        ? 'bg-gray-800 text-white shadow-sm'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Org Insights</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentView('field-blocks')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
+                      currentView === 'field-blocks'
+                        ? 'bg-gray-800 text-white shadow-sm'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <span>Field Blocks</span>
+                  </button>
                 </div>
                 
-                <button
-                  onClick={disableTrialMode}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Exit Trial
-                </button>
+                {user ? (
+                  <div className="flex items-center space-x-3">
+                    <OrganizationSwitcher />
+                    <span className="text-gray-300 text-sm">
+                      {user.email}
+                    </span>
+                    <button
+                      onClick={() => signOut()}
+                      className="flex items-center space-x-2 bg-gray-700 text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-3">
+                    <OrganizationSwitcher />
+                    <button
+                      onClick={disableTrialMode}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Exit Trial
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </header>
@@ -744,10 +824,19 @@ export const TrialDashboard: React.FC = () => {
                           <span>System Overview - {selectedLocation.name}</span>
                         </h3>
                         <div className="flex items-center space-x-4 text-sm">
-                          <span className="text-green-400">🌾 {selectedCrops.length} crops</span>
-                          <span className="text-yellow-400">🌱 {cropInstances.length} plantings</span>
+                          <span className="text-green-400 flex items-center space-x-1">
+                            <Sprout className="h-4 w-4" />
+                            <span>{selectedCrops.length} crops</span>
+                          </span>
+                          <span className="text-yellow-400 flex items-center space-x-1">
+                            <Plus className="h-4 w-4" />
+                            <span>{cropInstances.length} plantings</span>
+                          </span>
                           {calculatorInputs.crop && (
-                            <span className="text-blue-400">🧮 Calculator: {calculatorInputs.crop}</span>
+                            <span className="text-blue-400 flex items-center space-x-1">
+                              <Calculator className="h-4 w-4" />
+                              <span>Calculator: {calculatorInputs.crop}</span>
+                            </span>
                           )}
                         </div>
                       </div>
@@ -1185,14 +1274,16 @@ export const TrialDashboard: React.FC = () => {
                         <span>Manage Crops</span>
                       </button>
                       <p className="text-sm text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
-                      <div className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded border border-gray-600">
-                        <button 
-                          onClick={disableTrialMode}
-                          className="hover:text-blue-400 transition-colors"
-                        >
-                          Create account for saved calculations
-                        </button>
-                      </div>
+                      {!user && (
+                        <div className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded border border-gray-600">
+                          <button 
+                            onClick={disableTrialMode}
+                            className="hover:text-blue-400 transition-colors"
+                          >
+                            Create account for saved calculations
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1254,9 +1345,18 @@ export const TrialDashboard: React.FC = () => {
                               className="text-xs text-gray-400 space-y-1 cursor-pointer"
                               onClick={() => loadProfileToCalculator(profile)}
                             >
-                              <div>🌾 {profile.cropName}</div>
-                              <div>💧 {profile.irrigationMethod} • {profile.zoneFlowGPM} GPM</div>
-                              <div>📏 {profile.areaSize} {profile.areaUnit} • {profile.soilType}</div>
+                              <div className="flex items-center space-x-1">
+                                <Sprout className="h-3 w-3" />
+                                <span>{profile.cropName}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Droplets className="h-3 w-3" />
+                                <span>{profile.irrigationMethod} • {profile.zoneFlowGPM} GPM</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <MapPin className="h-3 w-3" />
+                                <span>{profile.areaSize} {profile.areaUnit} • {profile.soilType}</span>
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -1655,23 +1755,56 @@ export const TrialDashboard: React.FC = () => {
               </>
             ) : currentView === 'reports' ? (
               <>
-                {/* Weather Reports */}
+                {/* Weather Reports with Crop Data */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-white">Weather Reports - {selectedLocation.name}</h2>
+                    <h2 className="text-xl font-semibold text-white">Comprehensive Reports - {selectedLocation.name}</h2>
                     <div className="flex items-center space-x-4 text-sm text-gray-400">
-                      <span>📍 {selectedLocation.region}</span>
-                      <span>🌾 {selectedCrops.length} crops tracked</span>
-                      <span>🌱 {cropInstances.length} plantings</span>
+                      <span className="flex items-center space-x-1">
+                        <MapPin className="h-3 w-3" />
+                        <span>{('region' in selectedLocation) ? selectedLocation.region : 'Custom Location'}</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Sprout className="h-3 w-3" />
+                        <span>{selectedCrops.length} crops tracked</span>
+                      </span>
+                      <span className="flex items-center space-x-1">
+                        <Plus className="h-3 w-3" />
+                        <span>{cropInstances.length} plantings</span>
+                      </span>
                     </div>
                   </div>
                 </div>
-                <WeatherCharts locationName={selectedLocation.name} />
+                <ReportView 
+                  selectedCrops={selectedCrops}
+                  cropInstances={cropInstances}
+                  calculatorResult={calculatorResult}
+                  calculatorInputs={calculatorInputs}
+                />
               </>
             ) : currentView === 'emails' ? (
               <>
                 {/* Email Notifications */}
                 <EmailNotifications />
+              </>
+            ) : currentView === 'org-dashboard' ? (
+              <>
+                {/* Organizational Dashboard */}
+                <OrganizationalDashboard 
+                  selectedCrops={selectedCrops}
+                  cropInstances={cropInstances}
+                  calculatorResult={calculatorResult}
+                />
+              </>
+            ) : currentView === 'field-blocks' ? (
+              <>
+                {/* Field Blocks Management */}
+                <FieldBlocksManager 
+                  selectedCrops={selectedCrops}
+                  cropInstances={cropInstances}
+                  calculatorResult={calculatorResult}
+                  calculatorInputs={calculatorInputs}
+                />
               </>
             ) : null}
           </main>
