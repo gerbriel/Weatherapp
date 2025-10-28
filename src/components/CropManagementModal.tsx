@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, X, Sprout, Filter, Check, Plus } from 'lucide-react';
-import { getCropsByCategory, type AvailableCrop } from '../data/crops';
+import { getCropsByCategory, type AvailableCrop, COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 import { useAuth } from '../contexts/AuthContext';
 
 interface CropManagementModalProps {
@@ -27,13 +27,17 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showNewCropModal, setShowNewCropModal] = useState(false);
+  const [showCropBrowserModal, setShowCropBrowserModal] = useState(false);
+  const [cropBrowserSearch, setCropBrowserSearch] = useState('');
+  const [cropBrowserCategory, setCropBrowserCategory] = useState<string>('All');
+  const [selectedExistingCrop, setSelectedExistingCrop] = useState<AvailableCrop | null>(null);
   const [newCropData, setNewCropData] = useState({
     name: '',
     acres: 0,
     color: '#10B981'
   });
   
-  const { addOrganizationCrop } = useAuth();
+  const { addOrganizationCrop, organization } = useAuth();
   
   const handleAddNewCrop = async () => {
     if (!newCropData.name.trim()) return;
@@ -56,6 +60,45 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
       console.error('Error adding new crop:', error);
     }
   };
+
+  const handleAddExistingCrop = async () => {
+    if (!selectedExistingCrop) return;
+    
+    try {
+      await addOrganizationCrop({
+        name: selectedExistingCrop.name,
+        acres: newCropData.acres || 10, // Default acres if not specified
+        value: Math.round((newCropData.acres || 10) / ((newCropData.acres || 10) + 100) * 100),
+        color: newCropData.color
+      });
+      
+      // Reset form
+      setSelectedExistingCrop(null);
+      setNewCropData({ name: '', acres: 0, color: '#10B981' });
+      setShowCropBrowserModal(false);
+      
+      // Trigger a refresh
+      window.location.reload();
+    } catch (error) {
+      console.error('Error adding existing crop:', error);
+    }
+  };
+
+  // Get crops not already in organization
+  const getAvailableCropsToAdd = () => {
+    const orgCropNames = organization?.cropDistribution?.map(crop => crop.name.toLowerCase()) || [];
+    return COMPREHENSIVE_CROP_DATABASE.filter(crop => 
+      !orgCropNames.includes(crop.name.toLowerCase())
+    );
+  };
+
+  // Filter crops for browser
+  const filteredBrowserCrops = getAvailableCropsToAdd().filter(crop => {
+    const matchesSearch = crop.name.toLowerCase().includes(cropBrowserSearch.toLowerCase()) ||
+                         crop.category.toLowerCase().includes(cropBrowserSearch.toLowerCase());
+    const matchesCategory = cropBrowserCategory === 'All' || crop.category === cropBrowserCategory;
+    return matchesSearch && matchesCategory;
+  });
   
   if (!isOpen) return null;
 
@@ -123,11 +166,18 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
 
             <div className="flex gap-2">
               <button
+                onClick={() => setShowCropBrowserModal(true)}
+                className="px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
+              >
+                <Search className="w-4 h-4" />
+                Browse Existing
+              </button>
+              <button
                 onClick={() => setShowNewCropModal(true)}
                 className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
               >
                 <Plus className="w-4 h-4" />
-                Add New Crop
+                Create Custom
               </button>
               <button
                 onClick={onAddAllCrops}
@@ -346,6 +396,168 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                 >
                   Add Crop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Crop Browser Modal */}
+      {showCropBrowserModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-60 p-4">
+          <div className="bg-gray-900 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-white">Browse Existing Crops</h3>
+                <button
+                  onClick={() => setShowCropBrowserModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-400 mt-2">
+                Select from {getAvailableCropsToAdd().length} available crops not yet in your organization
+              </p>
+            </div>
+            
+            {/* Search and Filter */}
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search available crops..."
+                    value={cropBrowserSearch}
+                    onChange={(e) => setCropBrowserSearch(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    value={cropBrowserCategory}
+                    onChange={(e) => setCropBrowserCategory(e.target.value)}
+                    className="pl-10 pr-8 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500 appearance-none"
+                  >
+                    {['All', ...Object.keys(getCropsByCategory())].map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            {/* Available Crops Grid */}
+            <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 350px)' }}>
+              {filteredBrowserCrops.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredBrowserCrops.map((crop) => (
+                    <div
+                      key={crop.id}
+                      onClick={() => setSelectedExistingCrop(crop)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                        selectedExistingCrop?.id === crop.id
+                          ? 'border-purple-500 bg-purple-900/20'
+                          : 'border-gray-700 bg-gray-800 hover:border-gray-600'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-white">{crop.name}</h4>
+                          <p className="text-sm text-gray-400">{crop.category}</p>
+                          <div className="mt-2">
+                            <span className="text-xs bg-gray-700 px-2 py-1 rounded">
+                              {crop.stages.length} growth stages
+                            </span>
+                          </div>
+                        </div>
+                        {selectedExistingCrop?.id === crop.id && (
+                          <Check className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Sprout className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-400 mb-2">No crops found</h3>
+                  <p className="text-gray-500">
+                    {getAvailableCropsToAdd().length === 0 
+                      ? "All available crops are already in your organization"
+                      : "Try adjusting your search or category filter"
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Selected Crop Configuration */}
+            {selectedExistingCrop && (
+              <div className="p-6 border-t border-gray-700 bg-gray-800">
+                <h4 className="text-lg font-semibold text-white mb-4">
+                  Configure {selectedExistingCrop.name}
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Acres
+                    </label>
+                    <input
+                      type="number"
+                      value={newCropData.acres}
+                      onChange={(e) => setNewCropData(prev => ({ ...prev, acres: Number(e.target.value) }))}
+                      placeholder="Enter acres..."
+                      min="0"
+                      step="0.1"
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Display Color
+                    </label>
+                    <div className="flex gap-2">
+                      {['#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#3B82F6', '#6B7280'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setNewCropData(prev => ({ ...prev, color }))}
+                          className={`w-8 h-8 rounded-full border-2 ${
+                            newCropData.color === color ? 'border-white' : 'border-gray-600'
+                          }`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-700">
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setShowCropBrowserModal(false);
+                    setSelectedExistingCrop(null);
+                    setNewCropData({ name: '', acres: 0, color: '#10B981' });
+                  }}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddExistingCrop}
+                  disabled={!selectedExistingCrop || newCropData.acres <= 0}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  Add {selectedExistingCrop?.name || 'Crop'} to Organization
                 </button>
               </div>
             </div>
