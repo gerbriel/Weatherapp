@@ -7,12 +7,11 @@ export default defineConfig({
   base: '/Weatherapp/', // GitHub repository name
   server: {
     port: 5173,
-    strictPort: true,
+    strictPort: false,
+    host: true, // Allow external connections
     hmr: {
       port: 5173,
-      host: 'localhost'
-    },
-    host: 'localhost'
+    }
   },
   build: {
     outDir: 'dist',
