@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Droplets, Gauge, MapPin, Menu, X, Thermometer, Wind, Shield, FileText, Mail, Sprout } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Droplets, Gauge, MapPin, Menu, X, Thermometer, Wind, Shield, FileText, Mail, Sprout, User, LogOut, Settings } from 'lucide-react';
 import { WeatherCard } from './WeatherCard';
 import { WeatherCharts } from './WeatherCharts';
 import { LocationsList } from './LocationsList';
@@ -8,19 +8,49 @@ import { EmailNotifications } from './EmailNotifications';
 import { CropManagement } from './CropManagement';
 import { ThemeToggle } from './ThemeToggle';
 import { AdminPanel } from './AdminPanel';
-import { useTheme } from '../contexts/ThemeContext';
+import { AuthModal } from './auth/AuthModal';
+import { UserProfile } from './UserProfile';
+import { useAuth } from '../contexts/AuthContext';
 import type { LocationWithWeather } from '../types/weather';
 
 export const WeatherDashboard: React.FC = () => {
-  const { isDarkMode } = useTheme();
+  const { user, profile, signOut } = useAuth();
   const [selectedLocation, setSelectedLocation] = useState<LocationWithWeather | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [currentView, setCurrentView] = useState<'location' | 'report' | 'emails' | 'crops'>('location');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [currentView, setCurrentView] = useState<'location' | 'report' | 'emails' | 'crops' | 'profile'>('location');
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleLocationSelect = (location: LocationWithWeather) => {
     setSelectedLocation(location);
     setSidebarOpen(false); // Close sidebar on mobile after selection
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    setShowUserMenu(false);
+    setCurrentView('location');
+  };
+
+  const handleViewProfile = () => {
+    setCurrentView('profile');
+    setShowUserMenu(false);
   };
 
   const getTodayData = () => {
@@ -155,7 +185,68 @@ export const WeatherDashboard: React.FC = () => {
                     <Sprout className="h-4 w-4 mr-1 inline" />
                     Crop Management
                   </button>
+                  {user && (
+                    <button
+                      onClick={() => setCurrentView('profile')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'profile'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <User className="h-4 w-4 mr-1 inline" />
+                      Profile
+                    </button>
+                  )}
                 </div>
+
+                {/* User Authentication */}
+                {user ? (
+                  <div className="relative" ref={userMenuRef}>
+                    <button
+                      onClick={() => setShowUserMenu(!showUserMenu)}
+                      className="flex items-center space-x-2 p-2 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-sm font-medium">
+                          {profile?.first_name?.[0] || profile?.email?.[0]?.toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                      <span className="hidden md:block text-sm font-medium text-gray-900 dark:text-white">
+                        {profile?.display_name || profile?.email}
+                      </span>
+                    </button>
+                    
+                    {showUserMenu && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                        <div className="py-1">
+                          <button
+                            onClick={handleViewProfile}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                          >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Profile Settings
+                          </button>
+                          <hr className="my-1 border-gray-200 dark:border-gray-700" />
+                          <button
+                            onClick={handleSignOut}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                          >
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Sign In
+                  </button>
+                )}
 
                 <button
                   onClick={() => setShowAdminPanel(true)}
@@ -177,6 +268,8 @@ export const WeatherDashboard: React.FC = () => {
               <EmailNotifications />
             ) : currentView === 'crops' ? (
               <CropManagement />
+            ) : currentView === 'profile' ? (
+              <UserProfile />
             ) : selectedLocation ? (
               <>
                 {/* Error Display */}
@@ -310,7 +403,7 @@ export const WeatherDashboard: React.FC = () => {
 
                 {/* Charts */}
                 {selectedLocation.weatherData && (
-                  <WeatherCharts weatherData={selectedLocation.weatherData} isDarkMode={isDarkMode} />
+                  <WeatherCharts locationName={selectedLocation.name} />
                 )}
               </>
             ) : (
@@ -338,6 +431,12 @@ export const WeatherDashboard: React.FC = () => {
       {showAdminPanel && (
         <AdminPanel onClose={() => setShowAdminPanel(false)} />
       )}
+      
+      {/* Authentication Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
   );
 };

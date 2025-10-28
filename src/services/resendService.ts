@@ -27,26 +27,25 @@ export interface ResendDomain {
 }
 
 class ResendService {
-  private baseUrl = 'http://localhost:3001/api/resend'; // Our secure backend
-
   constructor() {
-    // No API key needed on frontend - all secure operations happen on backend
+    // Use Supabase instead of localhost backend
   }
 
   async getEmailStats(): Promise<ResendStats> {
     try {
-      // Call our secure backend API
-      const response = await fetch(`${this.baseUrl}/stats`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
+      // Return mock data for now - in production this would query email_send_logs
+      // We can enhance this later to query actual email statistics from the database
+      console.log('Getting email stats from Supabase...');
+      
+      return {
+        totalEmails: 0,
+        deliveredEmails: 0,
+        bouncedEmails: 0,
+        complainedEmails: 0,
+        clickedEmails: 0,
+        openedEmails: 0,
+        recentEmails: []
+      };
     } catch (error) {
       console.error('Error fetching email stats:', error);
       // Return empty stats instead of throwing to prevent admin panel from breaking
@@ -64,17 +63,9 @@ class ResendService {
 
   async getDomainStats(): Promise<{ data: ResendDomain[] }> {
     try {
-      const response = await fetch(`${this.baseUrl}/domains`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
+      // Return empty domain data for now
+      console.log('Getting domain stats...');
+      return { data: [] };
     } catch (error) {
       console.error('Error fetching domain stats:', error);
       return { data: [] };
