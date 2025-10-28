@@ -624,6 +624,41 @@ export const TrialDashboard: React.FC = () => {
           <main className="flex-1 overflow-y-auto p-6 w-full">
             {currentView === 'overview' ? (
               <>
+                    {/* Current Location Weather Overview */}
+                    <div className="mb-6 bg-gradient-to-r from-blue-900/30 to-green-900/30 border border-blue-700/50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+                          <MapPin className="h-5 w-5 text-blue-400" />
+                          <span>System Overview - {selectedLocation.name}</span>
+                        </h3>
+                        <div className="flex items-center space-x-4 text-sm">
+                          <span className="text-green-400">🌾 {selectedCrops.length} crops</span>
+                          <span className="text-yellow-400">🌱 {cropInstances.length} plantings</span>
+                          {calculatorInputs.crop && (
+                            <span className="text-blue-400">🧮 Calculator: {calculatorInputs.crop}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-400">{((weatherData?.temperature || 0) * 9/5 + 32).toFixed(0)}°F</div>
+                          <div className="text-gray-400">Temperature</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-400">{((weatherData?.et0 || 0) * 0.0393701).toFixed(3)}</div>
+                          <div className="text-gray-400">ET₀ (in/day)</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-yellow-400">{weatherData?.humidity?.toFixed(0) || 0}%</div>
+                          <div className="text-gray-400">Humidity</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-purple-400">{((weatherData?.windSpeed || 0) * 0.621371).toFixed(1)}</div>
+                          <div className="text-gray-400">Wind (mph)</div>
+                        </div>
+                      </div>
+                    </div>
+
                 {/* Weather Overview */}
                 <div className="mb-8">
                   <h2 className="text-xl font-semibold text-white mb-4">Current Weather - {selectedLocation.name}</h2>
@@ -864,12 +899,32 @@ export const TrialDashboard: React.FC = () => {
                           <div key={cropId} className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
                             <div className="flex items-center justify-between mb-4">
                               <div>
-                                <h3 className="text-lg font-semibold text-white">{crop.name}</h3>
+                                <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+                                  <span>{crop.name}</span>
+                                  {calculatorInputs.crop === crop.name && (
+                                    <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full flex items-center space-x-1">
+                                      <Calculator className="h-3 w-3" />
+                                      <span>In Calculator</span>
+                                    </span>
+                                  )}
+                                </h3>
                                 <p className="text-sm text-gray-400">{crop.category}</p>
                               </div>
-                              <span className={`text-sm font-medium ${getEfficiencyColor(insight.efficiency)}`}>
-                                {insight.efficiency}% efficient
-                              </span>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setCalculatorInputs({...calculatorInputs, crop: crop.name});
+                                    setCurrentView('calculator');
+                                  }}
+                                  className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
+                                  title="Use in Calculator"
+                                >
+                                  <Calculator className="h-4 w-4" />
+                                </button>
+                                <span className={`text-sm font-medium ${getEfficiencyColor(insight.efficiency)}`}>
+                                  {insight.efficiency}% efficient
+                                </span>
+                              </div>
                             </div>
                             
                             {/* Coefficient Information */}
@@ -1010,6 +1065,13 @@ export const TrialDashboard: React.FC = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-white">Irrigation Runtime Calculator</h2>
                     <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => setCurrentView('overview')}
+                        className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1"
+                      >
+                        <Sprout className="h-4 w-4" />
+                        <span>Manage Crops</span>
+                      </button>
                       <p className="text-sm text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
                       <div className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded border border-gray-600">
                         <button 
@@ -1031,6 +1093,35 @@ export const TrialDashboard: React.FC = () => {
                         {/* Crop Selection */}
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">Crop Type</label>
+                          
+                          {/* Quick Select from Dashboard Crops */}
+                          {selectedCrops.length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs text-gray-400 mb-2">Quick select from your dashboard crops:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {selectedCrops.slice(0, 4).map(cropId => {
+                                  const crop = availableCrops.find(c => c.id === cropId);
+                                  return crop ? (
+                                    <button
+                                      key={cropId}
+                                      onClick={() => setCalculatorInputs({...calculatorInputs, crop: crop.name})}
+                                      className={`px-3 py-1 text-xs rounded-lg transition-colors ${
+                                        calculatorInputs.crop === crop.name
+                                          ? 'bg-blue-600 text-white'
+                                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                      }`}
+                                    >
+                                      {crop.name}
+                                    </button>
+                                  ) : null;
+                                })}
+                                {selectedCrops.length > 4 && (
+                                  <span className="text-xs text-gray-500 self-center">+{selectedCrops.length - 4} more</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                          
                           <select 
                             value={calculatorInputs.crop}
                             onChange={(e) => setCalculatorInputs({...calculatorInputs, crop: e.target.value})}
@@ -1046,6 +1137,55 @@ export const TrialDashboard: React.FC = () => {
                         {/* Kc or Growth Stage */}
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">Growth Stage or Kc Value</label>
+                          
+                          {/* Quick Select from Crop Instances */}
+                          {calculatorInputs.crop && cropInstances.filter(instance => {
+                            const crop = availableCrops.find(c => c.id === instance.cropId);
+                            return crop?.name === calculatorInputs.crop;
+                          }).length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs text-gray-400 mb-2">From your planted crops:</p>
+                              <div className="space-y-2">
+                                {cropInstances.filter(instance => {
+                                  const crop = availableCrops.find(c => c.id === instance.cropId);
+                                  return crop?.name === calculatorInputs.crop;
+                                }).map(instance => {
+                                  const crop = availableCrops.find(c => c.id === instance.cropId);
+                                  if (!crop) return null;
+                                  
+                                  const daysSincePlanting = Math.floor(
+                                    (new Date().getTime() - new Date(instance.plantingDate).getTime()) / (1000 * 60 * 60 * 24)
+                                  );
+                                  
+                                  const currentStage = crop.stages[instance.currentStage];
+                                  
+                                  return (
+                                    <button
+                                      key={instance.id}
+                                      onClick={() => setCalculatorInputs({
+                                        ...calculatorInputs, 
+                                        growthStage: currentStage.name,
+                                        kcValue: undefined
+                                      })}
+                                      className={`w-full text-left p-2 text-xs rounded-lg transition-colors ${
+                                        calculatorInputs.growthStage === currentStage.name
+                                          ? 'bg-green-600 text-white'
+                                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                      }`}
+                                    >
+                                      <div className="flex justify-between items-center">
+                                        <span>{instance.fieldName || `${crop.name} #${instance.id.slice(-4)}`}</span>
+                                        <span>{currentStage.name} (Kc: {currentStage.kc})</span>
+                                      </div>
+                                      <div className="text-gray-400">{daysSincePlanting} days old</div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              <div className="text-center text-gray-400 text-sm mt-2">or select manually:</div>
+                            </div>
+                          )}
+                          
                           <div className="space-y-2">
                             {calculatorInputs.crop && (
                               <select 
@@ -1074,12 +1214,16 @@ export const TrialDashboard: React.FC = () => {
                         {/* ET Source */}
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">ET₀ Source</label>
+                          <div className="mb-2 p-2 bg-gray-800 rounded border border-gray-600">
+                            <div className="text-xs text-gray-400">Current Location: {selectedLocation.name}</div>
+                            <div className="text-xs text-blue-400">Live ET₀: {((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day</div>
+                          </div>
                           <select 
                             value={calculatorInputs.etSource}
                             onChange={(e) => setCalculatorInputs({...calculatorInputs, etSource: e.target.value as 'weather-station' | 'cimis' | 'manual'})}
                             className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="weather-station">Current Weather Station ({((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day)</option>
+                            <option value="weather-station">Use Current Location Data ({((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day)</option>
                             <option value="cimis">CIMIS Data</option>
                             <option value="manual">Manual Entry</option>
                           </select>
@@ -1286,6 +1430,16 @@ export const TrialDashboard: React.FC = () => {
             ) : currentView === 'reports' ? (
               <>
                 {/* Weather Reports */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold text-white">Weather Reports - {selectedLocation.name}</h2>
+                    <div className="flex items-center space-x-4 text-sm text-gray-400">
+                      <span>📍 {selectedLocation.region}</span>
+                      <span>🌾 {selectedCrops.length} crops tracked</span>
+                      <span>🌱 {cropInstances.length} plantings</span>
+                    </div>
+                  </div>
+                </div>
                 <WeatherCharts locationName={selectedLocation.name} />
               </>
             ) : currentView === 'emails' ? (
