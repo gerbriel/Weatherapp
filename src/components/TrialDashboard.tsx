@@ -94,7 +94,7 @@ interface RuntimeResult {
 }
 
 export const TrialDashboard: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, organization } = useAuth();
   const { trialLocations, disableTrialMode, removeLocation: removeTrialLocation } = useTrial();
   const { locations: userLocations, removeLocation: removeUserLocation } = useLocations();
   
@@ -144,11 +144,26 @@ export const TrialDashboard: React.FC = () => {
 
     setTimeout(() => {
       setWeatherData(mockWeatherData);
-      setAvailableCrops(COMPREHENSIVE_CROP_DATABASE);
+      
+      // Filter available crops based on organization's crop distribution
+      if (organization?.cropDistribution) {
+        const orgCropNames = organization.cropDistribution.map(crop => crop.name);
+        const filteredCrops = COMPREHENSIVE_CROP_DATABASE.filter(crop => 
+          orgCropNames.includes(crop.name)
+        );
+        setAvailableCrops(filteredCrops);
+        
+        // Auto-select all organization crops
+        setSelectedCrops(filteredCrops.map(crop => crop.id));
+      } else {
+        // Fallback to full database if no organization data
+        setAvailableCrops(COMPREHENSIVE_CROP_DATABASE);
+      }
+      
       setCropCoefficients(mockCropCoefficients);
       setLoading(false);
     }, 1000);
-  }, [selectedLocation]);
+  }, [selectedLocation, organization]);
 
   // Generate crop coefficients when selected crops change
   useEffect(() => {

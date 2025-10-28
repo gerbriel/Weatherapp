@@ -302,13 +302,19 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
     setFieldBlocks(getOrganizationFieldBlocks);
   }, [getOrganizationFieldBlocks]);
 
-  const filteredBlocks = fieldBlocks.filter(block => {
+    const filteredBlocks = fieldBlocks.filter(block => {
     const matchesStatus = filterStatus === 'all' || block.status === filterStatus;
     const matchesSearch = searchTerm === '' || 
       block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       block.crop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       block.location_name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    
+    // Only show field blocks with crops that exist in organization's crop distribution
+    const cropAvailable = organization?.cropDistribution?.some(crop => 
+      crop.name.toLowerCase() === block.crop_name.toLowerCase()
+    ) ?? true; // Show all if no crop distribution defined
+    
+    return matchesStatus && matchesSearch && cropAvailable;
   });
 
   const getStatusColor = (status: string) => {

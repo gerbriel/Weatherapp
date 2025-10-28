@@ -3,6 +3,13 @@ import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 // Types for our authentication system
+export interface OrganizationCrop {
+  name: string;
+  acres: number;
+  value: number;
+  color: string;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -12,6 +19,7 @@ export interface Organization {
   subscription_plan: 'free' | 'basic' | 'premium' | 'enterprise';
   max_users: number;
   is_active: boolean;
+  cropDistribution?: OrganizationCrop[];
 }
 
 export interface UserProfile {
@@ -72,6 +80,9 @@ interface AuthContextType {
   switchOrganization: (organizationId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshLocations: () => Promise<void>;
+  addOrganizationCrop: (crop: OrganizationCrop) => Promise<{ error: any }>;
+  updateOrganizationCrop: (cropName: string, updates: Partial<OrganizationCrop>) => Promise<{ error: any }>;
+  removeOrganizationCrop: (cropName: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -177,7 +188,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           description: 'Multi-farm cooperative managing 2,500 acres',
           subscription_plan: 'premium',
           max_users: 25,
-          is_active: true
+          is_active: true,
+          cropDistribution: [
+            { name: 'Lettuce', acres: 750, value: 30, color: '#10B981' },
+            { name: 'Broccoli', acres: 625, value: 25, color: '#8B5CF6' },
+            { name: 'Almonds', acres: 500, value: 20, color: '#EF4444' },
+            { name: 'Grapes', acres: 375, value: 15, color: '#3B82F6' },
+            { name: 'Strawberries', acres: 250, value: 10, color: '#F59E0B' }
+          ]
         };
       } else if (currentProfile.organization_id === 'enterprise-ag') {
         currentOrg = {
@@ -187,7 +205,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           description: 'Large-scale precision agriculture operations',
           subscription_plan: 'enterprise',
           max_users: 100,
-          is_active: true
+          is_active: true,
+          cropDistribution: [
+            { name: 'Corn', acres: 2550, value: 30, color: '#F59E0B' },
+            { name: 'Soybeans', acres: 2125, value: 25, color: '#10B981' },
+            { name: 'Wheat', acres: 1700, value: 20, color: '#8B5CF6' },
+            { name: 'Cotton', acres: 1275, value: 15, color: '#EF4444' },
+            { name: 'Tomatoes', acres: 850, value: 10, color: '#3B82F6' }
+          ]
         };
       } else {
         // Default to personal account
@@ -197,7 +222,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           slug: 'personal',
           subscription_plan: 'free',
           max_users: 1,
-          is_active: true
+          is_active: true,
+          cropDistribution: [
+            { name: 'Lettuce', acres: 180, value: 40, color: '#10B981' },
+            { name: 'Tomatoes', acres: 135, value: 30, color: '#F59E0B' },
+            { name: 'Broccoli', acres: 90, value: 20, color: '#8B5CF6' },
+            { name: 'Carrots', acres: 45, value: 10, color: '#EF4444' }
+          ]
         };
       }
       
@@ -411,7 +442,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           description: 'Multi-farm cooperative managing 2,500 acres',
           subscription_plan: 'premium',
           max_users: 25,
-          is_active: true
+          is_active: true,
+          cropDistribution: [
+            { name: 'Lettuce', acres: 750, value: 30, color: '#10B981' },
+            { name: 'Broccoli', acres: 625, value: 25, color: '#8B5CF6' },
+            { name: 'Almonds', acres: 500, value: 20, color: '#EF4444' },
+            { name: 'Grapes', acres: 375, value: 15, color: '#3B82F6' },
+            { name: 'Strawberries', acres: 250, value: 10, color: '#F59E0B' }
+          ]
         };
       } else if (organizationId === 'enterprise-ag') {
         newOrg = {
@@ -421,7 +459,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           description: 'Large-scale precision agriculture operations',
           subscription_plan: 'enterprise',
           max_users: 100,
-          is_active: true
+          is_active: true,
+          cropDistribution: [
+            { name: 'Corn', acres: 2550, value: 30, color: '#F59E0B' },
+            { name: 'Soybeans', acres: 2125, value: 25, color: '#10B981' },
+            { name: 'Wheat', acres: 1700, value: 20, color: '#8B5CF6' },
+            { name: 'Cotton', acres: 1275, value: 15, color: '#EF4444' },
+            { name: 'Tomatoes', acres: 850, value: 10, color: '#3B82F6' }
+          ]
         };
       } else {
         // Default to personal account
@@ -431,7 +476,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           slug: 'personal',
           subscription_plan: 'free',
           max_users: 1,
-          is_active: true
+          is_active: true,
+          cropDistribution: [
+            { name: 'Lettuce', acres: 180, value: 40, color: '#10B981' },
+            { name: 'Tomatoes', acres: 135, value: 30, color: '#F59E0B' },
+            { name: 'Broccoli', acres: 90, value: 20, color: '#8B5CF6' },
+            { name: 'Carrots', acres: 45, value: 10, color: '#EF4444' }
+          ]
         };
       }
       
@@ -445,6 +496,72 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error switching organization:', error);
+    }
+  };
+
+  // Organization crop management functions
+  const addOrganizationCrop = async (crop: OrganizationCrop) => {
+    try {
+      if (!organization) {
+        return { error: { message: 'No organization selected' } };
+      }
+
+      const updatedCropDistribution = [...(organization.cropDistribution || []), crop];
+      const updatedOrganization = { ...organization, cropDistribution: updatedCropDistribution };
+      
+      setOrganization(updatedOrganization);
+      
+      // Save to localStorage for persistence (in real app, this would be database)
+      localStorage.setItem(`organization_${organization.id}`, JSON.stringify(updatedOrganization));
+      
+      return { error: null };
+    } catch (error) {
+      console.error('Error adding organization crop:', error);
+      return { error };
+    }
+  };
+
+  const updateOrganizationCrop = async (cropName: string, updates: Partial<OrganizationCrop>) => {
+    try {
+      if (!organization) {
+        return { error: { message: 'No organization selected' } };
+      }
+
+      const updatedCropDistribution = organization.cropDistribution?.map(crop =>
+        crop.name === cropName ? { ...crop, ...updates } : crop
+      ) || [];
+      
+      const updatedOrganization = { ...organization, cropDistribution: updatedCropDistribution };
+      
+      setOrganization(updatedOrganization);
+      localStorage.setItem(`organization_${organization.id}`, JSON.stringify(updatedOrganization));
+      
+      return { error: null };
+    } catch (error) {
+      console.error('Error updating organization crop:', error);
+      return { error };
+    }
+  };
+
+  const removeOrganizationCrop = async (cropName: string) => {
+    try {
+      if (!organization) {
+        return { error: { message: 'No organization selected' } };
+      }
+
+      const updatedCropDistribution = organization.cropDistribution?.filter(crop =>
+        crop.name !== cropName
+      ) || [];
+      
+      const updatedOrganization = { ...organization, cropDistribution: updatedCropDistribution };
+      
+      setOrganization(updatedOrganization);
+      localStorage.setItem(`organization_${organization.id}`, JSON.stringify(updatedOrganization));
+      
+      return { error: null };
+    } catch (error) {
+      console.error('Error removing organization crop:', error);
+      return { error };
     }
   };
 
@@ -465,7 +582,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setDefaultLocation,
     switchOrganization,
     refreshProfile,
-    refreshLocations
+    refreshLocations,
+    addOrganizationCrop,
+    updateOrganizationCrop,
+    removeOrganizationCrop
   };
 
   return (

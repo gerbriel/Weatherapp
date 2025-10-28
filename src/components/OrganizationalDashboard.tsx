@@ -147,7 +147,7 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
       cropdiversityIndex: 0
     },
     waterUsageByLocation: [],
-    cropDistribution: []
+    cropDistribution: organization?.cropDistribution || []
   };
 
   const monthlyTrends = [

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, X, Sprout, Filter, Check, Plus } from 'lucide-react';
 import { getCropsByCategory, type AvailableCrop } from '../data/crops';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CropManagementModalProps {
   isOpen: boolean;
@@ -25,6 +26,36 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [showNewCropModal, setShowNewCropModal] = useState(false);
+  const [newCropData, setNewCropData] = useState({
+    name: '',
+    acres: 0,
+    color: '#10B981'
+  });
+  
+  const { addOrganizationCrop } = useAuth();
+  
+  const handleAddNewCrop = async () => {
+    if (!newCropData.name.trim()) return;
+    
+    try {
+      await addOrganizationCrop({
+        name: newCropData.name.trim(),
+        acres: newCropData.acres,
+        value: Math.round((newCropData.acres / (newCropData.acres + 100)) * 100), // Calculate percentage
+        color: newCropData.color
+      });
+      
+      // Reset form
+      setNewCropData({ name: '', acres: 0, color: '#10B981' });
+      setShowNewCropModal(false);
+      
+      // Trigger a refresh of available crops
+      window.location.reload(); // Simple refresh - in production would use proper state management
+    } catch (error) {
+      console.error('Error adding new crop:', error);
+    }
+  };
   
   if (!isOpen) return null;
 
@@ -91,6 +122,13 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
             </div>
 
             <div className="flex gap-2">
+              <button
+                onClick={() => setShowNewCropModal(true)}
+                className="px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors whitespace-nowrap flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Add New Crop
+              </button>
               <button
                 onClick={onAddAllCrops}
                 className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors whitespace-nowrap"
@@ -229,6 +267,91 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* New Crop Creation Modal */}
+      {showNewCropModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-60 p-4">
+          <div className="bg-gray-900 rounded-lg w-full max-w-md">
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-white">Add New Crop</h3>
+                <button
+                  onClick={() => setShowNewCropModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Crop Name
+                </label>
+                <input
+                  type="text"
+                  value={newCropData.name}
+                  onChange={(e) => setNewCropData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter crop name..."
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Acres
+                </label>
+                <input
+                  type="number"
+                  value={newCropData.acres}
+                  onChange={(e) => setNewCropData(prev => ({ ...prev, acres: Number(e.target.value) }))}
+                  placeholder="Enter acres..."
+                  min="0"
+                  step="0.1"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Color
+                </label>
+                <div className="flex gap-2">
+                  {['#10B981', '#F59E0B', '#8B5CF6', '#EF4444', '#3B82F6', '#6B7280'].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setNewCropData(prev => ({ ...prev, color }))}
+                      className={`w-8 h-8 rounded-full border-2 ${
+                        newCropData.color === color ? 'border-white' : 'border-gray-600'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-700">
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowNewCropModal(false)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddNewCrop}
+                  disabled={!newCropData.name.trim()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+                >
+                  Add Crop
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
