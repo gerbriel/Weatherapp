@@ -1,7 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://fvymxoeupxojvdzqahuw.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ2eW14b2V1cHhvanZkenFhaHV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNzg3OTMsImV4cCI6MjA3Njc1NDc5M30.0LtMT3zyVAEQmhwrIJR2eRe5RQqAs8iKWBhDt5XSVMo';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://fvymxoeupxojvdzqahuw.supabase.co';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key-here';
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
