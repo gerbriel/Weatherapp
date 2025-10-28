@@ -129,6 +129,7 @@ export const TrialDashboard: React.FC = () => {
   const [cropCoefficients, setCropCoefficients] = useState<CropCoefficient[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'emails' | 'org-dashboard' | 'field-blocks'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
@@ -1019,121 +1020,273 @@ export const TrialDashboard: React.FC = () => {
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="bg-gray-800 border-b border-gray-700 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
-                >
-                  <Menu className="h-5 w-5" />
-                </button>
-                <div>
-                  <h2 className="text-xl font-semibold text-white">{selectedLocation.name}</h2>
-                  <p className="text-gray-400 text-sm">
-                    {('region' in selectedLocation) ? selectedLocation.region : `${selectedLocation.latitude}°, ${selectedLocation.longitude}°`}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                {/* View Toggle */}
-                <div className="flex items-center space-x-1 bg-gray-700 rounded-lg p-1">
-                  <button
-                    onClick={() => setCurrentView('overview')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      currentView === 'overview'
-                        ? 'bg-gray-800 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Sprout className="h-4 w-4 mr-1 inline" />
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={() => setCurrentView('calculator')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      currentView === 'calculator'
-                        ? 'bg-gray-800 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Gauge className="h-4 w-4 mr-1 inline" />
-                    Calculator
-                  </button>
-                  <button
-                    onClick={() => setCurrentView('reports')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      currentView === 'reports'
-                        ? 'bg-gray-800 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <TrendingUp className="h-4 w-4 mr-1 inline" />
-                    Reports
-                  </button>
-                  <button
-                    onClick={() => setCurrentView('emails')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      currentView === 'emails'
-                        ? 'bg-gray-800 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Mail className="h-4 w-4 mr-1 inline" />
-                    Emails
-                  </button>
-                  
-                  <button
-                    onClick={() => setCurrentView('org-dashboard')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
-                      currentView === 'org-dashboard'
-                        ? 'bg-gray-800 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <TrendingUp className="h-4 w-4" />
-                    <span>Org Insights</span>
-                  </button>
-                  <button
-                    onClick={() => setCurrentView('field-blocks')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
-                      currentView === 'field-blocks'
-                        ? 'bg-gray-800 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <MapPin className="h-4 w-4" />
-                    <span>Field Blocks</span>
-                  </button>
+          <header className="bg-gray-800 border-b border-gray-700">
+            {/* Desktop Header */}
+            <div className="hidden lg:block px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">{selectedLocation.name}</h2>
+                    <p className="text-gray-400 text-sm">
+                      {('region' in selectedLocation) ? selectedLocation.region : `${selectedLocation.latitude}°, ${selectedLocation.longitude}°`}
+                    </p>
+                  </div>
                 </div>
                 
-                {user ? (
-                  <div className="flex items-center space-x-3">
-                    <OrganizationSwitcher />
-                    <span className="text-gray-300 text-sm">
-                      {user.email}
-                    </span>
+                <div className="flex items-center space-x-3">
+                  {/* View Toggle */}
+                  <div className="flex items-center space-x-1 bg-gray-700 rounded-lg p-1">
                     <button
-                      onClick={() => signOut()}
-                      className="flex items-center space-x-2 bg-gray-700 text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                      onClick={() => setCurrentView('overview')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'overview'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
                     >
-                      <LogOut className="h-4 w-4" />
-                      <span>Sign Out</span>
+                      <Sprout className="h-4 w-4 mr-1 inline" />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('calculator')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'calculator'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Gauge className="h-4 w-4 mr-1 inline" />
+                      Calculator
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('reports')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'reports'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-1 inline" />
+                      Reports
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('emails')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'emails'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <Mail className="h-4 w-4 mr-1 inline" />
+                      Emails
+                    </button>
+                    
+                    <button
+                      onClick={() => setCurrentView('org-dashboard')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
+                        currentView === 'org-dashboard'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Org Insights</span>
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('field-blocks')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
+                        currentView === 'field-blocks'
+                          ? 'bg-gray-800 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      <MapPin className="h-4 w-4" />
+                      <span>Field Blocks</span>
                     </button>
                   </div>
-                ) : (
-                  <div className="flex items-center space-x-3">
-                    <OrganizationSwitcher />
-                    <button
-                      onClick={disableTrialMode}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Exit Trial
-                    </button>
-                  </div>
-                )}
+                  
+                  {user ? (
+                    <div className="flex items-center space-x-3">
+                      <OrganizationSwitcher />
+                      <span className="text-gray-300 text-sm">
+                        {user.email}
+                      </span>
+                      <button
+                        onClick={() => signOut()}
+                        className="flex items-center space-x-2 bg-gray-700 text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-3">
+                      <OrganizationSwitcher />
+                      <button
+                        onClick={disableTrialMode}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        Exit Trial
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
+            </div>
+
+            {/* Mobile Header */}
+            <div className="lg:hidden">
+              {/* Top row with location and menu */}
+              <div className="px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={() => setSidebarOpen(true)}
+                    className="p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-semibold text-white truncate">{selectedLocation.name}</h2>
+                    <p className="text-gray-400 text-xs truncate">
+                      {('region' in selectedLocation) ? selectedLocation.region : `${selectedLocation.latitude}°, ${selectedLocation.longitude}°`}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <OrganizationSwitcher />
+                  <button
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                  >
+                    {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Mobile navigation menu */}
+              {mobileMenuOpen && (
+                <div className="border-t border-gray-700 bg-gray-750">
+                  <div className="px-2 py-3 space-y-1">
+                    <button
+                      onClick={() => {
+                        setCurrentView('overview');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'overview'
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      <Sprout className="h-4 w-4 mr-3" />
+                      Dashboard
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentView('calculator');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'calculator'
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      <Gauge className="h-4 w-4 mr-3" />
+                      Calculator
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentView('reports');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'reports'
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-3" />
+                      Reports
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentView('emails');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'emails'
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      <Mail className="h-4 w-4 mr-3" />
+                      Emails
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentView('org-dashboard');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'org-dashboard'
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      <TrendingUp className="h-4 w-4 mr-3" />
+                      Org Insights
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentView('field-blocks');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'field-blocks'
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                      }`}
+                    >
+                      <MapPin className="h-4 w-4 mr-3" />
+                      Field Blocks
+                    </button>
+                  </div>
+                  
+                  {/* Mobile user actions */}
+                  <div className="border-t border-gray-700 px-2 py-3">
+                    {user ? (
+                      <div className="space-y-2">
+                        <div className="px-3 py-2">
+                          <p className="text-xs text-gray-400">Signed in as</p>
+                          <p className="text-sm text-gray-300 truncate">{user.email}</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            signOut();
+                            setMobileMenuOpen(false);
+                          }}
+                          className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-md transition-colors"
+                        >
+                          <LogOut className="h-4 w-4 mr-3" />
+                          Sign Out
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          disableTrialMode();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        Exit Trial
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </header>
 
