@@ -2,9 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, development ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, development ]
 
 # Permissions needed for GitHub Pages deployment
 permissions:
@@ -61,7 +61,7 @@ jobs:
         echo "✅ Build completed successfully"
 
     - name: Prepare GitHub Pages deployment
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
       run: |
         echo "📁 Preparing dist folder for GitHub Pages..."
         
@@ -88,16 +88,16 @@ jobs:
         ls -la dist/
 
     - name: Setup Pages
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
       uses: actions/configure-pages@v4
       
     - name: Upload artifact
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
       uses: actions/upload-pages-artifact@v4
       with:
         path: ./dist
 
     - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
       id: deployment
       uses: actions/deploy-pages@v4
