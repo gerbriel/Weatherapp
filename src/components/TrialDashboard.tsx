@@ -2127,7 +2127,6 @@ export const TrialDashboard: React.FC = () => {
                 {/* Field Blocks Management */}
                 <FieldBlocksManager 
                   selectedCrops={selectedCrops}
-                  cropInstances={cropInstances}
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   fieldBlocks={fieldBlocks}

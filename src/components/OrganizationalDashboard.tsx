@@ -3,17 +3,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { TrendingUp, TrendingDown, Droplets, Users, MapPin, DollarSign, AlertTriangle, Sprout, Calculator } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-interface OrganizationalInsight {
-  totalAcres: number;
-  totalBlocks: number;
-  activeUsers: number;
-  waterUsage: number; // acre-feet
-  waterBudget: number; // acre-feet
-  totalCost: number;
-  avgEfficiency: number;
-  cropdiversityIndex: number;
-}
-
 interface CropInstance {
   id: string;
   cropId: string;

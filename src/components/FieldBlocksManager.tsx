@@ -26,23 +26,6 @@ interface FieldBlock {
   updated_at: string;
 }
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-interface CropInstance {
-  id: string;
-  cropId: string;
-  plantingDate: string;
-  currentStage: number;
-  customStageDays?: number;
-  fieldName?: string;
-  notes?: string;
-}
-
 interface RuntimeResult {
   dailyWaterNeed: number;
   runtimeHours: number;
@@ -55,7 +38,6 @@ interface RuntimeResult {
 
 interface FieldBlocksManagerProps {
   selectedCrops?: string[];
-  cropInstances?: CropInstance[];
   calculatorResult?: RuntimeResult | null;
   calculatorInputs?: any;
   fieldBlocks?: FieldBlock[];
@@ -63,7 +45,6 @@ interface FieldBlocksManagerProps {
 
 export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({ 
   selectedCrops = [], 
-  cropInstances = [], 
   calculatorResult = null,
   calculatorInputs = null,
   fieldBlocks: propFieldBlocks = []
