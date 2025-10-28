@@ -26,9 +26,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-     - name: Validate environment variables
+    - name: Validate environment variables
       run: |
-        echo "� Checking environment variables..."
+        echo "🔍 Checking environment variables..."
         if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ]; then
           echo "❌ VITE_SUPABASE_URL is not set"
           exit 1
