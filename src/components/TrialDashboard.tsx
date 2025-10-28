@@ -9,7 +9,7 @@ import { EmailNotifications } from './EmailNotifications';
 import { AddCropInstanceModal } from './AddCropInstanceModal';
 import { SoilSelectionModal } from './SoilSelectionModal';
 import { CalculatorVisualizations } from './CalculatorVisualizations';
-import { type SoilType } from '../data/soils';
+import { type SoilType, SOIL_DATABASE } from '../data/soils';
 
 interface WeatherData {
   temperature: number;
@@ -59,6 +59,25 @@ interface CalculatorInputs {
   systemType: string;
 }
 
+interface CropProfile {
+  id: string;
+  name: string;
+  cropId: string;
+  cropName: string;
+  soilType: string;
+  irrigationMethod: 'drip' | 'sprinkler' | 'flood' | 'micro-spray' | 'surface';
+  systemEfficiency: number;
+  zoneFlowGPM: number;
+  areaSize: number;
+  areaUnit: 'acres' | 'sqft';
+  emitterSpacing?: number; // for drip systems
+  precipitationRate?: number; // for sprinkler systems
+  notes?: string;
+  isFavorite: boolean;
+  createdAt: string;
+  lastUsed: string;
+}
+
 interface RuntimeResult {
   dailyWaterNeed: number; // gallons per day
   runtimeHours: number;
@@ -86,6 +105,9 @@ export const TrialDashboard: React.FC = () => {
   const [showSoilSelector, setShowSoilSelector] = useState(false);
   const [showCropSelector, setShowCropSelector] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [cropProfiles, setCropProfiles] = useState<CropProfile[]>([]);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editingProfile, setEditingProfile] = useState<CropProfile | null>(null);
   const [calculatorInputs, setCalculatorInputs] = useState<CalculatorInputs>({
     crop: '',
     etSource: 'weather-station',
@@ -196,6 +218,96 @@ export const TrialDashboard: React.FC = () => {
 
   const removeAllCrops = () => {
     setSelectedCrops([]);
+  };
+
+  // Load crop profiles from localStorage
+  useEffect(() => {
+    const savedProfiles = localStorage.getItem('cropProfiles');
+    if (savedProfiles) {
+      try {
+        setCropProfiles(JSON.parse(savedProfiles));
+      } catch (error) {
+        console.error('Error loading crop profiles:', error);
+      }
+    }
+  }, []);
+
+  // Save crop profiles to localStorage
+  const saveProfilesToStorage = (profiles: CropProfile[]) => {
+    localStorage.setItem('cropProfiles', JSON.stringify(profiles));
+  };
+
+  // Create a new crop profile
+  const saveCropProfile = (profileData: Omit<CropProfile, 'id' | 'createdAt' | 'lastUsed'>) => {
+    const newProfile: CropProfile = {
+      ...profileData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      lastUsed: new Date().toISOString()
+    };
+    
+    const updatedProfiles = [...cropProfiles, newProfile];
+    setCropProfiles(updatedProfiles);
+    saveProfilesToStorage(updatedProfiles);
+    return newProfile;
+  };
+
+  // Update existing crop profile
+  const updateCropProfile = (profileId: string, updates: Partial<CropProfile>) => {
+    const updatedProfiles = cropProfiles.map(profile => 
+      profile.id === profileId 
+        ? { ...profile, ...updates, lastUsed: new Date().toISOString() }
+        : profile
+    );
+    setCropProfiles(updatedProfiles);
+    saveProfilesToStorage(updatedProfiles);
+  };
+
+  // Delete a crop profile
+  const deleteCropProfile = (profileId: string) => {
+    const updatedProfiles = cropProfiles.filter(profile => profile.id !== profileId);
+    setCropProfiles(updatedProfiles);
+    saveProfilesToStorage(updatedProfiles);
+  };
+
+  // Load profile into calculator
+  const loadProfileToCalculator = (profile: CropProfile) => {
+    setCalculatorInputs({
+      crop: profile.cropName,
+      etSource: 'weather-station',
+      zoneFlowGPM: profile.zoneFlowGPM,
+      area: profile.areaSize,
+      areaUnit: profile.areaUnit,
+      systemType: profile.irrigationMethod
+    });
+    
+    // Update last used timestamp
+    updateCropProfile(profile.id, { lastUsed: new Date().toISOString() });
+    
+    // Switch to calculator view
+    setCurrentView('calculator');
+  };
+
+  // Save current calculator settings as profile
+  const saveCurrentAsProfile = (profileName: string, notes?: string) => {
+    if (!calculatorInputs.crop) return null;
+    
+    const cropId = availableCrops.find(c => c.name === calculatorInputs.crop)?.id;
+    if (!cropId) return null;
+
+    return saveCropProfile({
+      name: profileName,
+      cropId,
+      cropName: calculatorInputs.crop,
+      soilType: selectedSoil?.name || 'Loam',
+      irrigationMethod: (calculatorInputs.systemType as any) || 'drip',
+      systemEfficiency: 85, // Default efficiency
+      zoneFlowGPM: calculatorInputs.zoneFlowGPM,
+      areaSize: calculatorInputs.area,
+      areaUnit: calculatorInputs.areaUnit,
+      notes: notes,
+      isFavorite: false
+    });
   };
 
   const handleAddCropInstance = (crop: AvailableCrop) => {
@@ -1084,6 +1196,79 @@ export const TrialDashboard: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Saved Profiles Section */}
+                  {cropProfiles.length > 0 && (
+                    <div className="mb-6 bg-gray-800 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+                          <Star className="h-5 w-5 text-yellow-400" />
+                          <span>Saved Crop Profiles</span>
+                        </h3>
+                        <button
+                          onClick={() => setShowProfileModal(true)}
+                          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                        >
+                          Save Current Setup
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {cropProfiles.slice(0, 6).map(profile => (
+                          <div
+                            key={profile.id}
+                            className={`p-3 rounded-lg border transition-all ${
+                              calculatorInputs.crop === profile.cropName
+                                ? 'border-green-500 bg-green-900/20'
+                                : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-white text-sm">{profile.name}</h4>
+                              <div className="flex items-center space-x-1">
+                                {profile.isFavorite && <Star className="h-3 w-3 text-yellow-400 fill-current" />}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingProfile(profile);
+                                    setShowProfileModal(true);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                                  title="Edit profile"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm('Are you sure you want to delete this profile?')) {
+                                      deleteCropProfile(profile.id);
+                                    }
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                                  title="Delete profile"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                            <div 
+                              className="text-xs text-gray-400 space-y-1 cursor-pointer"
+                              onClick={() => loadProfileToCalculator(profile)}
+                            >
+                              <div>🌾 {profile.cropName}</div>
+                              <div>💧 {profile.irrigationMethod} • {profile.zoneFlowGPM} GPM</div>
+                              <div>📏 {profile.areaSize} {profile.areaUnit} • {profile.soilType}</div>
+                            </div>
+                          </div>
+                        ))}
+                        {cropProfiles.length > 6 && (
+                          <div className="p-3 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center">
+                            <span className="text-gray-400 text-sm">+{cropProfiles.length - 6} more profiles</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
                     {/* Input Form */}
                     <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 xl:col-span-2">
@@ -1237,6 +1422,47 @@ export const TrialDashboard: React.FC = () => {
                               className="mt-2 w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
                             />
                           )}
+                        </div>
+
+                        {/* Irrigation System Type */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Irrigation System</label>
+                          <select 
+                            value={calculatorInputs.systemType}
+                            onChange={(e) => setCalculatorInputs({...calculatorInputs, systemType: e.target.value})}
+                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="">Select System Type</option>
+                            <option value="drip">Drip Irrigation (90-95% efficient)</option>
+                            <option value="micro-spray">Micro-Spray (80-90% efficient)</option>
+                            <option value="sprinkler">Sprinkler (70-85% efficient)</option>
+                            <option value="surface">Surface/Flood (60-75% efficient)</option>
+                          </select>
+                        </div>
+
+                        {/* Soil Type Integration */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Soil Type</label>
+                          <div className="flex items-center space-x-2">
+                            <select 
+                              value={selectedSoil?.name || ''}
+                              onChange={(e) => {
+                                const soil = SOIL_DATABASE.find((s: SoilType) => s.name === e.target.value);
+                                setSelectedSoil(soil || null);
+                              }}
+                              className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="">Select Soil Type</option>
+                              {SOIL_DATABASE.map((soil: SoilType) => (
+                                <option key={soil.id} value={soil.name}>{soil.name}</option>
+                              ))}
+                            </select>
+                            {selectedSoil && (
+                              <span className="text-xs text-gray-400">
+                                WHC: {selectedSoil.characteristics.waterHoldingCapacity}mm
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Zone Flow */}
@@ -1492,6 +1718,107 @@ export const TrialDashboard: React.FC = () => {
         }}
         selectedSoilId={selectedSoil?.id}
       />
+
+      {/* Profile Management Modal */}
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-white mb-4">
+              {editingProfile ? 'Edit Profile' : 'Create New Profile'}
+            </h3>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target as HTMLFormElement);
+              if (editingProfile) {
+                updateCropProfile(editingProfile.id, {
+                  name: formData.get('profileName') as string,
+                  notes: formData.get('notes') as string,
+                  isFavorite: formData.get('isFavorite') === 'on'
+                });
+              } else {
+                saveCurrentAsProfile(
+                  formData.get('profileName') as string, 
+                  formData.get('notes') as string
+                );
+              }
+              setShowProfileModal(false);
+              setEditingProfile(null);
+            }}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Profile Name *
+                  </label>
+                  <input
+                    name="profileName"
+                    type="text"
+                    defaultValue={editingProfile?.name || ''}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter profile name"
+                    required
+                  />
+                </div>
+
+                {!editingProfile && (
+                  <div className="bg-gray-700 p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-gray-300 mb-2">Current Configuration:</h4>
+                    <div className="text-sm text-gray-400 space-y-1">
+                      <div>Crop: {calculatorInputs.crop || 'None selected'}</div>
+                      <div>Soil: {selectedSoil?.name || 'None selected'}</div>
+                      <div>System: {calculatorInputs.systemType || 'None selected'}</div>
+                      <div>Flow Rate: {calculatorInputs.zoneFlowGPM} GPM</div>
+                      <div>Area: {calculatorInputs.area} {calculatorInputs.areaUnit}</div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Notes (optional)
+                  </label>
+                  <textarea
+                    name="notes"
+                    rows={3}
+                    defaultValue={editingProfile?.notes || ''}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                    placeholder="Add any notes about this profile"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    name="isFavorite"
+                    type="checkbox"
+                    defaultChecked={editingProfile?.isFavorite || false}
+                    className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500"
+                  />
+                  <label className="text-sm text-gray-300">Mark as favorite</label>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileModal(false);
+                    setEditingProfile(null);
+                  }}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  {editingProfile ? 'Update Profile' : 'Save Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
