@@ -34,106 +34,142 @@ interface RuntimeResult {
   etc: number;
 }
 
+interface FieldBlock {
+  id: string;
+  organization_id: string;
+  name: string;
+  description?: string;
+  location_name: string;
+  assigned_users: string[];
+  crop_id: string;
+  crop_name: string;
+  acres: number;
+  irrigation_method: 'drip' | 'sprinkler' | 'flood' | 'micro-spray' | 'surface';
+  soil_type: string;
+  date_planted: string;
+  growth_stage: string;
+  system_efficiency: number;
+  water_allocation: number; // acre-feet per season
+  status: 'active' | 'dormant' | 'harvested' | 'preparation';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface OrganizationalDashboardProps {
   selectedCrops?: string[];
   cropInstances?: CropInstance[];
   calculatorResult?: RuntimeResult | null;
+  fieldBlocks?: FieldBlock[];
 }
 
 export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = ({ 
   selectedCrops = [], 
   cropInstances = [], 
-  calculatorResult = null 
+  calculatorResult = null,
+  fieldBlocks = []
 }) => {
   const { organization } = useAuth();
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
 
-  // Organization-specific data based on the current organization
+  // Organization-specific data calculated from field blocks
   const getOrganizationData = useMemo(() => {
-    if (!organization) return null;
+    if (!organization || fieldBlocks.length === 0) return null;
 
-    switch (organization.id) {
-      case 'local-org':
-        return {
-          insights: {
-            totalAcres: 450,
-            totalBlocks: 8,
+    // Calculate dynamic insights from field blocks
+    const totalAcres = fieldBlocks.reduce((sum, block) => sum + block.acres, 0);
+    const totalBlocks = fieldBlocks.length;
+    const waterUsage = fieldBlocks.reduce((sum, block) => sum + block.water_allocation, 0);
+    const avgEfficiency = fieldBlocks.reduce((sum, block) => sum + block.system_efficiency, 0) / fieldBlocks.length;
+    
+    // Group by location for water usage
+    const locationMap = new Map<string, { usage: number; efficiency: number; cost: number; count: number }>();
+    fieldBlocks.forEach(block => {
+      const existing = locationMap.get(block.location_name) || { usage: 0, efficiency: 0, cost: 0, count: 0 };
+      existing.usage += block.water_allocation;
+      existing.efficiency += block.system_efficiency;
+      existing.cost += block.water_allocation * 280; // Estimated cost per acre-foot
+      existing.count += 1;
+      locationMap.set(block.location_name, existing);
+    });
+
+    const waterUsageByLocation = Array.from(locationMap.entries()).map(([name, data]) => ({
+      name,
+      usage: Math.round(data.usage * 10) / 10,
+      efficiency: Math.round(data.efficiency / data.count),
+      cost: Math.round(data.cost)
+    }));
+
+    // Calculate crop distribution from field blocks
+    const cropMap = new Map<string, number>();
+    fieldBlocks.forEach(block => {
+      const existing = cropMap.get(block.crop_name) || 0;
+      cropMap.set(block.crop_name, existing + block.acres);
+    });
+
+    const totalCropAcres = Array.from(cropMap.values()).reduce((sum, acres) => sum + acres, 0);
+    const cropDistribution = Array.from(cropMap.entries()).map(([name, acres]) => {
+      // Get color from organization crop distribution or use default
+      const orgCrop = organization.cropDistribution?.find(crop => crop.name === name);
+      return {
+        name,
+        acres,
+        value: Math.round((acres / totalCropAcres) * 100),
+        color: orgCrop?.color || '#6B7280'
+      };
+    });
+
+    // Get base data structure for the organization
+    const getBaseData = () => {
+      switch (organization.id) {
+        case 'local-org':
+          return {
             activeUsers: 1,
-            waterUsage: 125.5,
             waterBudget: 180,
-            totalCost: 35000,
-            avgEfficiency: 89.2,
-            cropdiversityIndex: 6.8
-          },
-          waterUsageByLocation: [
-            { name: 'North Field', usage: 65, efficiency: 91, cost: 18000 },
-            { name: 'South Field', usage: 35, efficiency: 87, cost: 10000 },
-            { name: 'East Pasture', usage: 25.5, efficiency: 88, cost: 7000 }
-          ],
-          cropDistribution: [
-            { name: 'Lettuce', acres: 180, value: 40, color: '#10B981' },
-            { name: 'Tomatoes', acres: 135, value: 30, color: '#F59E0B' },
-            { name: 'Broccoli', acres: 90, value: 20, color: '#8B5CF6' },
-            { name: 'Carrots', acres: 45, value: 10, color: '#EF4444' }
-          ]
-        };
-      
-      case 'demo-farm-coop':
-        return {
-          insights: {
-            totalAcres: 2500,
-            totalBlocks: 45,
+            totalCost: totalAcres * 100, // Estimated cost per acre
+            cropdiversityIndex: cropDistribution.length * 1.2
+          };
+        case 'demo-farm-coop':
+          return {
             activeUsers: 18,
-            waterUsage: 750.5,
-            waterBudget: 1000,
-            totalCost: 185000,
-            avgEfficiency: 87.3,
-            cropdiversityIndex: 8.2
-          },
-          waterUsageByLocation: [
-            { name: 'Salinas Valley', usage: 425, efficiency: 92, cost: 120000 },
-            { name: 'Fresno County', usage: 280, efficiency: 85, cost: 65000 },
-            { name: 'San Joaquin', usage: 45.5, efficiency: 83, cost: 25000 }
-          ],
-          cropDistribution: [
-            { name: 'Lettuce', acres: 750, value: 30, color: '#10B981' },
-            { name: 'Broccoli', acres: 625, value: 25, color: '#8B5CF6' },
-            { name: 'Almonds', acres: 500, value: 20, color: '#EF4444' },
-            { name: 'Grapes', acres: 375, value: 15, color: '#3B82F6' },
-            { name: 'Strawberries', acres: 250, value: 10, color: '#F59E0B' }
-          ]
-        };
-      
-      case 'enterprise-ag':
-        return {
-          insights: {
-            totalAcres: 8500,
-            totalBlocks: 120,
+            waterBudget: totalAcres * 0.4, // Estimated budget
+            totalCost: totalAcres * 120,
+            cropdiversityIndex: cropDistribution.length * 1.1
+          };
+        case 'enterprise-ag':
+          return {
             activeUsers: 67,
-            waterUsage: 2850.5,
-            waterBudget: 3200,
-            totalCost: 645000,
-            avgEfficiency: 85.8,
-            cropdiversityIndex: 9.4
-          },
-          waterUsageByLocation: [
-            { name: 'Central Operations', usage: 1425, efficiency: 88, cost: 320000 },
-            { name: 'Northern Division', usage: 950, efficiency: 84, cost: 215000 },
-            { name: 'Southern Division', usage: 475.5, efficiency: 86, cost: 110000 }
-          ],
-          cropDistribution: [
-            { name: 'Corn', acres: 2550, value: 30, color: '#F59E0B' },
-            { name: 'Soybeans', acres: 2125, value: 25, color: '#10B981' },
-            { name: 'Wheat', acres: 1700, value: 20, color: '#8B5CF6' },
-            { name: 'Cotton', acres: 1275, value: 15, color: '#EF4444' },
-            { name: 'Tomatoes', acres: 850, value: 10, color: '#3B82F6' }
-          ]
-        };
-      
-      default:
-        return null;
-    }
-  }, [organization?.id]);
+            waterBudget: totalAcres * 0.38,
+            totalCost: totalAcres * 140,
+            cropdiversityIndex: cropDistribution.length * 1.3
+          };
+        default:
+          return {
+            activeUsers: 1,
+            waterBudget: totalAcres * 0.5,
+            totalCost: totalAcres * 100,
+            cropdiversityIndex: cropDistribution.length
+          };
+      }
+    };
+
+    const baseData = getBaseData();
+
+    return {
+      insights: {
+        totalAcres,
+        totalBlocks,
+        activeUsers: baseData.activeUsers,
+        waterUsage,
+        waterBudget: baseData.waterBudget,
+        totalCost: baseData.totalCost,
+        avgEfficiency,
+        cropdiversityIndex: baseData.cropdiversityIndex
+      },
+      waterUsageByLocation,
+      cropDistribution
+    };
+  }, [organization?.id, fieldBlocks, organization?.cropDistribution]);
 
   const { insights, waterUsageByLocation, cropDistribution } = getOrganizationData || {
     insights: {

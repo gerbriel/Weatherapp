@@ -45,6 +45,28 @@ interface CropCoefficient {
   plantingDate: string;
 }
 
+interface FieldBlock {
+  id: string;
+  organization_id: string;
+  name: string;
+  description?: string;
+  location_name: string;
+  assigned_users: string[];
+  crop_id: string;
+  crop_name: string;
+  acres: number;
+  irrigation_method: 'drip' | 'sprinkler' | 'flood' | 'micro-spray' | 'surface';
+  soil_type: string;
+  date_planted: string;
+  growth_stage: string;
+  system_efficiency: number;
+  water_allocation: number; // acre-feet per season
+  status: 'active' | 'dormant' | 'harvested' | 'preparation';
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 interface IrrigationSystem {
   id: string;
   name: string;
@@ -129,6 +151,7 @@ export const TrialDashboard: React.FC = () => {
     systemType: ''
   });
   const [calculatorResult, setCalculatorResult] = useState<RuntimeResult | null>(null);
+  const [fieldBlocks, setFieldBlocks] = useState<FieldBlock[]>([]);
 
   // Mock weather data for trial
   useEffect(() => {
@@ -153,8 +176,14 @@ export const TrialDashboard: React.FC = () => {
         );
         setAvailableCrops(filteredCrops);
         
-        // Auto-select all organization crops
-        setSelectedCrops(filteredCrops.map(crop => crop.id));
+        // Only auto-select if no crops are currently selected
+        setSelectedCrops(prev => {
+          if (prev.length === 0) {
+            return filteredCrops.map(crop => crop.id);
+          }
+          // Keep existing selections but filter to valid crops
+          return prev.filter(cropId => filteredCrops.some(crop => crop.id === cropId));
+        });
       } else {
         // Fallback to full database if no organization data
         setAvailableCrops(COMPREHENSIVE_CROP_DATABASE);
@@ -228,6 +257,287 @@ export const TrialDashboard: React.FC = () => {
 
     setCropCoefficients(mockCropCoefficients);
   }, [selectedCrops, availableCrops, weatherData]);
+
+  // Initialize field blocks when organization changes
+  useEffect(() => {
+    if (!organization) {
+      setFieldBlocks([]);
+      return;
+    }
+
+    const getOrganizationFieldBlocks = (): FieldBlock[] => {
+      switch (organization.id) {
+        case 'local-org':
+          return [
+            {
+              id: 'block-1',
+              organization_id: 'local-org',
+              name: 'Home Garden North',
+              description: 'Main vegetable garden',
+              location_name: 'Back Yard',
+              assigned_users: ['user-1'],
+              crop_id: 'lettuce',
+              crop_name: 'Lettuce',
+              acres: 180,
+              irrigation_method: 'drip',
+              soil_type: 'Garden Soil',
+              date_planted: '2024-10-01',
+              growth_stage: 'Harvest',
+              system_efficiency: 95,
+              water_allocation: 105,
+              status: 'active',
+              notes: 'Organic lettuce for family',
+              created_at: '2024-10-01T10:00:00Z',
+              updated_at: '2024-10-25T12:00:00Z'
+            },
+            {
+              id: 'block-2',
+              organization_id: 'local-org',
+              name: 'Greenhouse Complex',
+              description: 'Indoor tomato production',
+              location_name: 'Greenhouse',
+              assigned_users: ['user-1'],
+              crop_id: 'tomatoes',
+              crop_name: 'Tomatoes',
+              acres: 135,
+              irrigation_method: 'drip',
+              soil_type: 'Potting Mix',
+              date_planted: '2024-09-15',
+              growth_stage: 'Fruiting',
+              system_efficiency: 98,
+              water_allocation: 95,
+              status: 'active',
+              notes: 'Cherry tomatoes',
+              created_at: '2024-09-15T09:00:00Z',
+              updated_at: '2024-10-22T15:30:00Z'
+            },
+            {
+              id: 'block-3',
+              organization_id: 'local-org',
+              name: 'East Field',
+              description: 'Spinach and green vegetables',
+              location_name: 'East Field',
+              assigned_users: ['user-1'],
+              crop_id: 'spinach',
+              crop_name: 'Spinach',
+              acres: 100,
+              irrigation_method: 'sprinkler',
+              soil_type: 'Clay Loam',
+              date_planted: '2024-09-20',
+              growth_stage: 'Mature',
+              system_efficiency: 90,
+              water_allocation: 55,
+              status: 'active',
+              notes: 'Organic spinach rotation',
+              created_at: '2024-09-20T08:00:00Z',
+              updated_at: '2024-10-20T14:00:00Z'
+            },
+            {
+              id: 'block-4',
+              organization_id: 'local-org',
+              name: 'South Plot',
+              description: 'Root vegetables area',
+              location_name: 'South Field',
+              assigned_users: ['user-1'],
+              crop_id: 'carrots',
+              crop_name: 'Carrots',
+              acres: 80,
+              irrigation_method: 'drip',
+              soil_type: 'Sandy Loam',
+              date_planted: '2024-08-15',
+              growth_stage: 'Harvest',
+              system_efficiency: 92,
+              water_allocation: 45,
+              status: 'active',
+              notes: 'Heirloom carrot varieties',
+              created_at: '2024-08-15T07:30:00Z',
+              updated_at: '2024-10-18T11:15:00Z'
+            }
+          ];
+
+        case 'demo-farm-coop':
+          return [
+            {
+              id: 'block-1',
+              organization_id: 'demo-farm-coop',
+              name: 'Salinas North',
+              description: 'Primary lettuce production',
+              location_name: 'Salinas Valley',
+              assigned_users: ['user-1', 'user-2'],
+              crop_id: 'lettuce',
+              crop_name: 'Lettuce',
+              acres: 750,
+              irrigation_method: 'drip',
+              soil_type: 'Sandy Loam',
+              date_planted: '2024-10-15',
+              growth_stage: 'Vegetative',
+              system_efficiency: 92,
+              water_allocation: 425,
+              status: 'active',
+              notes: 'High-value organic lettuce rotation',
+              created_at: '2024-10-15T08:00:00Z',
+              updated_at: '2024-10-20T10:30:00Z'
+            },
+            {
+              id: 'block-2',
+              organization_id: 'demo-farm-coop',
+              name: 'Fresno Central',
+              description: 'Broccoli production area',
+              location_name: 'Fresno County',
+              assigned_users: ['user-3', 'user-4'],
+              crop_id: 'broccoli',
+              crop_name: 'Broccoli',
+              acres: 625,
+              irrigation_method: 'sprinkler',
+              soil_type: 'Clay Loam',
+              date_planted: '2024-09-10',
+              growth_stage: 'Heading',
+              system_efficiency: 85,
+              water_allocation: 280,
+              status: 'active',
+              notes: 'Premium broccoli for export',
+              created_at: '2024-09-10T07:00:00Z',
+              updated_at: '2024-10-18T15:45:00Z'
+            },
+            {
+              id: 'block-3',
+              organization_id: 'demo-farm-coop',
+              name: 'San Joaquin South',
+              description: 'Mixed crop rotation',
+              location_name: 'San Joaquin',
+              assigned_users: ['user-5'],
+              crop_id: 'almonds',
+              crop_name: 'Almonds',
+              acres: 500,
+              irrigation_method: 'micro-spray',
+              soil_type: 'Sandy Clay',
+              date_planted: '2024-03-01',
+              growth_stage: 'Nut Fill',
+              system_efficiency: 83,
+              water_allocation: 45.5,
+              status: 'active',
+              notes: 'Mature almond orchard',
+              created_at: '2024-03-01T08:00:00Z',
+              updated_at: '2024-10-15T12:00:00Z'
+            },
+            {
+              id: 'block-4',
+              organization_id: 'demo-farm-coop',
+              name: 'Napa Valley East',
+              description: 'Premium grape vineyard',
+              location_name: 'Napa Valley',
+              assigned_users: ['user-3', 'user-4'],
+              crop_id: 'grapes',
+              crop_name: 'Grapes',
+              acres: 375,
+              irrigation_method: 'drip',
+              soil_type: 'Volcanic Clay',
+              date_planted: '2024-04-15',
+              growth_stage: 'Harvest',
+              system_efficiency: 95,
+              water_allocation: 225,
+              status: 'active',
+              notes: 'Cabernet Sauvignon for premium wine',
+              created_at: '2024-04-15T08:00:00Z',
+              updated_at: '2024-10-22T09:15:00Z'
+            },
+            {
+              id: 'block-5',
+              organization_id: 'demo-farm-coop',
+              name: 'Monterey Coastal',
+              description: 'Strawberry greenhouse complex',
+              location_name: 'Monterey Bay',
+              assigned_users: ['user-1', 'user-2'],
+              crop_id: 'strawberries',
+              crop_name: 'Strawberries',
+              acres: 250,
+              irrigation_method: 'drip',
+              soil_type: 'Sandy Loam',
+              date_planted: '2024-08-01',
+              growth_stage: 'Fruiting',
+              system_efficiency: 98,
+              water_allocation: 320,
+              status: 'active',
+              notes: 'Year-round strawberry production',
+              created_at: '2024-08-01T06:30:00Z',
+              updated_at: '2024-10-28T11:00:00Z'
+            }
+          ];
+
+        case 'enterprise-ag':
+          return [
+            {
+              id: 'block-1',
+              organization_id: 'enterprise-ag',
+              name: 'Central Corn A',
+              description: 'Primary corn production',
+              location_name: 'Central Operations',
+              assigned_users: ['user-1', 'user-2', 'user-3'],
+              crop_id: 'corn',
+              crop_name: 'Corn',
+              acres: 2550,
+              irrigation_method: 'sprinkler',
+              soil_type: 'Silt Loam',
+              date_planted: '2024-05-15',
+              growth_stage: 'Grain Fill',
+              system_efficiency: 88,
+              water_allocation: 1425,
+              status: 'active',
+              notes: 'Hybrid corn for feed production',
+              created_at: '2024-05-15T06:00:00Z',
+              updated_at: '2024-10-25T14:30:00Z'
+            },
+            {
+              id: 'block-2',
+              organization_id: 'enterprise-ag',
+              name: 'Northern Soybeans',
+              description: 'Soybean cultivation',
+              location_name: 'Northern Division',
+              assigned_users: ['user-4', 'user-5'],
+              crop_id: 'soybeans',
+              crop_name: 'Soybeans',
+              acres: 2125,
+              irrigation_method: 'sprinkler',
+              soil_type: 'Clay Loam',
+              date_planted: '2024-06-01',
+              growth_stage: 'Pod Fill',
+              system_efficiency: 84,
+              water_allocation: 950,
+              status: 'active',
+              notes: 'Non-GMO soybeans for export',
+              created_at: '2024-06-01T07:00:00Z',
+              updated_at: '2024-10-20T11:15:00Z'
+            },
+            {
+              id: 'block-3',
+              organization_id: 'enterprise-ag',
+              name: 'Southern Wheat',
+              description: 'Winter wheat production',
+              location_name: 'Southern Division',
+              assigned_users: ['user-6'],
+              crop_id: 'wheat',
+              crop_name: 'Wheat',
+              acres: 1700,
+              irrigation_method: 'flood',
+              soil_type: 'Silt Clay',
+              date_planted: '2024-10-01',
+              growth_stage: 'Tillering',
+              system_efficiency: 86,
+              water_allocation: 475.5,
+              status: 'active',
+              notes: 'Hard red winter wheat',
+              created_at: '2024-10-01T05:30:00Z',
+              updated_at: '2024-10-22T16:20:00Z'
+            }
+          ];
+
+        default:
+          return [];
+      }
+    };
+
+    setFieldBlocks(getOrganizationFieldBlocks());
+  }, [organization?.id]);
 
   const handleCropToggle = (cropId: string) => {
     setSelectedCrops(prev => {
@@ -1809,6 +2119,7 @@ export const TrialDashboard: React.FC = () => {
                   selectedCrops={selectedCrops}
                   cropInstances={cropInstances}
                   calculatorResult={calculatorResult}
+                  fieldBlocks={fieldBlocks}
                 />
               </>
             ) : currentView === 'field-blocks' ? (
@@ -1819,6 +2130,7 @@ export const TrialDashboard: React.FC = () => {
                   cropInstances={cropInstances}
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
+                  fieldBlocks={fieldBlocks}
                 />
               </>
             ) : null}

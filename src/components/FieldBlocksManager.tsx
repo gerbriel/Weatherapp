@@ -58,13 +58,15 @@ interface FieldBlocksManagerProps {
   cropInstances?: CropInstance[];
   calculatorResult?: RuntimeResult | null;
   calculatorInputs?: any;
+  fieldBlocks?: FieldBlock[];
 }
 
 export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({ 
   selectedCrops = [], 
   cropInstances = [], 
   calculatorResult = null,
-  calculatorInputs = null
+  calculatorInputs = null,
+  fieldBlocks: propFieldBlocks = []
 }) => {
   const { organization } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -295,14 +297,16 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
     }
   }, [organization?.id]);
 
-  const [fieldBlocks, setFieldBlocks] = useState<FieldBlock[]>(getOrganizationFieldBlocks);
+  // Use prop fieldBlocks or fallback to generated ones
+  const fieldBlocks = propFieldBlocks.length > 0 ? propFieldBlocks : getOrganizationFieldBlocks;
+  const [localFieldBlocks, setLocalFieldBlocks] = useState<FieldBlock[]>(fieldBlocks);
 
-  // Update field blocks when organization changes
+  // Update local field blocks when prop or organization changes
   React.useEffect(() => {
-    setFieldBlocks(getOrganizationFieldBlocks);
-  }, [getOrganizationFieldBlocks]);
+    setLocalFieldBlocks(fieldBlocks);
+  }, [fieldBlocks]);
 
-    const filteredBlocks = fieldBlocks.filter(block => {
+  const filteredBlocks = localFieldBlocks.filter(block => {
     const matchesStatus = filterStatus === 'all' || block.status === filterStatus;
     const matchesSearch = searchTerm === '' || 
       block.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -334,7 +338,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
   const handleSaveBlock = (blockData: Partial<FieldBlock>) => {
     if (editingBlock) {
       // Update existing block
-      setFieldBlocks(prev => prev.map(block => 
+      setLocalFieldBlocks(prev => prev.map(block => 
         block.id === editingBlock.id 
           ? { ...block, ...blockData, updated_at: new Date().toISOString() }
           : block
@@ -348,7 +352,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
         updated_at: new Date().toISOString(),
         ...blockData
       } as FieldBlock;
-      setFieldBlocks(prev => [...prev, newBlock]);
+      setLocalFieldBlocks(prev => [...prev, newBlock]);
     }
     setShowModal(false);
     setEditingBlock(null);
@@ -356,7 +360,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
 
   const handleDeleteBlock = (blockId: string) => {
     if (confirm('Are you sure you want to delete this field block?')) {
-      setFieldBlocks(prev => prev.filter(block => block.id !== blockId));
+      setLocalFieldBlocks(prev => prev.filter(block => block.id !== blockId));
     }
   };
 
