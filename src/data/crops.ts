@@ -260,28 +260,6 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     ]
   },
   {
-    id: 'soybeans',
-    name: 'Soybeans',
-    category: 'Field Crops',
-    stages: [
-      { name: 'Initial', kc: 0.40, duration: 15, description: 'Emergence to V1 stage' },
-      { name: 'Development', kc: 0.70, duration: 35, description: 'V1 to R1 (flowering)' },
-      { name: 'Mid-season', kc: 1.15, duration: 45, description: 'R1 to R6 (full seed)' },
-      { name: 'Late season', kc: 0.50, duration: 25, description: 'R6 to maturity' }
-    ]
-  },
-  {
-    id: 'wheat',
-    name: 'Wheat',
-    category: 'Field Crops',
-    stages: [
-      { name: 'Initial', kc: 0.35, duration: 30, description: 'Emergence to tillering' },
-      { name: 'Development', kc: 0.70, duration: 40, description: 'Tillering to jointing' },
-      { name: 'Mid-season', kc: 1.15, duration: 50, description: 'Jointing to grain filling' },
-      { name: 'Late season', kc: 0.40, duration: 30, description: 'Grain filling to harvest' }
-    ]
-  },
-  {
     id: 'cotton',
     name: 'Cotton',
     category: 'Field Crops',

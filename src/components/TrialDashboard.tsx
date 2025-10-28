@@ -76,7 +76,7 @@ export const TrialDashboard: React.FC = () => {
   const [cropCoefficients, setCropCoefficients] = useState<CropCoefficient[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'coefficients' | 'calculator' | 'reports' | 'emails'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'emails'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
   const [cropInstances, setCropInstances] = useState<CropInstance[]>([]);
@@ -459,9 +459,9 @@ export const TrialDashboard: React.FC = () => {
               </div>
               {trialLocations.map((location) => (
                 <div key={location.id} className="relative group">
-                  <button
+                  <div
                     onClick={() => setSelectedLocation(location)}
-                    className={`w-full text-left p-4 rounded-lg transition-all border ${
+                    className={`w-full text-left p-4 rounded-lg transition-all border cursor-pointer ${
                       selectedLocation.id === location.id
                         ? 'bg-blue-600 text-white border-blue-500'
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700'
@@ -536,7 +536,7 @@ export const TrialDashboard: React.FC = () => {
                         )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -573,18 +573,7 @@ export const TrialDashboard: React.FC = () => {
                     }`}
                   >
                     <Sprout className="h-4 w-4 mr-1 inline" />
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => setCurrentView('coefficients')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                      currentView === 'coefficients'
-                        ? 'bg-gray-800 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <Calculator className="h-4 w-4 mr-1 inline" />
-                    Coefficients
+                    Dashboard
                   </button>
                   <button
                     onClick={() => setCurrentView('calculator')}
@@ -951,108 +940,12 @@ export const TrialDashboard: React.FC = () => {
                     </div>
                   )}
                 </div>
-              </>
-            ) : currentView === 'coefficients' ? (
-              <>
-                {/* Crop Management Section */}
-                <div className="mb-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-white">Crop Management - {selectedLocation.name}</h2>
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => setShowCropSelector(!showCropSelector)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                      >
-                        <Sprout className="h-4 w-4" />
-                        <span>Manage Crops</span>
-                      </button>
-                      {selectedCrops.length > 0 && (
-                        <button
-                          onClick={removeAllCrops}
-                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                        >
-                          Clear All
-                        </button>
-                      )}
-                      <div className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded border border-gray-600">
-                        <button 
-                          onClick={disableTrialMode}
-                          className="hover:text-blue-400 transition-colors"
-                        >
-                          Create account for custom crops
-                        </button>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Crop Selector */}
-                  {showCropSelector && (
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-white">Select Crops for this Location</h3>
-                        <button
-                          onClick={addAllCrops}
-                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                        >
-                          Add All
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {availableCrops.map((crop) => (
-                          <div
-                            key={crop.id}
-                            className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                              selectedCrops.includes(crop.id)
-                                ? 'border-green-500 bg-green-900/20'
-                                : 'border-gray-600 bg-gray-700 hover:border-gray-500'
-                            }`}
-                            onClick={() => handleCropToggle(crop.id)}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-semibold text-white">{crop.name}</h4>
-                              <div className={`w-4 h-4 rounded border-2 ${
-                                selectedCrops.includes(crop.id)
-                                  ? 'bg-green-500 border-green-500'
-                                  : 'border-gray-400'
-                              }`}>
-                                {selectedCrops.includes(crop.id) && (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <span className="text-white text-xs">✓</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-sm text-gray-400 mb-2">{crop.category}</p>
-                            <p className="text-xs text-gray-500">{crop.stages.length} growth stages</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Selected Crops Summary */}
-                  {selectedCrops.length > 0 && (
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-                      <h3 className="text-white font-medium mb-2">Active Crops at {selectedLocation.name}:</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedCrops.map(cropId => {
-                          const crop = availableCrops.find(c => c.id === cropId);
-                          return crop ? (
-                            <span key={cropId} className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
-                              {crop.name}
-                            </span>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Crop Coefficients */}
-                {cropCoefficients.length > 0 ? (
+                {/* Detailed Crop Coefficients Section */}
+                {selectedCrops.length > 0 && (
                   <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold text-white">Crop Coefficients (Kc) - Active Crops</h2>
+                      <h2 className="text-xl font-semibold text-white">Detailed Crop Coefficients (Kc)</h2>
                       <div className="text-sm text-gray-400">
                         ET₀ × Kc = ETc (Crop Water Requirement)
                       </div>
@@ -1066,63 +959,58 @@ export const TrialDashboard: React.FC = () => {
                         <span className="text-orange-400"> Late season (0.6-0.8)</span>.
                       </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {cropCoefficients.map((coeff, index) => (
-                        <div key={index} className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <h3 className="text-lg font-semibold text-white">{coeff.crop}</h3>
-                              <p className="text-sm text-gray-400">{coeff.category}</p>
+                    {cropCoefficients.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {cropCoefficients.map((coeff, index) => (
+                          <div key={index} className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                            <div className="flex items-center justify-between mb-4">
+                              <div>
+                                <h3 className="text-lg font-semibold text-white">{coeff.crop}</h3>
+                                <p className="text-sm text-gray-400">{coeff.category}</p>
+                              </div>
+                              <span className={`text-sm font-medium px-2 py-1 rounded ${getStageColor(coeff.stage)} bg-gray-700`}>
+                                {coeff.stage}
+                              </span>
                             </div>
-                            <span className={`text-sm font-medium px-2 py-1 rounded ${getStageColor(coeff.stage)} bg-gray-700`}>
-                              {coeff.stage}
-                            </span>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <p className="text-sm text-gray-400">Kc Value</p>
+                                <p className="text-xl font-bold text-blue-400">{coeff.kc.toFixed(2)}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400">ETc (in/day)</p>
+                                <p className="text-xl font-bold text-green-400">{(coeff.etc * 0.0393701).toFixed(3)}</p>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <div>
+                                <p className="text-sm text-gray-400">Planted</p>
+                                <p className="text-white text-sm">{coeff.plantingDate}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400">Days in Stage</p>
+                                <p className="text-white">{coeff.daysSinceStage} days</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400">Stage Description</p>
+                                <p className="text-gray-300 text-sm">{coeff.irrigationRecommendation}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <p className="text-sm text-gray-400">Kc Value</p>
-                              <p className="text-xl font-bold text-blue-400">{coeff.kc.toFixed(2)}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-400">ETc (in/day)</p>
-                              <p className="text-xl font-bold text-green-400">{(coeff.etc * 0.0393701).toFixed(3)}</p>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <div>
-                              <p className="text-sm text-gray-400">Planted</p>
-                              <p className="text-white text-sm">{coeff.plantingDate}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-400">Days in Stage</p>
-                              <p className="text-white">{coeff.daysSinceStage} days</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-gray-400">Stage Description</p>
-                              <p className="text-gray-300 text-sm">{coeff.irrigationRecommendation}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-8">
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
-                      <Sprout className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-white mb-2">No Crops Selected</h3>
-                      <p className="text-gray-400 mb-4">
-                        Select crops from the "Manage Crops" section above to view their coefficient data and irrigation requirements.
-                      </p>
-                      <button
-                        onClick={() => setShowCropSelector(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
-                      >
-                        Add Crops
-                      </button>
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
+              </>
+            ) : currentView === 'calculator' ? (
+              <>
+                {/* Calculator Content - Add your calculator component here */}
+                <div className="text-center py-12">
+                  <Calculator className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white mb-2">Irrigation Calculator</h3>
+                  <p className="text-gray-400">Calculator feature coming soon...</p>
+                </div>
               </>
             ) : currentView === 'reports' ? (
               <>
