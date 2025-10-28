@@ -1005,25 +1005,6 @@ export const TrialDashboard: React.FC = () => {
               </>
             ) : currentView === 'calculator' ? (
               <>
-                {/* Calculator Content - Add your calculator component here */}
-                <div className="text-center py-12">
-                  <Calculator className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Irrigation Calculator</h3>
-                  <p className="text-gray-400">Calculator feature coming soon...</p>
-                </div>
-              </>
-            ) : currentView === 'reports' ? (
-              <>
-                {/* Weather Reports */}
-                <WeatherCharts locationName={selectedLocation.name} />
-              </>
-            ) : currentView === 'emails' ? (
-              <>
-                {/* Email Notifications */}
-                <EmailNotifications />
-              </>
-            ) : (
-              <>
                 {/* Irrigation Runtime Calculator */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
@@ -1302,7 +1283,17 @@ export const TrialDashboard: React.FC = () => {
                   </div>
                 </div>
               </>
-            )}
+            ) : currentView === 'reports' ? (
+              <>
+                {/* Weather Reports */}
+                <WeatherCharts locationName={selectedLocation.name} />
+              </>
+            ) : currentView === 'emails' ? (
+              <>
+                {/* Email Notifications */}
+                <EmailNotifications />
+              </>
+            ) : null}
           </main>
         </div>
       </div>
