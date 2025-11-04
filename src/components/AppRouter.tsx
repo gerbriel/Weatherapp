@@ -21,7 +21,7 @@ export const AppRouter: React.FC = () => {
   }
 
   return (
-    <Router>
+    <Router basename="/Weatherapp">
       <Routes>
         {/* Trial Mode Route - Accessible without authentication */}
         {isTrialMode && (
