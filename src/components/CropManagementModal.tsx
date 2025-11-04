@@ -124,9 +124,9 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
             <div className="flex items-center">
               <Sprout className="w-6 h-6 text-green-400 mr-3" />
               <div>
-                <h2 className="text-xl font-semibold text-white">Crop Management</h2>
+                <h2 className="text-xl font-semibold text-white">Quick Crop Selection</h2>
                 <p className="text-sm text-gray-400">
-                  {selectedCount} of {totalCount} crops selected
+                  {selectedCount} of {totalCount} crops active • Click "Add" to quick add crops with today's date
                 </p>
               </div>
             </div>
@@ -196,6 +196,22 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+          {/* Quick Add Info */}
+          <div className="mb-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <div className="p-1 bg-blue-900 rounded">
+                <Sprout className="w-4 h-4 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-blue-300 font-medium text-sm">Quick Add Mode</h3>
+                <p className="text-blue-200 text-xs mt-1">
+                  Click "Add" on any crop to instantly add it to your dashboard with today's planting date. 
+                  Use the <Plus className="w-3 h-3 inline mx-1" /> button after adding to configure detailed settings.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Category Statistics */}
           {selectedCategory !== 'All' && (
             <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
@@ -222,30 +238,35 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="font-semibold text-white text-sm">{crop.name}</h4>
                     <div className="flex items-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddCropInstance(crop);
-                        }}
-                        className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs"
-                        title="Add crop instance with planting date"
-                      >
-                        <Plus className="w-3 h-3" />
-                      </button>
+                      {/* Primary Toggle - Pill-shaped selector */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onCropToggle(crop.id);
                         }}
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        className={`w-8 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                           isSelected
-                            ? 'bg-green-500 border-green-500'
-                            : 'border-gray-400 hover:border-gray-300'
+                            ? 'bg-green-500 border-green-500 shadow-lg shadow-green-500/30'
+                            : 'border-gray-400 hover:border-gray-300 hover:bg-gray-700'
                         }`}
-                        title={isSelected ? "Remove from selection" : "Add to selection"}
+                        title={isSelected ? "Remove from selection" : "Quick add to selection"}
                       >
                         {isSelected && <Check className="w-3 h-3 text-white" />}
                       </button>
+                      
+                      {/* Secondary Action - Advanced add */}
+                      {isSelected && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAddCropInstance(crop);
+                          }}
+                          className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs"
+                          title="Add with detailed planting information"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   

@@ -5,26 +5,46 @@ interface CropStage {
   description: string;
 }
 
+interface WateringCycle {
+  name: string;
+  kc: number;
+  duration: number;
+  description: string;
+  season: 'spring' | 'summer' | 'fall' | 'winter';
+  repeatsAnnually: boolean;
+}
+
 export interface AvailableCrop {
   id: string;
   name: string;
   category: string;
   scientificName?: string;
   stages: CropStage[];
+  wateringCycles?: WateringCycle[]; // For perennial crops with annual watering cycles
+  isPerennial?: boolean; // True for trees, vines, etc.
+  plantingType?: 'annual' | 'perennial'; // Optional for backward compatibility
 }
 
 export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
-  // Tree Nuts
+  // Tree Nuts - Enhanced with watering cycles for perennial management
   {
     id: 'almonds',
     name: 'Almonds',
     scientificName: 'Prunus dulcis',
     category: 'Tree Nuts',
+    plantingType: 'perennial',
+    isPerennial: true,
     stages: [
       { name: 'Initial', kc: 0.40, duration: 30, description: 'Bud break and early leaf development' },
       { name: 'Development', kc: 0.85, duration: 45, description: 'Rapid canopy growth and nut development' },
       { name: 'Mid-season', kc: 1.10, duration: 60, description: 'Full canopy and peak water demand' },
       { name: 'Late season', kc: 0.75, duration: 45, description: 'Nut maturation and harvest preparation' }
+    ],
+    wateringCycles: [
+      { name: 'Dormant', kc: 0.15, duration: 90, description: 'Winter dormancy - minimal water needs', season: 'winter', repeatsAnnually: true },
+      { name: 'Bud Break', kc: 0.40, duration: 30, description: 'Spring awakening and flowering', season: 'spring', repeatsAnnually: true },
+      { name: 'Nut Fill', kc: 1.10, duration: 120, description: 'Peak summer water demand for nut development', season: 'summer', repeatsAnnually: true },
+      { name: 'Harvest Prep', kc: 0.75, duration: 45, description: 'Late summer preparation for harvest', season: 'fall', repeatsAnnually: true }
     ]
   },
   {
@@ -32,11 +52,19 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     name: 'Walnuts',
     scientificName: 'Juglans regia',
     category: 'Tree Nuts',
+    plantingType: 'perennial',
+    isPerennial: true,
     stages: [
       { name: 'Initial', kc: 0.50, duration: 35, description: 'Bud break and catkin development' },
       { name: 'Development', kc: 0.90, duration: 50, description: 'Leaf expansion and nut development' },
       { name: 'Mid-season', kc: 1.15, duration: 65, description: 'Full canopy and hull filling' },
       { name: 'Late season', kc: 0.80, duration: 40, description: 'Hull split and harvest' }
+    ],
+    wateringCycles: [
+      { name: 'Winter Rest', kc: 0.20, duration: 90, description: 'Dormant period with minimal irrigation', season: 'winter', repeatsAnnually: true },
+      { name: 'Spring Growth', kc: 0.50, duration: 60, description: 'Catkin and leaf development', season: 'spring', repeatsAnnually: true },
+      { name: 'Summer Peak', kc: 1.15, duration: 90, description: 'Maximum water demand for nut filling', season: 'summer', repeatsAnnually: true },
+      { name: 'Fall Maturation', kc: 0.80, duration: 60, description: 'Hull split and harvest preparation', season: 'fall', repeatsAnnually: true }
     ]
   },
   {
@@ -44,6 +72,8 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     name: 'Pistachios',
     scientificName: 'Pistacia vera',
     category: 'Tree Nuts',
+    plantingType: 'perennial',
+    isPerennial: true,
     stages: [
       { name: 'Initial', kc: 0.35, duration: 25, description: 'Bud break and early growth' },
       { name: 'Development', kc: 0.75, duration: 40, description: 'Shoot development and flowering' },

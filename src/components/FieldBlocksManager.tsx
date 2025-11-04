@@ -4,17 +4,24 @@ import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 import { SOIL_DATABASE } from '../data/soils';
 import { useAuth } from '../contexts/AuthContext';
 
-interface FieldBlock {
+export interface FieldBlock {
   id: string;
   organization_id: string;
   name: string;
   description?: string;
   location_name: string;
+  address?: string; // Physical address for the field block
   assigned_users: string[];
   crop_id: string;
   crop_name: string;
   acres: number;
-  irrigation_method: 'drip' | 'sprinkler' | 'flood' | 'micro-spray' | 'surface';
+  irrigation_methods: Array<{
+    method: 'drip' | 'sprinkler' | 'flood' | 'micro-spray' | 'surface';
+    stage?: string; // e.g., "Initial", "Development", "Mid-season", "Late season"
+    startDate?: string;
+    endDate?: string;
+    notes?: string;
+  }>;
   soil_type: string;
   date_planted: string;
   growth_stage: string;
@@ -41,13 +48,19 @@ interface FieldBlocksManagerProps {
   calculatorResult?: RuntimeResult | null;
   calculatorInputs?: any;
   fieldBlocks?: FieldBlock[];
+  selectedLocation?: any;
+  availableLocations?: any[];
+  onFieldBlockUpdate?: (updatedBlock: FieldBlock) => void;
 }
 
 export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({ 
   selectedCrops = [], 
   calculatorResult = null,
-  calculatorInputs = null,
-  fieldBlocks: propFieldBlocks = []
+  calculatorInputs = {},
+  fieldBlocks: propFieldBlocks = [],
+  selectedLocation = null,
+  availableLocations = [],
+  onFieldBlockUpdate
 }) => {
   const { organization } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -105,7 +118,10 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'lettuce',
             crop_name: 'Lettuce',
             acres: 15,
-            irrigation_method: 'drip' as const,
+            irrigation_methods: [
+              { method: 'sprinkler' as const, stage: 'Initial', notes: 'Germination period' },
+              { method: 'drip' as const, stage: 'Development', notes: 'Switched to drip for efficiency' }
+            ],
             soil_type: 'Sandy Loam',
             date_planted: '2024-10-15',
             growth_stage: 'Vegetative',
@@ -126,7 +142,9 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'tomatoes',
             crop_name: 'Tomatoes',
             acres: 12,
-            irrigation_method: 'drip' as const,
+            irrigation_methods: [
+              { method: 'drip' as const, stage: 'All stages', notes: 'Consistent drip irrigation throughout growing season' }
+            ],
             soil_type: 'Clay Loam',
             date_planted: '2024-09-20',
             growth_stage: 'Fruiting',
@@ -151,7 +169,9 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'lettuce',
             crop_name: 'Lettuce',
             acres: 45,
-            irrigation_method: 'drip' as const,
+            irrigation_methods: [
+              { method: 'drip' as const, stage: 'All stages', notes: 'High-efficiency drip system' }
+            ],
             soil_type: 'Sandy Loam',
             date_planted: '2024-10-15',
             growth_stage: 'Vegetative',
@@ -172,7 +192,9 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'tomatoes',
             crop_name: 'Tomatoes',
             acres: 120,
-            irrigation_method: 'drip' as const,
+            irrigation_methods: [
+              { method: 'drip' as const, stage: 'All stages', notes: 'Precision drip for processing tomatoes' }
+            ],
             soil_type: 'Clay Loam',
             date_planted: '2024-09-20',
             growth_stage: 'Fruiting',
@@ -193,7 +215,9 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'broccoli',
             crop_name: 'Broccoli',
             acres: 85,
-            irrigation_method: 'micro-spray' as const,
+            irrigation_methods: [
+              { method: 'micro-spray' as const, stage: 'All stages', notes: 'Micro-spray for uniform coverage' }
+            ],
             soil_type: 'Silt Loam',
             date_planted: '2024-08-30',
             growth_stage: 'Head Formation',
@@ -218,7 +242,9 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'corn',
             crop_name: 'Corn',
             acres: 640,
-            irrigation_method: 'sprinkler' as const,
+            irrigation_methods: [
+              { method: 'sprinkler' as const, stage: 'All stages', notes: 'Center pivot irrigation system' }
+            ],
             soil_type: 'Clay Loam',
             date_planted: '2024-05-15',
             growth_stage: 'Grain Filling',
@@ -239,7 +265,9 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'soybeans',
             crop_name: 'Soybeans',
             acres: 480,
-            irrigation_method: 'sprinkler' as const,
+            irrigation_methods: [
+              { method: 'sprinkler' as const, stage: 'All stages', notes: 'Overhead sprinkler system' }
+            ],
             soil_type: 'Silt Loam',
             date_planted: '2024-06-10',
             growth_stage: 'Pod Filling',
@@ -260,7 +288,10 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             crop_id: 'tomatoes',
             crop_name: 'Tomatoes',
             acres: 320,
-            irrigation_method: 'drip' as const,
+            irrigation_methods: [
+              { method: 'sprinkler' as const, stage: 'Initial', notes: 'Sprinkler for germination' },
+              { method: 'drip' as const, stage: 'Development', notes: 'Transitioned to drip for efficiency' }
+            ],
             soil_type: 'Sandy Clay Loam',
             date_planted: '2024-04-20',
             growth_stage: 'Harvest',
@@ -317,24 +348,31 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
   };
 
   const handleSaveBlock = (blockData: Partial<FieldBlock>) => {
+    let updatedBlock: FieldBlock;
+    
     if (editingBlock) {
       // Update existing block
+      updatedBlock = { ...editingBlock, ...blockData, updated_at: new Date().toISOString() };
       setLocalFieldBlocks(prev => prev.map(block => 
-        block.id === editingBlock.id 
-          ? { ...block, ...blockData, updated_at: new Date().toISOString() }
-          : block
+        block.id === editingBlock.id ? updatedBlock : block
       ));
     } else {
       // Create new block
-      const newBlock: FieldBlock = {
+      updatedBlock = {
         id: `block-${Date.now()}`,
-        organization_id: 'local-org',
+        organization_id: organization?.id || 'local-org',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         ...blockData
       } as FieldBlock;
-      setLocalFieldBlocks(prev => [...prev, newBlock]);
+      setLocalFieldBlocks(prev => [...prev, updatedBlock]);
     }
+
+    // Notify parent component of the update
+    if (onFieldBlockUpdate) {
+      onFieldBlockUpdate(updatedBlock);
+    }
+
     setShowModal(false);
     setEditingBlock(null);
   };
@@ -547,13 +585,22 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                   <MapPin className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-300">{block.location_name}</span>
                 </div>
+                {block.address && (
+                  <div className="flex items-center space-x-2 ml-6">
+                    <span className="text-gray-400 text-xs">📍 {block.address}</span>
+                  </div>
+                )}
                 <div className="flex items-center space-x-2">
                   <Sprout className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-300">{block.crop_name} • {block.growth_stage}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Droplets className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-300">{block.irrigation_method} • {block.system_efficiency}% eff</span>
+                  <span className="text-gray-300">
+                    {block.irrigation_methods.length > 0 
+                      ? block.irrigation_methods.map(m => m.method).join(', ') 
+                      : 'Not specified'} • {block.system_efficiency}% eff
+                  </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Users className="h-4 w-4 text-gray-400" />
@@ -590,25 +637,42 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-white mb-4">
+            <h3 className="text-xl font-bold text-white mb-2">
               {editingBlock ? 'Edit Field Block' : 'Create New Field Block'}
             </h3>
+            {!editingBlock && selectedLocation && (
+              <div className="mb-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-lg">
+                <p className="text-blue-200 text-sm">
+                  <MapPin className="h-4 w-4 inline mr-1" />
+                  Default location: <span className="font-medium">{selectedLocation.name}</span>
+                </p>
+              </div>
+            )}
             
             <form onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.target as HTMLFormElement);
+              
+              // Process irrigation methods from checkboxes
+              const selectedMethods = formData.getAll('irrigation_methods') as string[];
+              const irrigationMethods = selectedMethods.map(method => ({
+                method: method as 'drip' | 'sprinkler' | 'flood' | 'micro-spray' | 'surface',
+                stage: 'All stages',
+                notes: `${method.charAt(0).toUpperCase() + method.slice(1)} irrigation`
+              }));
+              
               const blockData = {
                 name: formData.get('name') as string,
                 description: formData.get('description') as string,
                 location_name: formData.get('location_name') as string,
                 crop_name: formData.get('crop_name') as string,
-                acres: parseFloat(formData.get('acres') as string),
-                irrigation_method: formData.get('irrigation_method') as any,
+                acres: parseFloat(formData.get('acres') as string) || 0,
+                irrigation_methods: irrigationMethods,
                 soil_type: formData.get('soil_type') as string,
                 date_planted: formData.get('date_planted') as string,
                 growth_stage: formData.get('growth_stage') as string,
-                system_efficiency: parseFloat(formData.get('system_efficiency') as string),
-                water_allocation: parseFloat(formData.get('water_allocation') as string),
+                system_efficiency: parseFloat(formData.get('system_efficiency') as string) || 90,
+                water_allocation: parseFloat(formData.get('water_allocation') as string) || 0,
                 status: formData.get('status') as any,
                 notes: formData.get('notes') as string,
                 assigned_users: ['user-1'] // Simplified for demo
@@ -630,50 +694,107 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                   <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
                   <select
                     name="location_name"
-                    defaultValue={editingBlock?.location_name || ''}
+                    defaultValue={editingBlock?.location_name || selectedLocation?.name || ''}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
                   >
-                    <option value="Salinas Valley Farm">Salinas Valley Farm</option>
-                    <option value="Fresno County Field">Fresno County Field</option>
+                    {availableLocations && availableLocations.length > 0 ? (
+                      availableLocations.map((location: any) => (
+                        <option key={location.id} value={location.name}>
+                          {location.name}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Salinas Valley Farm">Salinas Valley Farm</option>
+                        <option value="Fresno County Field">Fresno County Field</option>
+                      </>
+                    )}
                   </select>
                 </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Field Address (Optional)</label>
+                  <input
+                    name="address"
+                    type="text"
+                    defaultValue={editingBlock?.address || ''}
+                    placeholder="Street address, coordinates, or field identifier"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                  />
+                </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Crop *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Crop</label>
                   <select
                     name="crop_name"
                     defaultValue={editingBlock?.crop_name || ''}
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                    required
                   >
-                    <option value="">Select Crop</option>
+                    <option value="">Select Crop (Optional)</option>
                     {COMPREHENSIVE_CROP_DATABASE.map(crop => (
                       <option key={crop.id} value={crop.name}>{crop.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Acres *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Acres</label>
                   <input
                     name="acres"
                     type="number"
                     step="0.1"
                     defaultValue={editingBlock?.acres || ''}
+                    placeholder="Enter acreage (optional)"
                     className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                    required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Irrigation Method</label>
-                  <select
-                    name="irrigation_method"
-                    defaultValue={editingBlock?.irrigation_method || 'drip'}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
-                  >
-                    <option value="drip">Drip</option>
-                    <option value="micro-spray">Micro-spray</option>
-                    <option value="sprinkler">Sprinkler</option>
-                    <option value="surface">Surface/Flood</option>
-                  </select>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Irrigation Methods</label>
+                  <div className="bg-gray-700 border border-gray-600 rounded-lg p-3">
+                    <p className="text-sm text-gray-400 mb-3">Select irrigation methods used in this field block:</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          name="irrigation_methods"
+                          value="drip"
+                          defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'drip') || false}
+                          className="text-blue-600 bg-gray-700 border-gray-600 rounded"
+                        />
+                        <span className="text-white">Drip</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          name="irrigation_methods"
+                          value="micro-spray"
+                          defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'micro-spray') || false}
+                          className="text-blue-600 bg-gray-700 border-gray-600 rounded"
+                        />
+                        <span className="text-white">Micro-spray</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          name="irrigation_methods"
+                          value="sprinkler"
+                          defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'sprinkler') || false}
+                          className="text-blue-600 bg-gray-700 border-gray-600 rounded"
+                        />
+                        <span className="text-white">Sprinkler</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          name="irrigation_methods"
+                          value="surface"
+                          defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'surface') || false}
+                          className="text-blue-600 bg-gray-700 border-gray-600 rounded"
+                        />
+                        <span className="text-white">Surface/Flood</span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Select multiple methods if the field uses different irrigation at different growth stages
+                    </p>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">Soil Type</label>

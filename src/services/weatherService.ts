@@ -30,6 +30,12 @@ class WeatherService {
       return response.data;
     } catch (error) {
       console.error('Error fetching weather data:', error);
+      
+      // Check if it's a rate limiting error
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait before refreshing weather data.');
+      }
+      
       throw new Error('Failed to fetch weather data');
     }
   }

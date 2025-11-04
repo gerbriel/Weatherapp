@@ -42,11 +42,11 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         console.error('Error parsing saved locations:', error);
       }
     } else {
-      // Add default location if none saved
+      // Add default location if none saved - matching the user's previous setup
       addLocation({
-        latitude: 34.0522,
-        longitude: -118.2437,
-        name: 'Los Angeles, CA'
+        latitude: 35.1975,
+        longitude: -118.7906,
+        name: 'Arvin, California'
       });
     }
   }, []);
@@ -145,15 +145,20 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
   const refreshAllLocations = async () => {
     setLoading(true);
     
-    const refreshPromises = locations.map(location =>
-      refreshLocationData(location.id)
-    );
-
-    try {
-      await Promise.all(refreshPromises);
-    } finally {
-      setLoading(false);
+    // Refresh locations sequentially with delay to avoid rate limiting
+    for (let i = 0; i < locations.length; i++) {
+      try {
+        await refreshLocationData(locations[i].id);
+        // Add 1 second delay between requests to avoid rate limiting
+        if (i < locations.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.error(`Failed to refresh location ${locations[i].name}:`, error);
+      }
     }
+    
+    setLoading(false);
   };
 
   const favorites = locations.filter(location => location.isFavorite);

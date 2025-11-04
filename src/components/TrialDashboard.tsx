@@ -12,6 +12,7 @@ import { SoilSelectionModal } from './SoilSelectionModal';
 import { CalculatorVisualizations } from './CalculatorVisualizations';
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { FieldBlocksManager } from './FieldBlocksManager';
+import type { FieldBlock } from './FieldBlocksManager';
 import { OrganizationalDashboard } from './OrganizationalDashboard';
 import { ReportView } from './ReportView';
 import { type SoilType, SOIL_DATABASE } from '../data/soils';
@@ -29,42 +30,11 @@ interface CropInstance {
   cropId: string;
   plantingDate: string;
   currentStage: number; // Index of current stage in crop.stages array
+  currentWateringCycle?: number; // Index of current watering cycle for perennials
   customStageDays?: number; // Override days in current stage
   fieldName?: string;
   notes?: string;
-}
-
-interface CropCoefficient {
-  crop: string;
-  stage: string;
-  kc: number;
-  daysSinceStage: number;
-  etc: number;
-  irrigationRecommendation: string;
-  category: string;
-  plantingDate: string;
-}
-
-interface FieldBlock {
-  id: string;
-  organization_id: string;
-  name: string;
-  description?: string;
-  location_name: string;
-  assigned_users: string[];
-  crop_id: string;
-  crop_name: string;
-  acres: number;
-  irrigation_method: 'drip' | 'sprinkler' | 'flood' | 'micro-spray' | 'surface';
-  soil_type: string;
-  date_planted: string;
-  growth_stage: string;
-  system_efficiency: number;
-  water_allocation: number; // acre-feet per season
-  status: 'active' | 'dormant' | 'harvested' | 'preparation';
-  notes?: string;
-  created_at: string;
-  updated_at: string;
+  locationId?: string; // Location where this crop instance is planted
 }
 
 interface IrrigationSystem {
@@ -126,7 +96,6 @@ export const TrialDashboard: React.FC = () => {
   
   const [selectedLocation, setSelectedLocation] = useState(availableLocations[0] || null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [cropCoefficients, setCropCoefficients] = useState<CropCoefficient[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -136,6 +105,7 @@ export const TrialDashboard: React.FC = () => {
   const [cropInstances, setCropInstances] = useState<CropInstance[]>([]);
   const [showAddCropInstanceModal, setShowAddCropInstanceModal] = useState(false);
   const [selectedCropForInstance, setSelectedCropForInstance] = useState<AvailableCrop | null>(null);
+  const [editingCropInstance, setEditingCropInstance] = useState<CropInstance | null>(null);
   const [selectedSoil, setSelectedSoil] = useState<SoilType | null>(null);
   const [showSoilSelector, setShowSoilSelector] = useState(false);
   const [showCropSelector, setShowCropSelector] = useState(false);
@@ -164,8 +134,6 @@ export const TrialDashboard: React.FC = () => {
       et0: 4 + Math.random() * 3
     };
 
-    const mockCropCoefficients: CropCoefficient[] = [];
-
     setTimeout(() => {
       setWeatherData(mockWeatherData);
       
@@ -177,9 +145,10 @@ export const TrialDashboard: React.FC = () => {
         );
         setAvailableCrops(filteredCrops);
         
-        // Only auto-select if no crops are currently selected
+        // Only auto-select if no crops are currently selected (but don't create instances)
         setSelectedCrops(prev => {
           if (prev.length === 0) {
+            // Auto-select but don't create instances (isManualToggle = false)
             return filteredCrops.map(crop => crop.id);
           }
           // Keep existing selections but filter to valid crops
@@ -190,74 +159,25 @@ export const TrialDashboard: React.FC = () => {
         setAvailableCrops(COMPREHENSIVE_CROP_DATABASE);
       }
       
-      setCropCoefficients(mockCropCoefficients);
       setLoading(false);
     }, 1000);
   }, [selectedLocation, organization]);
 
-  // Generate crop coefficients when selected crops change
+  // Reset calculator when location changes to avoid showing crops from other locations
   useEffect(() => {
-    if (availableCrops.length === 0) return;
-
-    const et0 = weatherData?.et0 || 5; // Default ET0 if not available yet
-    
-    const mockCropCoefficients: CropCoefficient[] = selectedCrops.map(cropId => {
-      const crop = availableCrops.find(c => c.id === cropId);
-      if (!crop) return null;
-      
-      const today = new Date();
-      // Dynamic planting offset based on crop category
-      const getCropPlantingOffset = (crop: AvailableCrop): number => {
-        const categoryOffsets: Record<string, number> = {
-          'Tree Nuts': 120,    // 4 months
-          'Tree Fruits': 90,   // 3 months
-          'Berries': 60,       // 2 months
-          'Leafy Greens': 30,  // 1 month
-          'Vegetables': 45,    // 1.5 months
-          'Field Crops': 75,   // 2.5 months
-          'Herbs': 40          // 1.3 months
-        };
-        return categoryOffsets[crop.category] || 60;
-      };
-      
-      const daysSincePlanting = getCropPlantingOffset(crop);
-      
-      // Find current stage based on days since planting
-      let currentStage = crop.stages[0];
-      let daysSinceStageStart = daysSincePlanting;
-      let accumulatedDays = 0;
-      
-      for (const stage of crop.stages) {
-        if (daysSincePlanting >= accumulatedDays && daysSincePlanting < accumulatedDays + stage.duration) {
-          currentStage = stage;
-          daysSinceStageStart = daysSincePlanting - accumulatedDays;
-          break;
-        }
-        accumulatedDays += stage.duration;
-      }
-      
-      // If past all stages, use the last stage
-      if (daysSincePlanting >= accumulatedDays) {
-        currentStage = crop.stages[crop.stages.length - 1];
-        daysSinceStageStart = daysSincePlanting - (accumulatedDays - currentStage.duration);
-      }
-      
-      const plantingDate = new Date(today.getTime() - daysSincePlanting * 24 * 60 * 60 * 1000);
-      
-      return {
-        crop: crop.name,
-        stage: currentStage.name,
-        kc: currentStage.kc,
-        daysSinceStage: Math.max(0, daysSinceStageStart),
-        etc: et0 * currentStage.kc,
-        irrigationRecommendation: currentStage.description,
-        category: crop.category,
-        plantingDate: plantingDate.toLocaleDateString()
-      };
-    }).filter(Boolean) as CropCoefficient[];
-
-    setCropCoefficients(mockCropCoefficients);
-  }, [selectedCrops, availableCrops, weatherData]);
+    setCalculatorInputs({
+      crop: '',
+      kcValue: undefined,
+      growthStage: '',
+      etSource: 'weather-station',
+      manualET: undefined,
+      zoneFlowGPM: 0,
+      area: 0,
+      areaUnit: 'acres',
+      systemType: ''
+    });
+    setCalculatorResult(null);
+  }, [selectedLocation]);
 
   // Initialize field blocks when organization changes
   useEffect(() => {
@@ -273,19 +193,21 @@ export const TrialDashboard: React.FC = () => {
             {
               id: 'block-1',
               organization_id: 'local-org',
-              name: 'Home Garden North',
-              description: 'Main vegetable garden',
-              location_name: 'Back Yard',
+              name: 'Fresno North Field',
+              description: 'Primary lettuce production',
+              location_name: 'Fresno, CA',
               assigned_users: ['user-1'],
               crop_id: 'lettuce',
               crop_name: 'Lettuce',
-              acres: 180,
-              irrigation_method: 'drip',
+              acres: 120,
+              irrigation_methods: [
+                { method: 'drip', stage: 'All stages', notes: 'Drip irrigation throughout season' }
+              ],
               soil_type: 'Garden Soil',
               date_planted: '2024-10-01',
               growth_stage: 'Harvest',
               system_efficiency: 95,
-              water_allocation: 105,
+              water_allocation: 75,
               status: 'active',
               notes: 'Organic lettuce for family',
               created_at: '2024-10-01T10:00:00Z',
@@ -294,14 +216,35 @@ export const TrialDashboard: React.FC = () => {
             {
               id: 'block-2',
               organization_id: 'local-org',
-              name: 'Greenhouse Complex',
+              name: 'Fresno South Field',
+              description: 'Secondary lettuce plot',
+              location_name: 'Fresno, CA',
+              assigned_users: ['user-1'],
+              crop_id: 'lettuce',
+              crop_name: 'Lettuce',
+              acres: 60,
+              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
+              soil_type: 'Sandy Loam',
+              date_planted: '2024-10-15',
+              growth_stage: 'Vegetative',
+              system_efficiency: 92,
+              water_allocation: 38,
+              status: 'active',
+              notes: 'Second planting for continuous harvest',
+              created_at: '2024-10-15T08:00:00Z',
+              updated_at: '2024-11-01T14:00:00Z'
+            },
+            {
+              id: 'block-3',
+              organization_id: 'local-org',
+              name: 'Salinas Greenhouse',
               description: 'Indoor tomato production',
-              location_name: 'Greenhouse',
+              location_name: 'Salinas, CA',
               assigned_users: ['user-1'],
               crop_id: 'tomatoes',
               crop_name: 'Tomatoes',
               acres: 135,
-              irrigation_method: 'drip',
+              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
               soil_type: 'Potting Mix',
               date_planted: '2024-09-15',
               growth_stage: 'Fruiting',
@@ -313,16 +256,16 @@ export const TrialDashboard: React.FC = () => {
               updated_at: '2024-10-22T15:30:00Z'
             },
             {
-              id: 'block-3',
+              id: 'block-4',
               organization_id: 'local-org',
-              name: 'East Field',
+              name: 'Bakersfield Spinach Plot',
               description: 'Spinach and green vegetables',
-              location_name: 'East Field',
+              location_name: 'Bakersfield, CA',
               assigned_users: ['user-1'],
               crop_id: 'spinach',
               crop_name: 'Spinach',
               acres: 100,
-              irrigation_method: 'sprinkler',
+              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
               soil_type: 'Clay Loam',
               date_planted: '2024-09-20',
               growth_stage: 'Mature',
@@ -334,16 +277,16 @@ export const TrialDashboard: React.FC = () => {
               updated_at: '2024-10-20T14:00:00Z'
             },
             {
-              id: 'block-4',
+              id: 'block-5',
               organization_id: 'local-org',
-              name: 'South Plot',
+              name: 'Bakersfield Carrot Field',
               description: 'Root vegetables area',
-              location_name: 'South Field',
+              location_name: 'Bakersfield, CA',
               assigned_users: ['user-1'],
               crop_id: 'carrots',
               crop_name: 'Carrots',
               acres: 80,
-              irrigation_method: 'drip',
+              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
               soil_type: 'Sandy Loam',
               date_planted: '2024-08-15',
               growth_stage: 'Harvest',
@@ -368,7 +311,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'lettuce',
               crop_name: 'Lettuce',
               acres: 750,
-              irrigation_method: 'drip',
+              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
               soil_type: 'Sandy Loam',
               date_planted: '2024-10-15',
               growth_stage: 'Vegetative',
@@ -389,7 +332,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'broccoli',
               crop_name: 'Broccoli',
               acres: 625,
-              irrigation_method: 'sprinkler',
+              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
               soil_type: 'Clay Loam',
               date_planted: '2024-09-10',
               growth_stage: 'Heading',
@@ -410,7 +353,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'almonds',
               crop_name: 'Almonds',
               acres: 500,
-              irrigation_method: 'micro-spray',
+              irrigation_methods: [{ method: 'micro-spray', stage: 'All stages', notes: 'Micro-spray irrigation' }],
               soil_type: 'Sandy Clay',
               date_planted: '2024-03-01',
               growth_stage: 'Nut Fill',
@@ -431,7 +374,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'grapes',
               crop_name: 'Grapes',
               acres: 375,
-              irrigation_method: 'drip',
+              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
               soil_type: 'Volcanic Clay',
               date_planted: '2024-04-15',
               growth_stage: 'Harvest',
@@ -452,7 +395,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'strawberries',
               crop_name: 'Strawberries',
               acres: 250,
-              irrigation_method: 'drip',
+              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
               soil_type: 'Sandy Loam',
               date_planted: '2024-08-01',
               growth_stage: 'Fruiting',
@@ -477,7 +420,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'corn',
               crop_name: 'Corn',
               acres: 2550,
-              irrigation_method: 'sprinkler',
+              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
               soil_type: 'Silt Loam',
               date_planted: '2024-05-15',
               growth_stage: 'Grain Fill',
@@ -498,7 +441,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'soybeans',
               crop_name: 'Soybeans',
               acres: 2125,
-              irrigation_method: 'sprinkler',
+              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
               soil_type: 'Clay Loam',
               date_planted: '2024-06-01',
               growth_stage: 'Pod Fill',
@@ -519,7 +462,7 @@ export const TrialDashboard: React.FC = () => {
               crop_id: 'wheat',
               crop_name: 'Wheat',
               acres: 1700,
-              irrigation_method: 'flood',
+              irrigation_methods: [{ method: 'flood', stage: 'All stages', notes: 'Flood irrigation' }],
               soil_type: 'Silt Clay',
               date_planted: '2024-10-01',
               growth_stage: 'Tillering',
@@ -537,17 +480,112 @@ export const TrialDashboard: React.FC = () => {
       }
     };
 
-    setFieldBlocks(getOrganizationFieldBlocks());
+    setFieldBlocks(prev => {
+      const orgBlocks = getOrganizationFieldBlocks();
+      const dynamicBlocks = prev.filter(block => 
+        block.id.startsWith('block-') && !orgBlocks.find(orgBlock => orgBlock.id === block.id)
+      );
+      return [...orgBlocks, ...dynamicBlocks];
+    });
   }, [organization?.id]);
 
-  const handleCropToggle = (cropId: string) => {
+  const handleCropToggle = (cropId: string, isManualToggle: boolean = true) => {
     setSelectedCrops(prev => {
       if (prev.includes(cropId)) {
+        // Remove crop from selection and remove its instances (only if manually toggled)
+        if (isManualToggle) {
+          const instancesToRemove = cropInstances.filter(instance => 
+            instance.cropId === cropId && instance.locationId === selectedLocation?.id
+          );
+          
+          if (instancesToRemove.length > 0) {
+            setCropInstances(prevInstances => 
+              prevInstances.filter(instance => 
+                !(instance.cropId === cropId && instance.locationId === selectedLocation?.id)
+              )
+            );
+          }
+        }
+        
         return prev.filter(id => id !== cropId);
       } else {
+        // Add crop to selection and create a quick crop instance (only if manually toggled and none exists)
+        if (isManualToggle && selectedLocation) {
+          const existingInstance = cropInstances.find(instance => 
+            instance.cropId === cropId && instance.locationId === selectedLocation.id
+          );
+          
+          if (!existingInstance) {
+            const crop = availableCrops.find(c => c.id === cropId);
+            if (crop) {
+              const newInstance: CropInstance = {
+                id: `quick-${Date.now()}`,
+                cropId: crop.id,
+                plantingDate: new Date().toISOString().split('T')[0], // Today's date
+                currentStage: 0, // Start at first stage
+                currentWateringCycle: 0, // Start at first watering cycle for perennials
+                locationId: selectedLocation.id,
+                notes: 'Quick added crop - edit for more details'
+              };
+              
+              setCropInstances(prev => [...prev, newInstance]);
+            }
+          }
+        }
+        
         return [...prev, cropId];
       }
     });
+  };
+
+  const handleCreateFieldBlockFromCrop = (blockData: Partial<FieldBlock>) => {
+    if (!organization || !selectedLocation) return;
+    
+    const newBlock: FieldBlock = {
+      id: `block-${Date.now()}`,
+      organization_id: organization.id,
+      name: blockData.name || 'New Field Block',
+      description: blockData.description,
+      location_name: selectedLocation.name,
+      assigned_users: [user?.id || 'user-1'],
+      crop_id: blockData.crop_id || '',
+      crop_name: blockData.crop_name || '',
+      acres: 0, // Default value, can be updated in field blocks manager
+      irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }], // Default value
+      soil_type: 'Garden Soil', // Default value
+      date_planted: blockData.date_planted || new Date().toISOString().split('T')[0],
+      growth_stage: blockData.growth_stage || 'Planted',
+      system_efficiency: 90, // Default value
+      water_allocation: 0, // Default value
+      status: blockData.status || 'active',
+      notes: blockData.description,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    // Add the new field block to the current list
+    setFieldBlocks(prev => [...prev, newBlock]);
+
+    // Create a corresponding crop instance if crop info is available
+    if (blockData.crop_id && blockData.crop_name) {
+      const crop = availableCrops.find(c => c.id === blockData.crop_id);
+      if (crop) {
+        const stageIndex = crop.stages.findIndex(stage => stage.name === blockData.growth_stage) || 0;
+        
+        const newCropInstance: CropInstance = {
+          id: `instance-${Date.now()}`,
+          cropId: blockData.crop_id,
+          plantingDate: blockData.date_planted || new Date().toISOString().split('T')[0],
+          currentStage: Math.max(0, stageIndex),
+          currentWateringCycle: crop.isPerennial ? 0 : undefined,
+          fieldName: blockData.name,
+          notes: blockData.description,
+          locationId: selectedLocation.id
+        };
+
+        setCropInstances(prev => [...prev, newCropInstance]);
+      }
+    }
   };
 
   const addAllCrops = () => {
@@ -656,80 +694,134 @@ export const TrialDashboard: React.FC = () => {
   const handleAddInstance = (instanceData: Omit<CropInstance, 'id'>) => {
     const newInstance: CropInstance = {
       ...instanceData,
-      id: Date.now().toString()
+      id: Date.now().toString(),
+      locationId: selectedLocation?.id // Assign to current selected location
     };
     setCropInstances(prev => [...prev, newInstance]);
+
+    // If a field name is provided, check if we need to create/update a field block
+    if (instanceData.fieldName && selectedLocation && organization) {
+      const existingBlock = fieldBlocks.find(block => 
+        block.name === instanceData.fieldName && 
+        block.location_name === selectedLocation.name
+      );
+
+      const crop = availableCrops.find(c => c.id === instanceData.cropId);
+      
+      if (!existingBlock && crop) {
+        // Create a new field block
+        const currentStage = crop.stages[instanceData.currentStage || 0];
+        const newBlock: FieldBlock = {
+          id: `block-${Date.now()}-auto`,
+          organization_id: organization.id,
+          name: instanceData.fieldName,
+          description: `Auto-created from ${crop.name} planting`,
+          location_name: selectedLocation.name,
+          assigned_users: [user?.id || 'user-1'],
+          crop_id: crop.id,
+          crop_name: crop.name,
+          acres: 0,
+          irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
+          soil_type: 'Garden Soil',
+          date_planted: instanceData.plantingDate,
+          growth_stage: currentStage?.name || 'Initial',
+          system_efficiency: 90,
+          water_allocation: 0,
+          status: 'active',
+          notes: instanceData.notes || `Auto-created from ${crop.name} planting`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        setFieldBlocks(prev => [...prev, newBlock]);
+      }
+    }
+
     setShowAddCropInstanceModal(false);
     setSelectedCropForInstance(null);
+    setEditingCropInstance(null);
   };
 
-  const generateCropInsight = (crop: AvailableCrop) => {
-    // Dynamic planting offset based on crop category
-    const getCropPlantingOffset = (crop: AvailableCrop): number => {
-      const categoryOffsets: Record<string, number> = {
-        'Tree Nuts': 120,    // 4 months
-        'Tree Fruits': 90,   // 3 months
-        'Berries': 60,       // 2 months
-        'Leafy Greens': 30,  // 1 month
-        'Vegetables': 45,    // 1.5 months
-        'Field Crops': 75,   // 2.5 months
-        'Herbs': 40          // 1.3 months
-      };
-      return categoryOffsets[crop.category] || 60;
-    };
-    
-    const daysSincePlanting = getCropPlantingOffset(crop);
-    
-    // Find current stage
-    let currentStage = crop.stages[0];
-    let accumulatedDays = 0;
-    
-    for (const stage of crop.stages) {
-      if (daysSincePlanting >= accumulatedDays && daysSincePlanting < accumulatedDays + stage.duration) {
-        currentStage = stage;
-        break;
+  const handleUpdateInstance = (instanceId: string, updatedData: Partial<CropInstance>) => {
+    setCropInstances(prev => prev.map(instance => 
+      instance.id === instanceId 
+        ? { ...instance, ...updatedData }
+        : instance
+    ));
+    setShowAddCropInstanceModal(false);
+    setSelectedCropForInstance(null);
+    setEditingCropInstance(null);
+  };
+
+  // Sync field block updates back to crop instances and calculator
+  const handleFieldBlockUpdate = (updatedBlock: FieldBlock) => {
+    // Update field blocks
+    setFieldBlocks(prev => prev.map(block => 
+      block.id === updatedBlock.id ? updatedBlock : block
+    ));
+
+    // Update related crop instances
+    setCropInstances(prev => prev.map(instance => {
+      if (instance.fieldName === updatedBlock.name || 
+          (instance.locationId === selectedLocation?.id && 
+           instance.cropId === updatedBlock.crop_id)) {
+        const crop = availableCrops.find(c => c.id === updatedBlock.crop_id);
+        const stageIndex = crop?.stages.findIndex(stage => stage.name === updatedBlock.growth_stage) || 0;
+        
+        return {
+          ...instance,
+          fieldName: updatedBlock.name,
+          plantingDate: updatedBlock.date_planted,
+          currentStage: Math.max(0, stageIndex),
+          notes: updatedBlock.notes || instance.notes
+        };
       }
-      accumulatedDays += stage.duration;
+      return instance;
+    }));
+
+    // If calculator is using this crop, update it too
+    if (calculatorInputs.crop) {
+      const isCalculatorCropMatch = availableCrops.find(c => 
+        c.name === calculatorInputs.crop && c.id === updatedBlock.crop_id
+      );
+      
+      if (isCalculatorCropMatch) {
+        const crop = availableCrops.find(c => c.id === updatedBlock.crop_id);
+        const stage = crop?.stages.find(s => s.name === updatedBlock.growth_stage);
+        
+        // Get the primary irrigation method for the current stage
+        const primaryIrrigationMethod = updatedBlock.irrigation_methods?.[0]?.method || 'drip';
+        
+        setCalculatorInputs(prev => ({
+          ...prev,
+          growthStage: updatedBlock.growth_stage,
+          kcValue: stage?.kc,
+          systemType: primaryIrrigationMethod
+        }));
+      }
     }
+  };
+
+  // Filter crop instances for the currently selected location and deduplicate
+  const getLocationCropInstances = () => {
+    if (!selectedLocation) return [];
     
-    // Generate insights based on Kc value and stage characteristics
-    const getWaterNeedsFromKc = (kc: number): string => {
-      if (kc < 0.5) return 'Low';
-      if (kc < 0.8) return 'Medium';
-      if (kc < 1.1) return 'High';
-      return 'Very High';
-    };
-
-    const getEfficiencyFromCategory = (category: string): number => {
-      const baseEfficiency: Record<string, number> = {
-        'Tree Nuts': 88,
-        'Tree Fruits': 85,
-        'Berries': 82,
-        'Leafy Greens': 78,
-        'Vegetables': 80,
-        'Field Crops': 75,
-        'Herbs': 83
-      };
-      return baseEfficiency[category] || 80;
-    };
-
-    const getRecommendationFromStage = (stage: any, category: string): string => {
-      const stageRecommendations: Record<string, string> = {
-        'Initial': `Early ${category.toLowerCase()} growth - monitor establishment and adjust irrigation frequency`,
-        'Development': `Active growth phase - increase irrigation to support ${category.toLowerCase()} development`,
-        'Mid-season': `Peak growth period - maintain consistent soil moisture for optimal ${category.toLowerCase()} production`,
-        'Late season': `Maturation phase - adjust irrigation for harvest timing and quality`
-      };
-      return stageRecommendations[stage.name] || stage.description;
-    };
-
-    return {
-      crop: crop.name,
-      currentStage: currentStage.name,
-      waterNeeds: getWaterNeedsFromKc(currentStage.kc),
-      efficiency: getEfficiencyFromCategory(crop.category),
-      recommendation: getRecommendationFromStage(currentStage, crop.category)
-    };
+    const locationInstances = cropInstances.filter(instance => instance.locationId === selectedLocation.id);
+    
+    // Deduplicate by cropId - keep only the most recent instance for each crop
+    const deduplicatedInstances = locationInstances.reduce((acc, instance) => {
+      const existingIndex = acc.findIndex(existing => existing.cropId === instance.cropId);
+      if (existingIndex >= 0) {
+        // Replace with more recent instance (higher ID means more recent)
+        if (parseInt(instance.id.replace('quick-', '')) > parseInt(acc[existingIndex].id.replace('quick-', ''))) {
+          acc[existingIndex] = instance;
+        }
+      } else {
+        acc.push(instance);
+      }
+      return acc;
+    }, [] as CropInstance[]);
+    
+    return deduplicatedInstances;
   };
 
   const getStageColor = (stage: string) => {
@@ -740,56 +832,6 @@ export const TrialDashboard: React.FC = () => {
       case 'late season': return 'text-orange-400';
       default: return 'text-gray-400';
     }
-  };
-
-  const getEfficiencyColor = (efficiency: number) => {
-    if (efficiency >= 90) return 'text-green-400';
-    if (efficiency >= 80) return 'text-yellow-400';
-    return 'text-red-400';
-  };
-
-  const getCurrentKc = (crop: AvailableCrop): number => {
-    const plantingOffset = {
-      'almonds': 120,
-      'grapes': 90,
-      'strawberries': 60,
-      'lettuce': 30
-    };
-    
-    const daysSincePlanting = plantingOffset[crop.id as keyof typeof plantingOffset] || 60;
-    
-    let currentStage = crop.stages[0];
-    let accumulatedDays = 0;
-    
-    for (const stage of crop.stages) {
-      if (daysSincePlanting >= accumulatedDays && daysSincePlanting < accumulatedDays + stage.duration) {
-        currentStage = stage;
-        break;
-      }
-      accumulatedDays += stage.duration;
-    }
-    
-    return currentStage.kc;
-  };
-
-  const getWaterNeedsColor = (waterNeeds: string): string => {
-    switch (waterNeeds) {
-      case 'High': return 'bg-red-900 text-red-300';
-      case 'Medium': return 'bg-yellow-900 text-yellow-300';
-      case 'Low': return 'bg-green-900 text-green-300';
-      default: return 'bg-gray-900 text-gray-300';
-    }
-  };
-
-  const getStageNumber = (crop: AvailableCrop, stageName: string): number => {
-    return crop.stages.findIndex(stage => stage.name === stageName) + 1;
-  };
-
-  const getKcRange = (crop: AvailableCrop): string => {
-    const kcValues = crop.stages.map(stage => stage.kc);
-    const min = Math.min(...kcValues);
-    const max = Math.max(...kcValues);
-    return `${min.toFixed(2)} - ${max.toFixed(2)}`;
   };
 
   const irrigationSystems: IrrigationSystem[] = [
@@ -895,13 +937,14 @@ export const TrialDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="flex h-screen w-full">
-        {/* Sidebar */}
-        <div className={`
-          fixed inset-y-0 left-0 z-50 w-80 bg-gray-800 border-r border-gray-700
-          transform transition-transform duration-300 ease-in-out
-          lg:translate-x-0 lg:static lg:inset-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}>
+        {/* Sidebar - Only visible for dashboard/overview view */}
+        {currentView === 'overview' && (
+          <div className={`
+            fixed inset-y-0 left-0 z-50 w-80 bg-gray-800 border-r border-gray-700
+            transform transition-transform duration-300 ease-in-out
+            lg:translate-x-0 lg:static lg:inset-0
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}>
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-700">
             <div className="flex items-center space-x-2">
               <Gauge className="h-6 w-6 text-blue-400" />
@@ -1016,6 +1059,7 @@ export const TrialDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -1139,12 +1183,15 @@ export const TrialDashboard: React.FC = () => {
               {/* Top row with location and menu */}
               <div className="px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setSidebarOpen(true)}
-                    className="p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
-                  >
-                    <Menu className="h-5 w-5" />
-                  </button>
+                  {/* Only show sidebar menu button for dashboard/overview view */}
+                  {currentView === 'overview' && (
+                    <button
+                      onClick={() => setSidebarOpen(true)}
+                      className="p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </button>
+                  )}
                   <div className="min-w-0 flex-1">
                     <h2 className="text-lg font-semibold text-white truncate">{selectedLocation.name}</h2>
                     <p className="text-gray-400 text-xs truncate">
@@ -1308,7 +1355,7 @@ export const TrialDashboard: React.FC = () => {
                           </span>
                           <span className="text-yellow-400 flex items-center space-x-1">
                             <Plus className="h-4 w-4" />
-                            <span>{cropInstances.length} plantings</span>
+                            <span>{getLocationCropInstances().length} plantings</span>
                           </span>
                           {calculatorInputs.crop && (
                             <span className="text-blue-400 flex items-center space-x-1">
@@ -1435,251 +1482,54 @@ export const TrialDashboard: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Crop Insights */}
+                {/* Crop Management Section */}
                 <div className="mb-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-xl font-semibold text-white">Crop Insights</h2>
-                      <p className="text-sm text-gray-400">
-                        {selectedCrops.length} of {availableCrops.length} crops selected
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => setShowCropSelector(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                      >
-                        <Sprout className="h-4 w-4" />
-                        <span>Manage Crops</span>
-                      </button>
-                      {selectedCrops.length > 0 && (
-                        <button
-                          onClick={removeAllCrops}
-                          className="bg-red-600 hover:red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                        >
-                          Clear All
-                        </button>
-                      )}
-                    </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-white">Crop Management</h2>
+                    <button
+                      onClick={() => setShowCropSelector(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                    >
+                      <Sprout className="h-4 w-4" />
+                      <span>Manage Crops</span>
+                    </button>
                   </div>
-
-                  {/* Crop Instances */}
-                  {cropInstances.length > 0 && (
-                    <div className="mb-8">
-                      <h3 className="text-lg font-semibold text-white mb-4">Your Crop Plantings</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {cropInstances.map((instance) => {
-                          const crop = availableCrops.find(c => c.id === instance.cropId);
-                          if (!crop) return null;
-
-                          const daysSincePlanting = Math.floor(
-                            (new Date().getTime() - new Date(instance.plantingDate).getTime()) / (1000 * 60 * 60 * 24)
-                          );
-
-                          // Calculate current stage based on days since planting
-                          let cumulativeDays = 0;
-                          let currentStageIndex = instance.currentStage;
-                          
-                          for (let i = 0; i < instance.currentStage; i++) {
-                            cumulativeDays += crop.stages[i].duration;
-                          }
-                          
-                          const currentStage = crop.stages[currentStageIndex];
-                          const daysIntoStage = daysSincePlanting - cumulativeDays;
-                          const stageDuration = instance.customStageDays ?? currentStage.duration;
-                          const stageProgress = Math.min(100, (daysIntoStage / stageDuration) * 100);
-
-                          return (
-                            <div key={instance.id} className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-                              <div className="flex items-start justify-between mb-3">
-                                <div>
-                                  <h4 className="font-semibold text-white">{crop.name}</h4>
-                                  {instance.fieldName && (
-                                    <p className="text-sm text-gray-400">{instance.fieldName}</p>
-                                  )}
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Planted: {new Date(instance.plantingDate).toLocaleDateString()}
-                                  </p>
-                                </div>
-                                <button
-                                  onClick={() => {
-                                    setCropInstances(prev => prev.filter(ci => ci.id !== instance.id));
-                                  }}
-                                  className="text-red-400 hover:text-red-300 transition-colors"
-                                  title="Remove crop instance"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-
-                              {/* Stage Progress */}
-                              <div className="mb-3">
-                                <div className="flex items-center justify-between text-sm mb-1">
-                                  <span className="text-blue-400 font-medium">{currentStage.name}</span>
-                                  <span className="text-gray-400">{daysIntoStage}/{stageDuration} days</span>
-                                </div>
-                                <div className="w-full bg-gray-700 rounded-full h-2">
-                                  <div 
-                                    className={`h-2 rounded-full transition-all ${
-                                      stageProgress >= 100 ? 'bg-orange-500' : 'bg-blue-500'
-                                    }`}
-                                    style={{ width: `${Math.min(100, stageProgress)}%` }}
-                                  />
-                                </div>
-                                {stageProgress >= 100 && (
-                                  <p className="text-orange-400 text-xs mt-1">⚠️ Stage complete - consider advancing</p>
-                                )}
-                              </div>
-
-                              {/* Current Kc and ET */}
-                              <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div className="bg-gray-900 p-2 rounded">
-                                  <div className="text-gray-400 text-xs">Kc Value</div>
-                                  <div className="text-white font-semibold">{currentStage.kc}</div>
-                                </div>
-                                <div className="bg-gray-900 p-2 rounded">
-                                  <div className="text-gray-400 text-xs">ET (in/day)</div>
-                                  <div className="text-white font-semibold">
-                                    {(currentStage.kc * (weatherData?.et0 || 5)).toFixed(1)}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Days Since Planting */}
-                              <div className="mt-3 text-center">
-                                <span className="text-xs bg-gray-700 px-2 py-1 rounded-full text-gray-300">
-                                  {daysSincePlanting} days since planting
-                                </span>
-                              </div>
-
-                              {instance.notes && (
-                                <div className="mt-3 p-2 bg-gray-900 rounded border border-gray-600">
-                                  <p className="text-xs text-gray-400">{instance.notes}</p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Selected Crops Insights */}
-                  {selectedCrops.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {selectedCrops.map((cropId) => {
-                        const crop = availableCrops.find(c => c.id === cropId);
-                        if (!crop) return null;
-                        
-                        // Generate insights for selected crop
-                        const insight = generateCropInsight(crop);
-                        
-                        return (
-                          <div key={cropId} className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
-                            <div className="flex items-center justify-between mb-4">
-                              <div>
-                                <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
-                                  <span>{crop.name}</span>
-                                  {calculatorInputs.crop === crop.name && (
-                                    <span className="bg-green-600 text-white text-xs px-2 py-1 rounded-full flex items-center space-x-1">
-                                      <Calculator className="h-3 w-3" />
-                                      <span>In Calculator</span>
-                                    </span>
-                                  )}
-                                </h3>
-                                <p className="text-sm text-gray-400">{crop.category}</p>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => {
-                                    setCalculatorInputs({...calculatorInputs, crop: crop.name});
-                                    setCurrentView('calculator');
-                                  }}
-                                  className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
-                                  title="Use in Calculator"
-                                >
-                                  <Calculator className="h-4 w-4" />
-                                </button>
-                                <span className={`text-sm font-medium ${getEfficiencyColor(insight.efficiency)}`}>
-                                  {insight.efficiency}% efficient
-                                </span>
-                              </div>
-                            </div>
-                            
-                            {/* Coefficient Information */}
-                            <div className="bg-gray-900 rounded-lg p-4 mb-4 border border-gray-600">
-                              <h4 className="text-sm font-semibold text-blue-400 mb-3">Crop Coefficient (Kc) Details</h4>
-                              <div className="grid grid-cols-2 gap-4 mb-3">
-                                <div>
-                                  <p className="text-xs text-gray-400">Current Kc Value</p>
-                                  <p className="text-lg font-bold text-blue-400">{getCurrentKc(crop).toFixed(2)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-gray-400">ETc (in/day)</p>
-                                  <p className="text-lg font-bold text-green-400">{((getCurrentKc(crop) * (weatherData?.et0 || 5)) * 0.0393701).toFixed(3)}</p>
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-300">
-                                <p><span className="text-gray-400">Formula:</span> ETc = ET₀ × Kc = {((weatherData?.et0 || 5) * 0.0393701).toFixed(3)} × {getCurrentKc(crop).toFixed(2)}</p>
-                              </div>
-                            </div>
-
-                            <div className="space-y-3">
-                              <div>
-                                <p className="text-sm text-gray-400">Water Needs</p>
-                                <div className="flex items-center space-x-2">
-                                  <p className="font-medium text-white">{insight.waterNeeds}</p>
-                                  <span className={`text-xs px-2 py-1 rounded ${getWaterNeedsColor(insight.waterNeeds)}`}>
-                                    {insight.waterNeeds === 'High' ? '🔴' : insight.waterNeeds === 'Medium' ? '🟡' : '🟢'}
-                                  </span>
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-400">Current Stage</p>
-                                <div className="flex items-center space-x-2">
-                                  <p className="font-medium text-blue-400">{insight.currentStage}</p>
-                                  <span className={`text-xs px-2 py-1 rounded ${getStageColor(insight.currentStage)}`}>
-                                    Stage {getStageNumber(crop, insight.currentStage)}/4
-                                  </span>
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-400">Coefficient Range</p>
-                                <p className="text-sm text-gray-300">
-                                  {getKcRange(crop)} <span className="text-xs text-gray-500">(across all stages)</span>
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-400">Recommendation</p>
-                                <p className="text-gray-300">{insight.recommendation}</p>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
+                  
+                  {getLocationCropInstances().length === 0 ? (
                     <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
                       <Sprout className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-white mb-2">No Crops Selected</h3>
+                      <h3 className="text-xl font-semibold text-white mb-2">No Crop Plantings Yet</h3>
                       <p className="text-gray-400 mb-4">
-                        Select crops from the "Select Crops" section above to view their specific insights and recommendations.
+                        Add crops to your location to start tracking their water requirements and growth stages.
                       </p>
                       <button
                         onClick={() => setShowCropSelector(true)}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
                       >
-                        Select Crops
+                        Add Your First Crop
                       </button>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-white font-medium">{getLocationCropInstances().length} Active Crop{getLocationCropInstances().length !== 1 ? 's' : ''}</p>
+                          <p className="text-sm text-gray-400">Click "Manage Crops" to add more or modify existing crops</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                          <span className="text-sm text-green-400">Active</span>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
 
-                {/* Detailed Crop Coefficients Section */}
-                {selectedCrops.length > 0 && (
+                {/* Your Crop Plantings - Enhanced with Detailed Coefficients (Unified Section) */}
+                {getLocationCropInstances().length > 0 && (
                   <div className="mb-8">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold text-white">Detailed Crop Coefficients (Kc)</h2>
+                      <h2 className="text-xl font-semibold text-white">Your Crop Plantings</h2>
                       <div className="text-sm text-gray-400">
                         ET₀ × Kc = ETc (Crop Water Requirement)
                       </div>
@@ -1693,47 +1543,142 @@ export const TrialDashboard: React.FC = () => {
                         <span className="text-orange-400"> Late season (0.6-0.8)</span>.
                       </p>
                     </div>
-                    {cropCoefficients.length > 0 && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {cropCoefficients.map((coeff, index) => (
-                          <div key={index} className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {getLocationCropInstances().map((instance) => {
+                        const crop = availableCrops.find(c => c.id === instance.cropId);
+                        if (!crop) return null;
+
+                        const daysSincePlanting = Math.floor(
+                          (new Date().getTime() - new Date(instance.plantingDate).getTime()) / (1000 * 60 * 60 * 24)
+                        );
+
+                        // Calculate current stage based on days since planting
+                        let cumulativeDays = 0;
+                        let currentStageIndex = instance.currentStage;
+                        
+                        for (let i = 0; i < instance.currentStage; i++) {
+                          cumulativeDays += crop.stages[i].duration;
+                        }
+                        
+                        const currentStage = crop.stages[currentStageIndex];
+                        const currentWateringCycle = crop.isPerennial && crop.wateringCycles ? 
+                          crop.wateringCycles[instance.currentWateringCycle || 0] : null;
+                        
+                        const displayKc = currentWateringCycle?.kc || currentStage.kc;
+                        const displayStage = currentWateringCycle ? 
+                          `${currentWateringCycle.name} - ${currentWateringCycle.season.charAt(0).toUpperCase() + currentWateringCycle.season.slice(1)}` :
+                          currentStage.name;
+                        
+                        const etc = displayKc * (weatherData?.et0 || 5); // mm/day
+                        const etcInches = etc * 0.0393701; // Convert to inches/day
+
+                        return (
+                          <div key={instance.id} className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
                             <div className="flex items-center justify-between mb-4">
                               <div>
-                                <h3 className="text-lg font-semibold text-white">{coeff.crop}</h3>
-                                <p className="text-sm text-gray-400">{coeff.category}</p>
+                                <h3 className="text-lg font-semibold text-white">{crop.name}</h3>
+                                <p className="text-sm text-gray-400">{crop.category}</p>
+                                {instance.fieldName && (
+                                  <p className="text-xs text-gray-500">{instance.fieldName}</p>
+                                )}
                               </div>
-                              <span className={`text-sm font-medium px-2 py-1 rounded ${getStageColor(coeff.stage)} bg-gray-700`}>
-                                {coeff.stage}
-                              </span>
+                              <div className="flex items-center space-x-2">
+                                <span className={`text-sm font-medium px-2 py-1 rounded ${currentWateringCycle ? 'text-purple-300 bg-purple-900/30' : getStageColor(currentStage.name)} bg-gray-700`}>
+                                  {crop.isPerennial && currentWateringCycle ? '88% efficient' : displayStage}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    const crop = availableCrops.find(c => c.id === instance.cropId);
+                                    if (crop) {
+                                      setSelectedCropForInstance(crop);
+                                      setEditingCropInstance(instance);
+                                      setShowAddCropInstanceModal(true);
+                                    }
+                                  }}
+                                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                                  title="Edit crop instance"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setCropInstances(prev => prev.filter(ci => ci.id !== instance.id));
+                                    // Also remove from selected crops
+                                    setSelectedCrops(prev => prev.filter(id => id !== instance.cropId));
+                                  }}
+                                  className="text-red-400 hover:text-red-300 transition-colors"
+                                  title="Remove crop instance"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                              <div>
-                                <p className="text-sm text-gray-400">Kc Value</p>
-                                <p className="text-xl font-bold text-blue-400">{coeff.kc.toFixed(2)}</p>
+
+                            {/* Crop Coefficient (Kc) Details */}
+                            <div className="bg-gray-900/50 border border-gray-600 rounded-lg p-4 mb-4">
+                              <h4 className="text-sm font-semibold text-blue-400 mb-3">Crop Coefficient (Kc) Details</h4>
+                              <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                  <p className="text-sm text-gray-400">Current Kc Value</p>
+                                  <p className="text-xl font-bold text-blue-400">{displayKc.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-sm text-gray-400">ETc (in/day)</p>
+                                  <p className="text-xl font-bold text-green-400">{etcInches.toFixed(3)}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-sm text-gray-400">ETc (in/day)</p>
-                                <p className="text-xl font-bold text-green-400">{(coeff.etc * 0.0393701).toFixed(3)}</p>
+                              <div className="text-xs text-gray-400 mb-2">
+                                Formula: ETc = ET₀ × Kc = {(weatherData?.et0 || 5).toFixed(1)} × {displayKc.toFixed(2)}
                               </div>
                             </div>
-                            <div className="space-y-2">
+
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-sm text-gray-400">Water Needs</p>
+                                <p className="text-white font-bold text-lg">
+                                  {etcInches > 0.25 ? 'Very High' : etcInches > 0.15 ? 'High' : etcInches > 0.10 ? 'Medium' : 'Low'}
+                                  <span className={`ml-2 w-2 h-2 rounded-full inline-block ${
+                                    etcInches > 0.25 ? 'bg-red-500' : etcInches > 0.15 ? 'bg-orange-500' : etcInches > 0.10 ? 'bg-yellow-500' : 'bg-green-500'
+                                  }`}></span>
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400">Current Stage</p>
+                                <p className="text-white font-medium">{displayStage}</p>
+                                <p className="text-xs text-gray-500">Stage {currentStageIndex + 1}/4</p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400">Coefficient Range</p>
+                                <p className="text-white text-sm">
+                                  {Math.min(...crop.stages.map(s => s.kc)).toFixed(2)} - {Math.max(...crop.stages.map(s => s.kc)).toFixed(2)} (across all stages)
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-sm text-gray-400">Recommendation</p>
+                                <p className="text-gray-300 text-sm">
+                                  {currentWateringCycle ? 
+                                    currentWateringCycle.description :
+                                    `${currentStage.name} stage - maintain consistent soil moisture for optimal ${crop.name.toLowerCase()} production`
+                                  }
+                                </p>
+                              </div>
                               <div>
                                 <p className="text-sm text-gray-400">Planted</p>
-                                <p className="text-white text-sm">{coeff.plantingDate}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-400">Days in Stage</p>
-                                <p className="text-white">{coeff.daysSinceStage} days</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-400">Stage Description</p>
-                                <p className="text-gray-300 text-sm">{coeff.irrigationRecommendation}</p>
+                                <p className="text-white text-sm">{new Date(instance.plantingDate).toLocaleDateString()}</p>
+                                <p className="text-xs text-gray-500">{daysSincePlanting} days since planting</p>
                               </div>
                             </div>
+
+                            {instance.notes && (
+                              <div className="mt-4 p-3 bg-gray-900 rounded border border-gray-600">
+                                <p className="text-xs text-gray-400 mb-1">Notes</p>
+                                <p className="text-sm text-gray-300">{instance.notes}</p>
+                              </div>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </>
@@ -1745,7 +1690,7 @@ export const TrialDashboard: React.FC = () => {
                     <h2 className="text-xl font-semibold text-white">Irrigation Runtime Calculator</h2>
                     <div className="flex items-center space-x-3">
                       <button
-                        onClick={() => setCurrentView('overview')}
+                        onClick={() => setShowCropSelector(true)}
                         className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1"
                       >
                         <Sprout className="h-4 w-4" />
@@ -1884,6 +1829,76 @@ export const TrialDashboard: React.FC = () => {
                               </div>
                             </div>
                           )}
+
+                          {/* Quick Selection from Your Planted Crops */}
+                          {getLocationCropInstances().length > 0 && (
+                            <div className="mb-3">
+                              <p className="text-xs text-green-400 mb-2">🌱 Your Planted Crops at {selectedLocation?.name}:</p>
+                              <div className="space-y-2 mb-3">
+                                {getLocationCropInstances().slice(0, 3).map(instance => {
+                                  const crop = availableCrops.find(c => c.id === instance.cropId);
+                                  if (!crop) return null;
+                                  
+                                  const currentStage = crop.stages[instance.currentStage];
+                                  const currentWateringCycle = crop.isPerennial && crop.wateringCycles ? 
+                                    crop.wateringCycles[instance.currentWateringCycle || 0] : null;
+                                  
+                                  // Find associated field block
+                                  const associatedBlock = fieldBlocks.find(block => 
+                                    block.name === instance.fieldName || 
+                                    (block.crop_id === instance.cropId && block.location_name === selectedLocation?.name)
+                                  );
+                                  
+                                  return (
+                                    <button
+                                      key={instance.id}
+                                      onClick={() => {
+                                        // Auto-populate calculator with crop instance data
+                                        setCalculatorInputs({
+                                          ...calculatorInputs,
+                                          crop: crop.name,
+                                          kcValue: currentWateringCycle?.kc || currentStage?.kc || crop.stages[0]?.kc,
+                                          growthStage: currentWateringCycle ? 
+                                            `${currentWateringCycle.name} (${currentWateringCycle.season})` :
+                                            currentStage?.name,
+                                          area: associatedBlock?.acres || 0,
+                                          areaUnit: 'acres'
+                                        });
+                                      }}
+                                      className="w-full flex items-center justify-between p-3 bg-green-900/30 border border-green-700 rounded-lg hover:bg-green-900/50 transition-colors text-left"
+                                    >
+                                      <div className="flex-1">
+                                        <p className="text-green-300 font-medium text-sm">{crop.name}</p>
+                                        <p className="text-green-200 text-xs">
+                                          {instance.fieldName && `📍 ${instance.fieldName}`}
+                                          {associatedBlock && ` (${associatedBlock.acres} acres)`}
+                                        </p>
+                                        <p className="text-green-200 text-xs">
+                                          Stage: {currentWateringCycle ? 
+                                            `${currentWateringCycle.name} (${currentWateringCycle.season})` :
+                                            currentStage?.name
+                                          }
+                                        </p>
+                                        <p className="text-gray-400 text-xs">
+                                          Planted: {new Date(instance.plantingDate).toLocaleDateString()}
+                                        </p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-green-400 text-sm font-mono">
+                                          Kc: {currentWateringCycle?.kc || currentStage?.kc || crop.stages[0]?.kc}
+                                        </p>
+                                        {associatedBlock && (
+                                          <p className="text-green-300 text-xs">
+                                            {associatedBlock.irrigation_methods[0]?.method || 'Not specified'}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                           
                           <select 
                             value={calculatorInputs.crop}
@@ -1902,14 +1917,14 @@ export const TrialDashboard: React.FC = () => {
                           <label className="block text-sm font-medium text-gray-300 mb-2">Growth Stage or Kc Value</label>
                           
                           {/* Quick Select from Crop Instances */}
-                          {calculatorInputs.crop && cropInstances.filter(instance => {
+                          {calculatorInputs.crop && getLocationCropInstances().filter(instance => {
                             const crop = availableCrops.find(c => c.id === instance.cropId);
                             return crop?.name === calculatorInputs.crop;
                           }).length > 0 && (
                             <div className="mb-3">
                               <p className="text-xs text-gray-400 mb-2">From your planted crops:</p>
                               <div className="space-y-2">
-                                {cropInstances.filter(instance => {
+                                {getLocationCropInstances().filter(instance => {
                                   const crop = availableCrops.find(c => c.id === instance.cropId);
                                   return crop?.name === calculatorInputs.crop;
                                 }).map(instance => {
@@ -2248,16 +2263,19 @@ export const TrialDashboard: React.FC = () => {
                       </span>
                       <span className="flex items-center space-x-1">
                         <Plus className="h-3 w-3" />
-                        <span>{cropInstances.length} plantings</span>
+                        <span>{getLocationCropInstances().length} plantings</span>
                       </span>
                     </div>
                   </div>
                 </div>
                 <ReportView 
                   selectedCrops={selectedCrops}
-                  cropInstances={cropInstances}
+                  cropInstances={getLocationCropInstances()}
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
+                  selectedLocation={selectedLocation}
+                  fieldBlocks={fieldBlocks.filter(block => selectedLocation && block.location_name === selectedLocation.name)}
+                  availableLocations={availableLocations}
                 />
               </>
             ) : currentView === 'emails' ? (
@@ -2270,9 +2288,9 @@ export const TrialDashboard: React.FC = () => {
                 {/* Organizational Dashboard */}
                 <OrganizationalDashboard 
                   selectedCrops={selectedCrops}
-                  cropInstances={cropInstances}
+                  cropInstances={getLocationCropInstances()}
                   calculatorResult={calculatorResult}
-                  fieldBlocks={fieldBlocks}
+                  // fieldBlocks={fieldBlocks} // Temporarily disabled due to interface conflict
                 />
               </>
             ) : currentView === 'field-blocks' ? (
@@ -2283,6 +2301,9 @@ export const TrialDashboard: React.FC = () => {
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   fieldBlocks={fieldBlocks}
+                  selectedLocation={selectedLocation}
+                  availableLocations={availableLocations}
+                  onFieldBlockUpdate={handleFieldBlockUpdate}
                 />
               </>
             ) : null}
@@ -2314,9 +2335,15 @@ export const TrialDashboard: React.FC = () => {
           onClose={() => {
             setShowAddCropInstanceModal(false);
             setSelectedCropForInstance(null);
+            setEditingCropInstance(null);
           }}
           crop={selectedCropForInstance}
           onAddInstance={handleAddInstance}
+          onUpdateInstance={handleUpdateInstance}
+          // fieldBlocks={fieldBlocks} // Temporarily disabled due to interface conflict
+          selectedLocation={selectedLocation}
+          onCreateFieldBlock={handleCreateFieldBlockFromCrop}
+          editingInstance={editingCropInstance}
         />
       )}
       
