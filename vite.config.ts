@@ -2,16 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base: '/Weatherapp/', // GitHub repository name
+  base: command === 'build' ? '/Weatherapp/' : '/', // Use root for dev, Weatherapp for production build
   server: {
     port: 5173,
     strictPort: false,
     host: true, // Allow external connections
-    hmr: {
-      port: 5173,
-    }
+    hmr: true, // Let Vite handle HMR automatically
   },
   build: {
     outDir: 'dist',
@@ -23,4 +21,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))

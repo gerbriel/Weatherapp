@@ -123,6 +123,7 @@ export const TrialDashboard: React.FC = () => {
   });
   const [calculatorResult, setCalculatorResult] = useState<RuntimeResult | null>(null);
   const [fieldBlocks, setFieldBlocks] = useState<FieldBlock[]>([]);
+  const [displayedLocations, setDisplayedLocations] = useState<any[]>(availableLocations);
 
   // Mock weather data for trial
   useEffect(() => {
@@ -1069,12 +1070,7 @@ export const TrialDashboard: React.FC = () => {
             <div className="hidden lg:block px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-white">{selectedLocation.name}</h2>
-                    <p className="text-gray-400 text-sm">
-                      {('region' in selectedLocation) ? selectedLocation.region : `${selectedLocation.latitude}°, ${selectedLocation.longitude}°`}
-                    </p>
-                  </div>
+                  {/* Location info removed per user request */}
                 </div>
                 
                 <div className="flex items-center space-x-3">
@@ -1182,23 +1178,7 @@ export const TrialDashboard: React.FC = () => {
             <div className="lg:hidden">
               {/* Top row with location and menu */}
               <div className="px-4 py-3 flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  {/* Only show sidebar menu button for dashboard/overview view */}
-                  {currentView === 'overview' && (
-                    <button
-                      onClick={() => setSidebarOpen(true)}
-                      className="p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
-                    >
-                      <Menu className="h-5 w-5" />
-                    </button>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-lg font-semibold text-white truncate">{selectedLocation.name}</h2>
-                    <p className="text-gray-400 text-xs truncate">
-                      {('region' in selectedLocation) ? selectedLocation.region : `${selectedLocation.latitude}°, ${selectedLocation.longitude}°`}
-                    </p>
-                  </div>
-                </div>
+                {/* Location info removed from mobile header per user request */}
                 
                 <div className="flex items-center space-x-2">
                   <OrganizationSwitcher />
@@ -2251,12 +2231,13 @@ export const TrialDashboard: React.FC = () => {
                 {/* Weather Reports with Crop Data */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-white">Comprehensive Reports - {selectedLocation.name}</h2>
+                    <h2 className="text-xl font-semibold text-white">
+                      Comprehensive Reports - {displayedLocations.length > 1 ? 
+                        `${displayedLocations.length} Locations (${displayedLocations.map(loc => loc.name).join(', ')})` : 
+                        displayedLocations[0]?.name || 'No Location'
+                      }
+                    </h2>
                     <div className="flex items-center space-x-4 text-sm text-gray-400">
-                      <span className="flex items-center space-x-1">
-                        <MapPin className="h-3 w-3" />
-                        <span>{('region' in selectedLocation) ? selectedLocation.region : 'Custom Location'}</span>
-                      </span>
                       <span className="flex items-center space-x-1">
                         <Sprout className="h-3 w-3" />
                         <span>{selectedCrops.length} crops tracked</span>
@@ -2273,9 +2254,10 @@ export const TrialDashboard: React.FC = () => {
                   cropInstances={getLocationCropInstances()}
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
-                  selectedLocation={selectedLocation}
-                  fieldBlocks={fieldBlocks.filter(block => selectedLocation && block.location_name === selectedLocation.name)}
+                  selectedLocation={null}
+                  fieldBlocks={fieldBlocks}
                   availableLocations={availableLocations}
+                  onDisplayLocationsChange={setDisplayedLocations}
                 />
               </>
             ) : currentView === 'emails' ? (

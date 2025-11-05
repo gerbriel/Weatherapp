@@ -50,21 +50,30 @@ jobs:
           echo "❌ VITE_SUPABASE_ANON_KEY secret is not set"
           exit 1
         fi
+        # CMIS API key is optional - log status but don't fail build
+        if [ -z "${{ secrets.VITE_CMIS_API_KEY }}" ]; then
+          echo "⚠️  VITE_CMIS_API_KEY secret is not set - will use mock data"
+        else
+          echo "✅ VITE_CMIS_API_KEY secret is configured"
+        fi
         echo "✅ Environment variables validated"
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_CMIS_API_KEY: ${{ secrets.VITE_CMIS_API_KEY }}
 
     - name: Build application
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_CMIS_API_KEY: ${{ secrets.VITE_CMIS_API_KEY }}
       run: |
         echo "🔨 Building application with Vite..."
         echo "📍 Base URL will be: /Weatherapp/"
         echo "🔧 Environment variables for build:"
         echo "VITE_SUPABASE_URL length: ${#VITE_SUPABASE_URL}"
         echo "VITE_SUPABASE_ANON_KEY length: ${#VITE_SUPABASE_ANON_KEY}"
+        echo "VITE_CMIS_API_KEY length: ${#VITE_CMIS_API_KEY}"
         npm run build
         echo "✅ Build completed successfully"
 

@@ -20,8 +20,10 @@ export const AppRouter: React.FC = () => {
     );
   }
 
+  const basename = import.meta.env.PROD ? '/Weatherapp' : '';
+
   return (
-    <Router basename="/Weatherapp">
+    <Router basename={basename}>
       <Routes>
         {/* Trial Mode Route - Accessible without authentication */}
         {isTrialMode && (

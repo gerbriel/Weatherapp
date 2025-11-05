@@ -30,9 +30,16 @@ interface WeatherChartsProps {
 
 export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
   const chartData = useMemo(() => {
-    if (!location.weatherData) return null;
+    if (!location.weatherData) {
+      return null;
+    }
 
     const daily = location.weatherData.daily;
+    
+    if (!daily) {
+      return null;
+    }
+    
     const dates = daily.time.slice(0, 14); // 14 days
     const precipitation = daily.precipitation_sum.slice(0, 14);
     const rain = daily.rain_sum.slice(0, 14);
@@ -45,10 +52,17 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     });
 
-    return { labels, precipitation, rain, et0 };
+    const result = { labels, precipitation, rain, et0 };
+    return result;
   }, [location.weatherData]);
 
-  if (!chartData) return null;
+  if (!chartData) {
+    return (
+      <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+        <strong>No weather data available</strong> for {location?.name}. Please refresh the location data.
+      </div>
+    );
+  }
 
   // Precipitation Forecast Chart (Bar Chart)
   const precipitationData = {
@@ -78,26 +92,20 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
       legend: {
         position: 'bottom' as const,
         labels: {
-          color: 'rgb(203, 213, 225)', // text-slate-300
+          color: '#374151', // Better visibility for both themes
           font: {
             size: 12,
           },
         },
       },
       title: {
-        display: true,
-        text: 'Precipitation Forecast (14 Days)',
-        color: 'rgb(241, 245, 249)', // text-slate-100
-        font: {
-          size: 16,
-          weight: 'bold' as const,
-        },
+        display: false, // We'll use the HTML title instead
       },
       tooltip: {
-        backgroundColor: 'rgba(30, 41, 59, 0.95)', // slate-800
-        titleColor: 'rgb(241, 245, 249)',
-        bodyColor: 'rgb(203, 213, 225)',
-        borderColor: 'rgba(71, 85, 105, 0.5)',
+        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+        titleColor: 'rgb(255, 255, 255)',
+        bodyColor: 'rgb(229, 231, 235)',
+        borderColor: 'rgba(107, 114, 128, 0.5)',
         borderWidth: 1,
         callbacks: {
           label: function(context: any) {
@@ -109,10 +117,10 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(71, 85, 105, 0.3)',
+          color: 'rgba(107, 114, 128, 0.3)',
         },
         ticks: {
-          color: 'rgb(148, 163, 184)', // text-slate-400
+          color: '#374151',
           font: {
             size: 11,
           },
@@ -121,10 +129,10 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(71, 85, 105, 0.3)',
+          color: 'rgba(107, 114, 128, 0.3)',
         },
         ticks: {
-          color: 'rgb(148, 163, 184)',
+          color: '#374151',
           font: {
             size: 11,
           },
@@ -135,7 +143,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
         title: {
           display: true,
           text: 'Inches',
-          color: 'rgb(203, 213, 225)',
+          color: '#374151',
           font: {
             size: 12,
           },
@@ -172,26 +180,20 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
       legend: {
         position: 'bottom' as const,
         labels: {
-          color: 'rgb(203, 213, 225)',
+          color: '#374151',
           font: {
             size: 12,
           },
         },
       },
       title: {
-        display: true,
-        text: 'Evapotranspiration (ET₀) Forecast',
-        color: 'rgb(241, 245, 249)',
-        font: {
-          size: 16,
-          weight: 'bold' as const,
-        },
+        display: false, // We'll use the HTML title instead
       },
       tooltip: {
-        backgroundColor: 'rgba(30, 41, 59, 0.95)',
-        titleColor: 'rgb(241, 245, 249)',
-        bodyColor: 'rgb(203, 213, 225)',
-        borderColor: 'rgba(71, 85, 105, 0.5)',
+        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+        titleColor: 'rgb(255, 255, 255)',
+        bodyColor: 'rgb(229, 231, 235)',
+        borderColor: 'rgba(107, 114, 128, 0.5)',
         borderWidth: 1,
         callbacks: {
           label: function(context: any) {
@@ -203,10 +205,10 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
     scales: {
       x: {
         grid: {
-          color: 'rgba(71, 85, 105, 0.3)',
+          color: 'rgba(107, 114, 128, 0.3)',
         },
         ticks: {
-          color: 'rgb(148, 163, 184)',
+          color: '#374151',
           font: {
             size: 11,
           },
@@ -215,10 +217,10 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(71, 85, 105, 0.3)',
+          color: 'rgba(107, 114, 128, 0.3)',
         },
         ticks: {
-          color: 'rgb(148, 163, 184)',
+          color: '#374151',
           font: {
             size: 11,
           },
@@ -229,7 +231,7 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
         title: {
           display: true,
           text: 'inches',
-          color: 'rgb(203, 213, 225)',
+          color: '#374151',
           font: {
             size: 12,
           },
@@ -240,17 +242,88 @@ export const WeatherCharts: React.FC<WeatherChartsProps> = ({ location }) => {
 
   return (
     <div className="space-y-6">
+      <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        📈 Weather Charts - Debug Mode
+      </h4>
+      
+      {/* Debug Info */}
+      <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
+        <p><strong>Debug Info:</strong></p>
+        <p>Location: {location?.name}</p>
+        <p>Chart Data Labels: {chartData.labels.length} items</p>
+        <p>Precipitation Data: {chartData.precipitation.length} items</p>
+        <p>ET0 Data: {chartData.et0.length} items</p>
+      </div>
+      
+      {/* Simple Test Chart */}
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
+        <h5 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+          Test Chart (Simple Data)
+        </h5>
+        <div className="h-40 relative bg-gray-50 dark:bg-gray-700 rounded">
+          {(() => {
+            try {
+              const testData = {
+                labels: ['A', 'B', 'C'],
+                datasets: [{
+                  label: 'Test',
+                  data: [1, 2, 3],
+                  backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                }]
+              };
+              const testOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+              };
+              return <Bar data={testData} options={testOptions} />;
+            } catch (error) {
+              console.error('❌ Test chart error:', error);
+              return <div className="flex items-center justify-center h-full text-red-500">Test Chart Error: {String(error)}</div>;
+            }
+          })()}
+        </div>
+      </div>
+      
       {/* Precipitation Forecast Chart */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-        <div className="h-80">
-          <Bar data={precipitationData} options={precipitationOptions} />
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
+        <h5 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+          Precipitation Forecast (14 Days)
+        </h5>
+        <div className="h-80 relative bg-gray-50 dark:bg-gray-700 rounded">
+          {(() => {
+            try {
+              return <Bar data={precipitationData} options={precipitationOptions} />;
+            } catch (error) {
+              console.error('❌ Precipitation chart error:', error);
+              return (
+                <div className="flex items-center justify-center h-full text-red-500">
+                  <p>Precipitation Chart Error: {String(error)}</p>
+                </div>
+              );
+            }
+          })()}
         </div>
       </div>
 
       {/* ET₀ Forecast Chart */}
-      <div className="bg-slate-800 border border-slate-700 rounded-lg p-4">
-        <div className="h-80">
-          <Line data={et0Data} options={et0Options} />
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
+        <h5 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+          Reference Evapotranspiration (ET₀) Forecast
+        </h5>
+        <div className="h-80 relative bg-gray-50 dark:bg-gray-700 rounded">
+          {(() => {
+            try {
+              return <Line data={et0Data} options={et0Options} />;
+            } catch (error) {
+              console.error('❌ ET0 chart error:', error);
+              return (
+                <div className="flex items-center justify-center h-full text-red-500">
+                  <p>ET₀ Chart Error: {String(error)}</p>
+                </div>
+              );
+            }
+          })()}
         </div>
       </div>
     </div>

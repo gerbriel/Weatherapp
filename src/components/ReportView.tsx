@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
-import { MapPin, Thermometer, Wind, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
-import { WeatherCharts } from './LocationWeatherCharts';
+import { SimpleWeatherCharts } from './SimpleWeatherCharts';
+import { ChartErrorBoundary } from './ChartErrorBoundary';
+import { cmisService } from '../services/cmisService';
+import { isLocationInCalifornia } from '../utils/locationUtils';
+import type { CMISETCData } from '../services/cmisService';
 
 interface CropInstance {
   id: string;
@@ -33,6 +37,7 @@ interface ReportViewProps {
   selectedLocation?: any; // Current selected location
   fieldBlocks?: any[]; // Field blocks for location-specific field data
   availableLocations?: any[]; // Available locations - same as sidebar
+  onDisplayLocationsChange?: (locations: any[]) => void; // Callback to notify parent of filtered locations
 }
 
 export const ReportView: React.FC<ReportViewProps> = ({ 
@@ -42,7 +47,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
   calculatorInputs = null,
   selectedLocation = null,
   fieldBlocks = [],
-  availableLocations = []
+  availableLocations = [],
+  onDisplayLocationsChange = () => {}
 }) => {
   // Always call the hook to follow rules of hooks
   let locationsData: any[] = [];
@@ -66,6 +72,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const [showCropInsights, setShowCropInsights] = useState(true);
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [cmisData, setCmisData] = useState<Map<string, CMISETCData[]>>(new Map());
+  const [isFetchingCmis, setIsFetchingCmis] = useState(false);
 
   // Handle refresh with rate limiting protection
   const handleRefresh = async () => {
@@ -79,6 +87,26 @@ export const ReportView: React.FC<ReportViewProps> = ({
     }
   };
 
+  // Helper function to get ETC display text for a location and date
+  const getETCDisplayText = (location: any, date: string): string => {
+    // Check if location is in California
+    const locationInfo = {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      state: location.state,
+      region: location.region,
+      name: location.name
+    };
+
+    if (!isLocationInCalifornia(locationInfo)) {
+      return 'CA Only';
+    }
+
+    const locationCmisData = cmisData.get(location.id) || [];
+    const dayData = locationCmisData.find(d => d.date === date);
+    return dayData ? `${dayData.etc_actual.toFixed(3)} in` : '— in';
+  };
+
   // Auto-refresh weather data only once if locations exist but have no weather data
   React.useEffect(() => {
     if (!hasTriedRefresh) {
@@ -87,34 +115,129 @@ export const ReportView: React.FC<ReportViewProps> = ({
       if (hasUserLocations) {
         const locationsWithoutWeather = locations.filter(loc => !loc.weatherData && !loc.loading && !loc.error);
         if (locationsWithoutWeather.length > 0) {
-          console.log('Found user locations without weather data, triggering refresh...');
           setHasTriedRefresh(true);
           refreshAllLocations();
         }
       }
     }
-  }, [locations, refreshAllLocations, hasTriedRefresh]);
+  }, [locations, hasTriedRefresh]); // Remove refreshAllLocations to prevent infinite loops
 
-  // Filter locations that have weather data
+  // Filter locations that have weather data (memoized for performance)
   // Handle both trial locations (no weatherData property) and user locations (with weatherData)
-  const locationsWithWeather = locations.filter(loc => {
-    // If it's a trial location (no weatherData property), include it
-    if (!('weatherData' in loc)) {
-      return true;
-    }
-    // If it's a user location, check for weatherData and no error
-    return loc.weatherData && !loc.error;
-  });
+  const locationsWithWeather = useMemo(() => {
+    return locations.filter(loc => {
+      // If it's a trial location (no weatherData property), include it
+      if (!('weatherData' in loc)) {
+        return true;
+      }
+      // If it's a user location, check for weatherData and no error
+      return loc.weatherData && !loc.error;
+    });
+  }, [locations]);
   
-  // Apply location filter
-  const filteredLocations = locationFilter === 'all' 
-    ? locationsWithWeather
-    : locationsWithWeather.filter(loc => loc.id === locationFilter);
+  // Apply location filter (memoized for performance)
+  const filteredLocations = useMemo(() => {
+    return locationFilter === 'all' 
+      ? locationsWithWeather
+      : locationsWithWeather.filter(loc => loc.id === locationFilter);
+  }, [locationsWithWeather, locationFilter]);
   
-  // If a specific location is selected, only show that location's data
-  const displayLocations = selectedLocation ? 
-    filteredLocations.filter(loc => loc.id === selectedLocation.id || loc.name === selectedLocation.name) :
-    filteredLocations;
+  // For reports view, show all filtered locations regardless of selectedLocation
+  const displayLocations = filteredLocations;
+
+  // Notify parent component of the current filtered locations for header sync
+  useEffect(() => {
+    onDisplayLocationsChange(displayLocations);
+  }, [displayLocations]); // Remove onDisplayLocationsChange from dependencies to prevent infinite re-renders
+
+  // Fetch CMIS data for locations
+  useEffect(() => {
+    // Prevent double execution in React dev mode
+    let isCancelled = false;
+    
+    const fetchCMISData = async () => {
+      if (displayLocations.length === 0 || isFetchingCmis || isCancelled) return;
+      
+      setIsFetchingCmis(true);
+      const newCmisData = new Map<string, CMISETCData[]>();
+      
+      // Process locations in smaller batches to prevent overwhelming the browser
+      const batchSize = 2; // Reduced batch size for better performance
+      for (let i = 0; i < displayLocations.length; i += batchSize) {
+        if (isCancelled) break;
+        
+        const batch = displayLocations.slice(i, i + batchSize);
+        
+        await Promise.allSettled(
+          batch.map(async (location) => {
+            if (location.latitude && location.longitude && !isCancelled) {
+              try {
+                // Prepare location info for California check
+                const locationInfo = {
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  state: (location as any).state,
+                  region: (location as any).region,
+                  name: location.name,
+                  cimisStationId: (location as any).cimisStationId  // Include CIMIS station ID from trial locations
+                };
+
+                const station = await cmisService.findNearestStation(
+                  location.latitude, 
+                  location.longitude, 
+                  locationInfo
+                );
+                
+                if (station) {
+                  const endDate = new Date();
+                  const startDate = new Date();
+                  startDate.setDate(endDate.getDate() - 14);
+                  
+                  const response = await cmisService.getETCData(
+                    station.id, 
+                    startDate, 
+                    endDate, 
+                    locationInfo
+                  );
+                  
+                  if (response.success) {
+                    newCmisData.set(location.id, response.data);
+                  } else if (!response.isCaliforniaLocation) {
+                    // Store empty array for non-CA locations with error flag
+                    newCmisData.set(location.id, []);
+                    console.log(`CMIS not available for ${location.name}: ${response.error}`);
+                  }
+                } else {
+                  // No station found (likely non-CA location)
+                  newCmisData.set(location.id, []);
+                }
+              } catch (error) {
+                console.error(`Error fetching CMIS data for ${location.name}:`, error);
+                newCmisData.set(location.id, []);
+              }
+            }
+          })
+        );
+        
+        // Add a longer delay between batches to prevent freezing
+        if (i + batchSize < displayLocations.length) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+      
+      if (!isCancelled) {
+        setCmisData(newCmisData);
+        setIsFetchingCmis(false);
+      }
+    };
+
+    fetchCMISData();
+    
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isCancelled = true;
+    };
+  }, [displayLocations.length]); // Only depend on length to avoid unnecessary refetches
 
   if (displayLocations.length === 0) {
     // Check if we're in trial mode (locations without weatherData property)
@@ -258,21 +381,49 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
       <div className="text-center mb-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          📊 {selectedLocation ? `${selectedLocation.name} ` : ''}Weather Report
+          📊 Comprehensive Reports - {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
-          {selectedLocation ? 
-            `Current conditions and recommendations for ${selectedLocation.name}` :
-            `Current conditions and recommendations for ${displayLocations.length} location${displayLocations.length !== 1 ? 's' : ''}`
-          }
-        </p>
-        {selectedLocation && cropInstances.length > 0 && (
-          <div className="mt-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-              🌱 {cropInstances.length} active planting{cropInstances.length !== 1 ? 's' : ''} at this location
+        
+        {/* Dynamic Location List */}
+        <div className="mb-3">
+          <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+            📍 Locations: 
+            <span className="ml-1 text-gray-800 dark:text-gray-200">
+              {displayLocations.length > 0 ? 
+                displayLocations.map(loc => loc.name).join(', ') : 
+                'No locations selected'
+              }
             </span>
+          </p>
+        </div>
+
+        {/* Dynamic Crop List */}
+        {(selectedCrops.length > 0 || cropInstances.length > 0) && (
+          <div className="mb-3">
+            <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
+              🌱 Active Crops: 
+              <span className="ml-1 text-gray-800 dark:text-gray-200">
+                {(() => {
+                  const allCrops = new Set();
+                  
+                  // Add selected crops
+                  selectedCrops.forEach(crop => allCrops.add(crop));
+                  
+                  // Add crops from crop instances
+                  cropInstances.forEach(instance => allCrops.add(instance.cropId));
+                  
+                  return allCrops.size > 0 ? 
+                    Array.from(allCrops).join(', ') : 
+                    'No crops selected';
+                })()}
+              </span>
+            </p>
           </div>
         )}
+
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
+          Current conditions and weather forecasts with ETC actuals comparison
+        </p>
       </div>
 
       {/* Crop Watering Insights per Location */}
@@ -529,15 +680,238 @@ export const ReportView: React.FC<ReportViewProps> = ({
       {displayLocations.map((location, locationIndex) => {
         // Check if location has weather data and proper structure
         const weather = location.weatherData;
-        if (!weather || !weather.daily) {
-          return null; // Skip locations without proper weather data
+        
+        // For trial locations (no weatherData), we'll still show the charts
+        // but skip the detailed weather table
+        const isTrialLocation = !weather || !weather.daily;
+        
+        if (isTrialLocation) {
+          // Generate realistic mock data for trial locations
+          const generateMockForecastData = () => {
+            const mockDays = [];
+            const startDate = new Date();
+            
+            for (let i = 0; i < 14; i++) {
+              const date = new Date(startDate);
+              date.setDate(startDate.getDate() + i);
+              
+              // Generate realistic Central Valley weather data
+              const baseTemp = 75; // Base temperature for fall
+              const tempVariation = Math.sin(i * 0.5) * 8 + Math.random() * 4;
+              const highTemp = Math.round(baseTemp + tempVariation + 5);
+              const lowTemp = Math.round(baseTemp + tempVariation - 10);
+              
+              // Generate ET0 values similar to main dashboard (4-7 mm/day range)
+              const et0_mm = 4 + Math.random() * 3; // Same range as main dashboard
+              const et0_inches = et0_mm * 0.0393701; // Convert mm to inches
+              const et0_sum_inches = ((i + 1) * et0_mm * 0.0393701); // Cumulative sum
+              
+              mockDays.push({
+                date: date.toISOString().split('T')[0],
+                tempMax: highTemp,
+                tempMin: lowTemp,
+                precipitation: Math.random() < 0.2 ? (Math.random() * 0.5).toFixed(2) : '0.00',
+                et0: et0_inches.toFixed(3),
+                et0_sum: et0_sum_inches.toFixed(3)
+              });
+            }
+            return mockDays;
+          };
+
+          const mockForecastData = generateMockForecastData();
+          const todayData = mockForecastData[0];
+
+          // Render trial location with forecast table and charts
+          return (
+            <div 
+              key={locationIndex} 
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden"
+            >
+              {/* Location Header */}
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-750">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                      <MapPin className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                      {location.name || 'Unknown Location'}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      📍 Trial Location - Mock Weather Data
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      Location {locationIndex + 1} of {displayLocations.length}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      Demo Data
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today's Metrics Grid */}
+              <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
+                <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Today's Weather Stats
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {/* High Temp */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-2">
+                      <Thermometer className="h-4 w-4 text-red-500 mr-1" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">High</span>
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {todayData.tempMax}°F
+                    </div>
+                  </div>
+
+                  {/* Low Temp */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-2">
+                      <Thermometer className="h-4 w-4 text-blue-500 mr-1" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Low</span>
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {todayData.tempMin}°F
+                    </div>
+                  </div>
+
+                  {/* ETC Actual */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-2">
+                      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {getETCDisplayText(location, todayData.date)}
+                    </div>
+                  </div>
+
+                  {/* Precipitation */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-2">
+                      <Droplets className="h-4 w-4 text-blue-500 mr-1" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Precip</span>
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {todayData.precipitation} in
+                    </div>
+                  </div>
+
+                  {/* ET₀ Daily */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-2">
+                      <Gauge className="h-4 w-4 text-green-500 mr-1" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀</span>
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {todayData.et0} inches
+                    </div>
+                  </div>
+
+                  {/* ET₀ Sum */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-2">
+                      <Gauge className="h-4 w-4 text-green-600 mr-1" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀ Sum</span>
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {todayData.et0_sum} inches
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 14-Day Forecast Table */}
+              <div className="p-6">
+                <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">
+                  📈 14-Day Forecast Data
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          Date
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          High (°F)
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          Low (°F)
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          Precip (in)
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          ET₀ Projected (in)
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          ETC Actual (in)
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                          ET₀ Sum (inches)
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {mockForecastData.map((day, index) => (
+                        <tr 
+                          key={day.date} 
+                          className={index % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}
+                        >
+                          <td className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-white">
+                            {new Date(day.date).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              weekday: 'short'
+                            })}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-900 dark:text-white font-semibold">
+                            {day.tempMax}°
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                            {day.tempMin}°
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                            {day.precipitation}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                            {day.et0}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                            <div className="flex items-center">
+                              <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
+                              {getETCDisplayText(location, day.date).replace(' in', '')}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                            {day.et0_sum}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Weather Charts */}
+              <div className="mt-6">
+                <ChartErrorBoundary>
+                  <SimpleWeatherCharts location={location} />
+                </ChartErrorBoundary>
+              </div>
+            </div>
+          );
         }
         
         // Get today's data (first day in forecast)
         const todayData = {
           tempMax: safe(weather.daily.temperature_2m_max?.[0]?.toFixed(0)),
           tempMin: safe(weather.daily.temperature_2m_min?.[0]?.toFixed(0)),
-          windSpeed: safe(weather.daily.wind_speed_10m_max?.[0]?.toFixed(1)),
           precipitation: safe(weather.daily.precipitation_sum?.[0]?.toFixed(2)),
           et0: weather.daily.et0_fao_evapotranspiration?.[0] * 0.0393701 || 0,
           et0_sum: weather.daily.et0_fao_evapotranspiration_sum?.[0] * 0.0393701 || 0,
@@ -600,14 +974,14 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   </div>
                 </div>
 
-                {/* Wind */}
+                {/* ETC Actual */}
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center mb-2">
-                    <Wind className="h-4 w-4 text-gray-500 mr-1" />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Wind</span>
+                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
                   </div>
                   <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {todayData.windSpeed} mph
+                    {getETCDisplayText(location, weather.daily.time[0])}
                   </div>
                 </div>
 
@@ -665,13 +1039,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
                         Low (°F)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        Wind (mph)
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                         Precip (in)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        ET₀ (inches)
+                        ET₀ Projected (in)
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                        ETC Actual (in)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
                         ET₀ Sum (inches)
@@ -694,13 +1068,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           {safe(weather.daily.temperature_2m_min[index]?.toFixed(0))}°
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                          {safe(weather.daily.wind_speed_10m_max[index]?.toFixed(1))}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                           {safe(weather.daily.precipitation_sum[index]?.toFixed(2))}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                           {safe((weather.daily.et0_fao_evapotranspiration[index] * 0.0393701)?.toFixed(3))}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                          <div className="flex items-center">
+                            <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
+                            {getETCDisplayText(location, date).replace(' in', '')}
+                          </div>
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                           {safe((weather.daily.et0_fao_evapotranspiration_sum[index] * 0.0393701)?.toFixed(3))}
@@ -714,7 +1091,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
             {/* Weather Charts */}
             <div className="mt-6">
-              <WeatherCharts location={location} />
+              <ChartErrorBoundary>
+                <SimpleWeatherCharts location={location} />
+              </ChartErrorBoundary>
             </div>
           </div>
         );
@@ -722,9 +1101,29 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
       {/* Summary Footer */}
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          📊 Report generated for {displayLocations.length} location{displayLocations.length !== 1 ? 's' : ''} • 
-          Data from NCEP GFS Seamless Model • 
+        <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+          📊 Comprehensive Report Generated for {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
+        </p>
+        
+        {displayLocations.length > 0 && (
+          <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
+            📍 <strong>Locations:</strong> {displayLocations.map(loc => loc.name).join(', ')}
+          </p>
+        )}
+        
+        {(selectedCrops.length > 0 || cropInstances.length > 0) && (
+          <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+            🌱 <strong>Active Crops:</strong> {(() => {
+              const allCrops = new Set();
+              selectedCrops.forEach(crop => allCrops.add(crop));
+              cropInstances.forEach(instance => allCrops.add(instance.cropId));
+              return Array.from(allCrops).join(', ');
+            })()}
+          </p>
+        )}
+        
+        <p className="text-xs text-blue-600 dark:text-blue-400">
+          Data from NCEP GFS Seamless Model & CMIS ETC Actuals • 
           Updated {new Date().toLocaleDateString('en-US', { 
             month: 'long', 
             day: 'numeric', 

@@ -436,7 +436,7 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
         {/* Water Usage by Location */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Water Usage by Location</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minWidth={300} minHeight={250}>
             <BarChart data={waterUsageByLocation}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="name" stroke="#9CA3AF" />
@@ -456,7 +456,7 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
         {/* Crop Distribution */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Crop Distribution</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minWidth={300} minHeight={250}>
             <PieChart>
               <Pie
                 data={cropDistribution}
@@ -486,7 +486,7 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
         {/* Monthly Trends */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold text-white mb-4">Monthly Water Usage & Efficiency Trends</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minWidth={300} minHeight={250}>
             <AreaChart data={monthlyTrends}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="month" stroke="#9CA3AF" />

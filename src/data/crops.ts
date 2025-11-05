@@ -14,6 +14,13 @@ interface WateringCycle {
   repeatsAnnually: boolean;
 }
 
+interface KcPeriod {
+  startDate: string; // Format: "MM-dd" (e.g., "01-01" for Jan 1)
+  endDate: string;   // Format: "MM-dd" (e.g., "01-31" for Jan 31)
+  kc: number;
+  description?: string;
+}
+
 export interface AvailableCrop {
   id: string;
   name: string;
@@ -21,6 +28,7 @@ export interface AvailableCrop {
   scientificName?: string;
   stages: CropStage[];
   wateringCycles?: WateringCycle[]; // For perennial crops with annual watering cycles
+  kcSchedule?: KcPeriod[]; // Detailed date-based Kc values
   isPerennial?: boolean; // True for trees, vines, etc.
   plantingType?: 'annual' | 'perennial'; // Optional for backward compatibility
 }
@@ -36,15 +44,29 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     isPerennial: true,
     stages: [
       { name: 'Initial', kc: 0.40, duration: 30, description: 'Bud break and early leaf development' },
-      { name: 'Development', kc: 0.85, duration: 45, description: 'Rapid canopy growth and nut development' },
-      { name: 'Mid-season', kc: 1.10, duration: 60, description: 'Full canopy and peak water demand' },
-      { name: 'Late season', kc: 0.75, duration: 45, description: 'Nut maturation and harvest preparation' }
+      { name: 'Development', kc: 0.75, duration: 45, description: 'Rapid canopy growth and nut development' },
+      { name: 'Mid-season', kc: 1.11, duration: 60, description: 'Full canopy and peak water demand' },
+      { name: 'Late season', kc: 0.85, duration: 45, description: 'Nut maturation and harvest preparation' }
     ],
-    wateringCycles: [
-      { name: 'Dormant', kc: 0.15, duration: 90, description: 'Winter dormancy - minimal water needs', season: 'winter', repeatsAnnually: true },
-      { name: 'Bud Break', kc: 0.40, duration: 30, description: 'Spring awakening and flowering', season: 'spring', repeatsAnnually: true },
-      { name: 'Nut Fill', kc: 1.10, duration: 120, description: 'Peak summer water demand for nut development', season: 'summer', repeatsAnnually: true },
-      { name: 'Harvest Prep', kc: 0.75, duration: 45, description: 'Late summer preparation for harvest', season: 'fall', repeatsAnnually: true }
+    kcSchedule: [
+      { startDate: "01-01", endDate: "01-31", kc: 0.40, description: "January dormancy" },
+      { startDate: "02-01", endDate: "02-28", kc: 0.41, description: "February dormancy" },
+      { startDate: "03-01", endDate: "03-15", kc: 0.55, description: "Early March awakening" },
+      { startDate: "03-16", endDate: "03-31", kc: 0.67, description: "Late March bud break" },
+      { startDate: "04-01", endDate: "04-15", kc: 0.75, description: "Early April flowering" },
+      { startDate: "04-16", endDate: "04-30", kc: 0.84, description: "Late April development" },
+      { startDate: "05-01", endDate: "05-15", kc: 0.89, description: "Early May growth" },
+      { startDate: "05-16", endDate: "05-31", kc: 0.98, description: "Late May rapid growth" },
+      { startDate: "06-01", endDate: "06-15", kc: 1.02, description: "Early June nut development" },
+      { startDate: "06-16", endDate: "06-30", kc: 1.07, description: "Late June peak growth" },
+      { startDate: "07-01", endDate: "07-31", kc: 1.11, description: "July peak water demand" },
+      { startDate: "08-01", endDate: "08-31", kc: 1.11, description: "August continued peak demand" },
+      { startDate: "09-01", endDate: "09-15", kc: 1.08, description: "Early September maturation" },
+      { startDate: "09-16", endDate: "09-30", kc: 1.04, description: "Late September harvest prep" },
+      { startDate: "10-01", endDate: "10-15", kc: 0.96, description: "Early October harvest" },
+      { startDate: "10-16", endDate: "10-31", kc: 0.88, description: "Late October post-harvest" },
+      { startDate: "11-01", endDate: "11-30", kc: 0.69, description: "November dormancy transition" },
+      { startDate: "12-01", endDate: "12-31", kc: 0.43, description: "December dormancy" }
     ]
   },
   {
@@ -55,16 +77,33 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     plantingType: 'perennial',
     isPerennial: true,
     stages: [
-      { name: 'Initial', kc: 0.50, duration: 35, description: 'Bud break and catkin development' },
-      { name: 'Development', kc: 0.90, duration: 50, description: 'Leaf expansion and nut development' },
-      { name: 'Mid-season', kc: 1.15, duration: 65, description: 'Full canopy and hull filling' },
-      { name: 'Late season', kc: 0.80, duration: 40, description: 'Hull split and harvest' }
+      { name: 'Initial', kc: 0.00, duration: 90, description: 'Winter dormancy - no irrigation needs' },
+      { name: 'Development', kc: 0.50, duration: 30, description: 'Bud break and catkin development' },
+      { name: 'Mid-season', kc: 1.14, duration: 60, description: 'Peak growth and hull filling' },
+      { name: 'Late season', kc: 0.80, duration: 60, description: 'Hull split and harvest' }
     ],
-    wateringCycles: [
-      { name: 'Winter Rest', kc: 0.20, duration: 90, description: 'Dormant period with minimal irrigation', season: 'winter', repeatsAnnually: true },
-      { name: 'Spring Growth', kc: 0.50, duration: 60, description: 'Catkin and leaf development', season: 'spring', repeatsAnnually: true },
-      { name: 'Summer Peak', kc: 1.15, duration: 90, description: 'Maximum water demand for nut filling', season: 'summer', repeatsAnnually: true },
-      { name: 'Fall Maturation', kc: 0.80, duration: 60, description: 'Hull split and harvest preparation', season: 'fall', repeatsAnnually: true }
+    kcSchedule: [
+      { startDate: "01-01", endDate: "01-31", kc: 0.00, description: "January dormancy" },
+      { startDate: "02-01", endDate: "02-28", kc: 0.00, description: "February dormancy" },
+      { startDate: "03-01", endDate: "03-15", kc: 0.00, description: "Early March dormancy" },
+      { startDate: "03-16", endDate: "03-31", kc: 0.12, description: "Late March bud break" },
+      { startDate: "04-01", endDate: "04-15", kc: 0.53, description: "Early April catkin development" },
+      { startDate: "04-16", endDate: "04-30", kc: 0.68, description: "Late April leaf expansion" },
+      { startDate: "05-01", endDate: "05-15", kc: 0.79, description: "Early May growth" },
+      { startDate: "05-16", endDate: "05-31", kc: 0.86, description: "Late May rapid growth" },
+      { startDate: "06-01", endDate: "06-15", kc: 0.93, description: "Early June nut development" },
+      { startDate: "06-16", endDate: "06-30", kc: 1.00, description: "Late June hull filling" },
+      { startDate: "07-01", endDate: "07-15", kc: 1.14, description: "Early July peak demand" },
+      { startDate: "07-16", endDate: "07-31", kc: 1.14, description: "Late July peak demand" },
+      { startDate: "08-01", endDate: "08-15", kc: 1.14, description: "Early August peak demand" },
+      { startDate: "08-16", endDate: "08-31", kc: 1.14, description: "Late August peak demand" },
+      { startDate: "09-01", endDate: "09-15", kc: 1.08, description: "Early September hull split" },
+      { startDate: "09-16", endDate: "09-30", kc: 0.97, description: "Late September harvest prep" },
+      { startDate: "10-01", endDate: "10-15", kc: 0.88, description: "Early October harvest" },
+      { startDate: "10-16", endDate: "10-31", kc: 0.51, description: "Late October post-harvest" },
+      { startDate: "11-01", endDate: "11-15", kc: 0.28, description: "Early November dormancy transition" },
+      { startDate: "11-16", endDate: "11-30", kc: 0.00, description: "Late November dormancy" },
+      { startDate: "12-01", endDate: "12-31", kc: 0.00, description: "December dormancy" }
     ]
   },
   {
@@ -75,10 +114,33 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     plantingType: 'perennial',
     isPerennial: true,
     stages: [
-      { name: 'Initial', kc: 0.35, duration: 25, description: 'Bud break and early growth' },
-      { name: 'Development', kc: 0.75, duration: 40, description: 'Shoot development and flowering' },
-      { name: 'Mid-season', kc: 1.05, duration: 70, description: 'Nut development and filling' },
-      { name: 'Late season', kc: 0.70, duration: 35, description: 'Nut maturation and harvest' }
+      { name: 'Initial', kc: 0.00, duration: 90, description: 'Winter dormancy - no water needs' },
+      { name: 'Development', kc: 0.75, duration: 60, description: 'Shoot development and flowering' },
+      { name: 'Mid-season', kc: 1.19, duration: 60, description: 'Peak nut development and filling' },
+      { name: 'Late season', kc: 0.70, duration: 60, description: 'Nut maturation and harvest' }
+    ],
+    kcSchedule: [
+      { startDate: "01-01", endDate: "01-31", kc: 0.00, description: "January dormancy" },
+      { startDate: "02-01", endDate: "02-28", kc: 0.00, description: "February dormancy" },
+      { startDate: "03-01", endDate: "03-15", kc: 0.00, description: "Early March dormancy" },
+      { startDate: "03-16", endDate: "03-31", kc: 0.00, description: "Late March dormancy" },
+      { startDate: "04-01", endDate: "04-15", kc: 0.07, description: "Early April bud break" },
+      { startDate: "04-16", endDate: "04-30", kc: 0.43, description: "Late April development" },
+      { startDate: "05-01", endDate: "05-15", kc: 0.68, description: "Early May growth" },
+      { startDate: "05-16", endDate: "05-31", kc: 0.93, description: "Late May rapid growth" },
+      { startDate: "06-01", endDate: "06-15", kc: 1.09, description: "Early June nut development" },
+      { startDate: "06-16", endDate: "06-30", kc: 1.17, description: "Late June peak growth" },
+      { startDate: "07-01", endDate: "07-15", kc: 1.19, description: "Early July peak demand" },
+      { startDate: "07-16", endDate: "07-31", kc: 1.19, description: "Late July peak demand" },
+      { startDate: "08-01", endDate: "08-15", kc: 1.19, description: "Early August peak demand" },
+      { startDate: "08-16", endDate: "08-31", kc: 1.12, description: "Late August decline" },
+      { startDate: "09-01", endDate: "09-15", kc: 0.99, description: "Early September maturation" },
+      { startDate: "09-16", endDate: "09-30", kc: 0.87, description: "Late September harvest prep" },
+      { startDate: "10-01", endDate: "10-15", kc: 0.67, description: "Early October harvest" },
+      { startDate: "10-16", endDate: "10-31", kc: 0.50, description: "Late October post-harvest" },
+      { startDate: "11-01", endDate: "11-15", kc: 0.35, description: "Early November dormancy transition" },
+      { startDate: "11-16", endDate: "11-30", kc: 0.00, description: "Late November dormancy" },
+      { startDate: "12-01", endDate: "12-31", kc: 0.00, description: "December dormancy" }
     ]
   },
 
@@ -98,11 +160,35 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     id: 'oranges',
     name: 'Oranges',
     category: 'Tree Fruits',
+    plantingType: 'perennial',
+    isPerennial: true,
     stages: [
-      { name: 'Initial', kc: 0.55, duration: 45, description: 'Spring flush and flowering' },
-      { name: 'Development', kc: 0.85, duration: 60, description: 'Fruit set and early development' },
-      { name: 'Mid-season', kc: 1.00, duration: 90, description: 'Fruit enlargement and maturation' },
-      { name: 'Late season', kc: 0.75, duration: 60, description: 'Harvest and dormancy preparation' }
+      { name: 'Winter', kc: 0.65, duration: 90, description: 'Winter dormancy and pruning period' },
+      { name: 'Spring Flush', kc: 0.72, duration: 90, description: 'Spring flush and flowering' },
+      { name: 'Fruit Development', kc: 0.78, duration: 90, description: 'Fruit set and development' },
+      { name: 'Harvest', kc: 0.70, duration: 95, description: 'Fruit maturation and harvest' }
+    ],
+    kcSchedule: [
+      { startDate: "01-01", endDate: "01-31", kc: 0.75, description: "January winter period" },
+      { startDate: "02-01", endDate: "02-28", kc: 0.74, description: "February winter period" },
+      { startDate: "03-01", endDate: "03-15", kc: 0.73, description: "Early March spring transition" },
+      { startDate: "03-16", endDate: "03-31", kc: 0.71, description: "Late March spring flush" },
+      { startDate: "04-01", endDate: "04-15", kc: 0.70, description: "Early April flowering" },
+      { startDate: "04-16", endDate: "04-30", kc: 0.70, description: "Late April fruit set" },
+      { startDate: "05-01", endDate: "05-15", kc: 0.70, description: "Early May development" },
+      { startDate: "05-16", endDate: "05-31", kc: 0.70, description: "Late May development" },
+      { startDate: "06-01", endDate: "06-15", kc: 0.67, description: "Early June fruit growth" },
+      { startDate: "06-16", endDate: "06-30", kc: 0.65, description: "Late June summer period" },
+      { startDate: "07-01", endDate: "07-15", kc: 0.65, description: "Early July summer period" },
+      { startDate: "07-16", endDate: "07-31", kc: 0.65, description: "Late July summer period" },
+      { startDate: "08-01", endDate: "08-15", kc: 0.65, description: "Early August summer period" },
+      { startDate: "08-16", endDate: "08-31", kc: 0.65, description: "Late August summer period" },
+      { startDate: "09-01", endDate: "09-09", kc: 0.68, description: "Early September maturation" },
+      { startDate: "09-10", endDate: "09-16", kc: 0.73, description: "Mid September color break" },
+      { startDate: "09-17", endDate: "09-23", kc: 0.78, description: "Late September peak maturation" },
+      { startDate: "09-24", endDate: "09-30", kc: 0.66, description: "End September harvest start" },
+      { startDate: "10-01", endDate: "12-23", kc: 0.70, description: "October-December harvest period" },
+      { startDate: "12-24", endDate: "12-31", kc: 0.73, description: "Late December winter transition" }
     ]
   },
   {

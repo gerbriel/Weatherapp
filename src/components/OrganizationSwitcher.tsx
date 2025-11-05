@@ -182,7 +182,6 @@ export const OrganizationSwitcher: React.FC = () => {
     
     // Update the auth context with the new organization
     await switchOrganization(orgId);
-    console.log('Switched to organization:', orgId);
   };
 
   const getPlanBadgeColor = (plan: string) => {

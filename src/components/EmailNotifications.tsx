@@ -36,9 +36,6 @@ const OneTimeEmailSender: React.FC = () => {
   };
 
   const handleSendNow = async () => {
-    console.log('Sending one-time weather email...');
-    console.log(`Email: ${email}, Locations: ${selectedLocations.size}`);
-
     if (!email) {
       setError('Please enter an email address');
       return;
@@ -96,8 +93,6 @@ const OneTimeEmailSender: React.FC = () => {
         return;
       }
 
-      console.log(`Creating subscription for ${savedLocationIds.length} locations`);
-
       // Create a one-time subscription with scheduled_at set to 5 minutes ago
       // This ensures the database trigger sets next_send_at to a time that's definitely passed
       const scheduledTime = new Date(Date.now() - 300000); // 5 minutes ago
@@ -111,8 +106,6 @@ const OneTimeEmailSender: React.FC = () => {
         scheduled_at: scheduledTime.toISOString(),
       });
 
-      console.log(`Created subscription: ${subscription.id}`);
-
       // Immediately trigger the email sending function
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -125,28 +118,14 @@ const OneTimeEmailSender: React.FC = () => {
       // Try to trigger email function if environment is configured
       if (supabaseUrl && supabaseKey) {
         const emailFunctionUrl = `${supabaseUrl}/functions/v1/send-weather-emails`;
-        console.log('Attempting to trigger email function at:', emailFunctionUrl);
         
         // Use setTimeout to trigger after a longer delay to ensure database transaction commits
         setTimeout(async () => {
           try {
-            console.log('Triggering email function after delay...');
-            
             // First, let's verify the subscription exists in the database
             try {
               const allSubs = await EmailSubscriptionService.getActiveSubscriptions();
-              const ourSub = allSubs.find(s => s.id === subscription.id);
-              console.log('Our subscription in database:', ourSub ? 'Found' : 'Not found');
-              if (ourSub) {
-                console.log('Subscription details:', {
-                  id: ourSub.id,
-                  email: ourSub.email,
-                  locationIds: ourSub.selected_location_ids,
-                  nextSendAt: ourSub.next_send_at,
-                  enabled: ourSub.enabled,
-                  isRecurring: ourSub.is_recurring
-                });
-              }
+              allSubs.find(s => s.id === subscription.id); // Verify subscription exists
             } catch (dbError) {
               console.error('Error checking subscription in database:', dbError);
             }
@@ -167,11 +146,9 @@ const OneTimeEmailSender: React.FC = () => {
             
             console.log('Email function trigger response:', response.status);
             const result = await response.json();
-            console.log('Email function result details:', JSON.stringify(result, null, 2));
             
             if (response.ok && result.success_count > 0) {
-              console.log(`✅ Successfully sent email to ${result.success_count} recipients`);
-              console.log('Full result object:', result);
+              // Email sent successfully
             } else {
               console.warn(`⚠️ Email function response: ${JSON.stringify(result)}`);
             }
@@ -180,8 +157,6 @@ const OneTimeEmailSender: React.FC = () => {
             // Don't show error to user since subscription was created successfully
           }
         }, 5000); // Wait 5 seconds before triggering to ensure DB commit
-      } else {
-        console.log('Environment variables not configured for immediate sending. Email will be processed by scheduled function.');
       }
       
       setTimeout(() => setSuccess(false), 5000); // Hide success message after 5 seconds
