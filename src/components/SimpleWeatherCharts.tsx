@@ -55,10 +55,13 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
   return (
     <div className="space-y-6" style={{ width: '100%', minWidth: '400px' }}>
       <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
-        <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>
+        <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
           Precipitation Forecast (14 Days)
         </h3>
-        <div style={{ width: '100%', height: '340px', minWidth: '360px', minHeight: '320px' }}>
+        <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
+          📡 Data Source: Open-Meteo API • Temperature, precipitation, and wind data
+        </div>
+        <div style={{ width: '100%', height: '320px', minWidth: '360px', minHeight: '300px' }}>
           <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
             <BarChart data={mockData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
@@ -73,10 +76,13 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
       </div>
 
       <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
-        <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '20px', fontSize: '16px' }}>
+        <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
           Evapotranspiration (ET₀) Forecast
         </h3>
-        <div style={{ width: '100%', height: '340px', minWidth: '360px', minHeight: '320px' }}>
+        <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
+          📡 Data Source: Open-Meteo API • FAO-56 reference evapotranspiration calculation
+        </div>
+        <div style={{ width: '100%', height: '320px', minWidth: '360px', minHeight: '300px' }}>
           <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
             <LineChart data={mockData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />

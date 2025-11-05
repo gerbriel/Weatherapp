@@ -1,7 +1,13 @@
 import axios from 'axios';
 import type { WeatherApiResponse, LocationData } from '../types/weather';
 
-const BASE_URL = 'https://api.open-meteo.com/v1/forecast';
+const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
+const HISTORICAL_URL = 'https://archive-api.open-meteo.com/v1/archive';
+
+interface DateRange {
+  startDate: string; // YYYY-MM-DD format
+  endDate: string;   // YYYY-MM-DD format
+}
 
 class WeatherService {
   async getWeatherData(location: LocationData): Promise<WeatherApiResponse> {
@@ -26,7 +32,7 @@ class WeatherService {
     };
 
     try {
-      const response = await axios.get<WeatherApiResponse>(BASE_URL, { params });
+      const response = await axios.get<WeatherApiResponse>(FORECAST_URL, { params });
       return response.data;
     } catch (error) {
       console.error('Error fetching weather data:', error);
@@ -37,6 +43,58 @@ class WeatherService {
       }
       
       throw new Error('Failed to fetch weather data');
+    }
+  }
+
+  async getHistoricalWeatherData(location: LocationData, dateRange: DateRange): Promise<WeatherApiResponse> {
+    const params = {
+      latitude: location.latitude,
+      longitude: location.longitude,
+      start_date: dateRange.startDate,
+      end_date: dateRange.endDate,
+      daily: [
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'wind_speed_10m_max',
+        'precipitation_sum',
+        'rain_sum',
+        'et0_fao_evapotranspiration'
+      ].join(','),
+      timezone: 'America/Los_Angeles',
+      temperature_unit: 'fahrenheit',
+      wind_speed_unit: 'mph',
+      precipitation_unit: 'inch'
+    };
+
+    try {
+      const response = await axios.get<WeatherApiResponse>(HISTORICAL_URL, { params });
+      
+      // Calculate cumulative ET0 sum for historical data (not provided by historical API)
+      if (response.data.daily?.et0_fao_evapotranspiration) {
+        const et0Values = response.data.daily.et0_fao_evapotranspiration;
+        const et0SumValues = [];
+        let cumulativeSum = 0;
+        
+        for (const value of et0Values) {
+          if (value !== null && value !== undefined) {
+            cumulativeSum += value;
+          }
+          et0SumValues.push(cumulativeSum);
+        }
+        
+        // Add the calculated sum to the response
+        response.data.daily.et0_fao_evapotranspiration_sum = et0SumValues;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching historical weather data:', error);
+      
+      if (axios.isAxiosError(error) && error.response?.status === 429) {
+        throw new Error('Rate limit exceeded. Please wait before refreshing historical data.');
+      }
+      
+      throw new Error('Failed to fetch historical weather data');
     }
   }
 

@@ -4,7 +4,11 @@ import { useLocations } from '../contexts/LocationsContext';
 import { exportToCSV, exportToExcel } from '../utils/exportUtils';
 import { SimpleWeatherCharts } from './SimpleWeatherCharts';
 import { ChartErrorBoundary } from './ChartErrorBoundary';
+import { CropETCCharts } from './CropETCCharts';
+import { DateRangePicker } from './DateRangePicker';
+import { ReportModeToggle } from './ReportModeToggle';
 import { cmisService } from '../services/cmisService';
+import { weatherService } from '../services/weatherService';
 import { isLocationInCalifornia } from '../utils/locationUtils';
 import type { CMISETCData } from '../services/cmisService';
 
@@ -75,6 +79,27 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const [cmisData, setCmisData] = useState<Map<string, CMISETCData[]>>(new Map());
   const [isFetchingCmis, setIsFetchingCmis] = useState(false);
 
+  // State for dynamic reports
+  const [reportMode, setReportMode] = useState<'current' | 'historical'>('current');
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [isLoadingHistorical, setIsLoadingHistorical] = useState(false);
+  const [historicalWeatherData, setHistoricalWeatherData] = useState<Map<string, any>>(new Map());
+
+  // Initialize default date range (last 14 days)
+  useEffect(() => {
+    const today = new Date();
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(today.getDate() - 14);
+    
+    setDateRange({
+      startDate: twoWeeksAgo.toISOString().split('T')[0],
+      endDate: today.toISOString().split('T')[0]
+    });
+  }, []);
+
   // Handle refresh with rate limiting protection
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -85,6 +110,69 @@ export const ReportView: React.FC<ReportViewProps> = ({
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  // Handle historical data fetching
+  const fetchHistoricalData = async () => {
+    if (!dateRange.startDate || !dateRange.endDate) return;
+    
+    setIsLoadingHistorical(true);
+    const newHistoricalData = new Map();
+    
+    try {
+      for (const location of displayLocations) {
+        try {
+          const historicalWeather = await weatherService.getHistoricalWeatherData(location, {
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate
+          });
+          
+          newHistoricalData.set(location.id, {
+            ...location,
+            weatherData: historicalWeather
+          });
+        } catch (error) {
+          console.error(`Failed to fetch historical data for ${location.name}:`, error);
+          // Keep original data if historical fetch fails
+          newHistoricalData.set(location.id, location);
+        }
+      }
+      
+      setHistoricalWeatherData(newHistoricalData);
+    } catch (error) {
+      console.error('Error fetching historical data:', error);
+    } finally {
+      setIsLoadingHistorical(false);
+    }
+  };
+
+  // Handle report mode change
+  const handleReportModeChange = (mode: 'current' | 'historical') => {
+    setReportMode(mode);
+    if (mode === 'historical' && historicalWeatherData.size === 0) {
+      fetchHistoricalData();
+    }
+  };
+
+  // Handle date range changes
+  const handleDateRangeChange = (field: 'startDate' | 'endDate', value: string) => {
+    setDateRange(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Apply new date range
+  const handleApplyDateRange = () => {
+    if (reportMode === 'historical') {
+      fetchHistoricalData();
+    }
+  };
+
+  // Reset to current mode
+  const handleResetToCurrentMode = () => {
+    setReportMode('current');
+    setHistoricalWeatherData(new Map());
   };
 
   // Helper function to get ETC display text for a location and date
@@ -143,7 +231,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
   }, [locationsWithWeather, locationFilter]);
   
   // For reports view, show all filtered locations regardless of selectedLocation
-  const displayLocations = filteredLocations;
+  const displayLocations = useMemo(() => {
+    if (reportMode === 'historical' && historicalWeatherData.size > 0) {
+      // Use historical data when available
+      return filteredLocations.map(location => {
+        const historicalData = historicalWeatherData.get(location.id);
+        return historicalData || location;
+      });
+    }
+    return filteredLocations;
+  }, [filteredLocations, reportMode, historicalWeatherData]);
 
   // Notify parent component of the current filtered locations for header sync
   useEffect(() => {
@@ -421,132 +518,78 @@ export const ReportView: React.FC<ReportViewProps> = ({
           </div>
         )}
 
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
           Current conditions and weather forecasts with ETC actuals comparison
         </p>
-      </div>
 
-      {/* Crop Watering Insights per Location */}
-      {showCropInsights && displayLocations.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            🌾 Crop Watering Insights by Location
-          </h3>
+        {/* Report Mode Controls */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <ReportModeToggle 
+            mode={reportMode}
+            onModeChange={handleReportModeChange}
+          />
           
-          {displayLocations.map((location) => {
-            // Filter crop instances for this location
-            const locationCrops = cropInstances.filter(crop => 
-              crop.locationId === location.id
-            );
-            
-            // Filter field blocks for this location
-            const locationFieldBlocks = fieldBlocks.filter(block =>
-              block.location_name === location.name
-            );
-
-            if (locationCrops.length === 0 && locationFieldBlocks.length === 0) return null;
-
-            return (
-              <div key={location.id} className="mb-6 last:mb-0">
-                <div className="border-l-4 border-blue-500 pl-4">
-                  <h4 className="font-medium text-gray-900 dark:text-white mb-3">
-                    📍 {location.name}
-                  </h4>
-                  
-                  {/* Crop Instances */}
-                  {locationCrops.length > 0 && (
-                    <div className="mb-4">
-                      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Active Crops ({locationCrops.length})
-                      </h5>
-                      <div className="grid gap-2">
-                        {locationCrops.map((crop, idx) => (
-                          <div key={idx} className="bg-gray-50 dark:bg-gray-700 p-3 rounded text-sm">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="font-medium text-green-700 dark:text-green-400">
-                                  Crop ID: {crop.cropId}
-                                </span>
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  Stage: {crop.currentStage} • 
-                                  Planted: {new Date(crop.plantingDate).toLocaleDateString()}
-                                  {crop.fieldName && ` • Field: ${crop.fieldName}`}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                                  Active
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Field Blocks */}
-                  {locationFieldBlocks.length > 0 && (
-                    <div className="mb-4">
-                      <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Field Blocks ({locationFieldBlocks.length})
-                      </h5>
-                      <div className="grid gap-2">
-                        {locationFieldBlocks.map((block) => (
-                          <div key={block.id} className="bg-gray-50 dark:bg-gray-700 p-3 rounded text-sm">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="font-medium text-blue-700 dark:text-blue-400">
-                                  {block.name}
-                                </span>
-                                {block.crop && (
-                                  <span className="text-gray-600 dark:text-gray-400 ml-2">
-                                    • {block.crop}
-                                  </span>
-                                )}
-                                {block.acres && (
-                                  <span className="text-gray-500 dark:text-gray-400 ml-2">
-                                    • {block.acres} acres
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-right">
-                                {block.irrigation_methods && block.irrigation_methods.length > 0 && (
-                                  <div className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
-                                    {block.irrigation_methods.join(', ')}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Weather-based Recommendations */}
-                  {location.weatherData && location.weatherData.daily && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-sm">
-                      <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">
-                        💧 Current Weather Conditions
-                      </div>
-                      <div className="text-blue-700 dark:text-blue-300 text-xs">
-                        Location: {location.name} • 
-                        Recent Max Temp: {location.weatherData.daily.temperature_2m_max?.[0] || 'N/A'}°C • 
-                        Recent Min Temp: {location.weatherData.daily.temperature_2m_min?.[0] || 'N/A'}°C • 
-                        Wind Speed: {location.weatherData.daily.wind_speed_10m_max?.[0] || 'N/A'} km/h
-                        {location.weatherData.daily.precipitation_sum?.[0] && (
-                          <span> • Precipitation: {location.weatherData.daily.precipitation_sum[0]}mm</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+          {reportMode === 'historical' ? (
+            <DateRangePicker
+              startDate={dateRange.startDate}
+              endDate={dateRange.endDate}
+              onStartDateChange={(date) => handleDateRangeChange('startDate', date)}
+              onEndDateChange={(date) => handleDateRangeChange('endDate', date)}
+              onApply={handleApplyDateRange}
+              onReset={handleResetToCurrentMode}
+              isLoading={isLoadingHistorical}
+            />
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-center">
+              <div className="text-center text-gray-500 dark:text-gray-400">
+                <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                <div className="text-sm font-medium">Live Data Mode</div>
+                <div className="text-xs mt-1">Using real-time forecasts</div>
               </div>
-            );
-          })}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Data Sources Information Panel */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-6 border border-blue-200 dark:border-blue-700">
+          <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center gap-2">
+            📡 Data Sources & APIs
+            {reportMode === 'historical' && (
+              <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">
+                Historical Mode
+              </span>
+            )}
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="bg-white dark:bg-gray-800 rounded p-3 border border-blue-200 dark:border-blue-600">
+              <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">
+                🌤️ Weather Data
+              </div>
+              <div className="text-gray-600 dark:text-gray-400">
+                <strong>API:</strong> Open-Meteo {reportMode === 'historical' ? 'Archive' : 'Forecast'}<br/>
+                <strong>Data:</strong> Temperature, precipitation, wind, humidity<br/>
+                <strong>Coverage:</strong> {reportMode === 'historical' ? 'Historical records' : 'GFS Global forecast'}
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded p-3 border border-green-200 dark:border-green-600">
+              <div className="font-medium text-green-800 dark:text-green-200 mb-1">💧 Evapotranspiration</div>
+              <div className="text-gray-600 dark:text-gray-400">
+                <strong>API:</strong> Open-Meteo ET₀<br/>
+                <strong>Method:</strong> FAO-56 Penman-Monteith<br/>
+                <strong>Type:</strong> {reportMode === 'historical' ? 'Historical ET₀' : 'Reference evapotranspiration'}
+              </div>
+            </div>
+            <div className="bg-white dark:bg-gray-800 rounded p-3 border border-purple-200 dark:border-purple-600">
+              <div className="font-medium text-purple-800 dark:text-purple-200 mb-1">🌾 Crop Coefficients</div>
+              <div className="text-gray-600 dark:text-gray-400">
+                <strong>Source:</strong> FAO-56 Guidelines<br/>
+                <strong>Enhancement:</strong> CMIS API (CA only)<br/>
+                <strong>Analysis:</strong> {reportMode === 'historical' ? 'Historical performance' : 'ETC = ET₀ × Kc'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Crop and Calculator Data Summary */}
       {(selectedCrops.length > 0 || cropInstances.length > 0 || calculatorResult) && (
@@ -827,9 +870,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
               {/* 14-Day Forecast Table */}
               <div className="p-6">
-                <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">
+                <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
                   📈 14-Day Forecast Data
                 </h4>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+                  <span>📡 API:</span>
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Open-Meteo</span>
+                  <span>•</span>
+                  <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">CMIS (CA)</span>
+                  <span>• GFS Model • FAO-56 ET₀</span>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-800">
@@ -904,6 +954,19 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   <SimpleWeatherCharts location={location} />
                 </ChartErrorBoundary>
               </div>
+
+              {/* Crop Insights for this Location */}
+              {showCropInsights && (
+                <div className="mt-6">
+                  <ChartErrorBoundary>
+                    <CropETCCharts 
+                      cropInstances={cropInstances}
+                      locations={[location]}
+                      location={location}
+                    />
+                  </ChartErrorBoundary>
+                </div>
+              )}
             </div>
           );
         }
@@ -1022,9 +1085,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
             {/* 14-Day Forecast Table */}
             <div className="p-6">
-              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">
+              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
                 📈 14-Day Forecast Data
               </h4>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+                <span>📡 API:</span>
+                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Open-Meteo</span>
+                <span>•</span>
+                <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">CMIS (CA)</span>
+                <span>• GFS Model • FAO-56 ET₀</span>
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
@@ -1095,6 +1165,19 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 <SimpleWeatherCharts location={location} />
               </ChartErrorBoundary>
             </div>
+
+            {/* Crop Insights for this Location */}
+            {showCropInsights && (
+              <div className="mt-6">
+                <ChartErrorBoundary>
+                  <CropETCCharts 
+                    cropInstances={cropInstances}
+                    locations={[location]}
+                    location={location}
+                  />
+                </ChartErrorBoundary>
+              </div>
+            )}
           </div>
         );
       })}
