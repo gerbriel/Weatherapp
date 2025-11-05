@@ -120,7 +120,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
     const newHistoricalData = new Map();
     
     try {
-      for (const location of displayLocations) {
+      for (const location of filteredLocations) {
         try {
           const historicalWeather = await weatherService.getHistoricalWeatherData(location, {
             startDate: dateRange.startDate,

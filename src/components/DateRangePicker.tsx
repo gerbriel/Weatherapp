@@ -55,6 +55,11 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     onEndDateChange(end.toISOString().split('T')[0]);
     onStartDateChange(start.toISOString().split('T')[0]);
     setShowPresets(false);
+    
+    // Automatically trigger data fetch after setting preset dates
+    setTimeout(() => {
+      onApply();
+    }, 100); // Small delay to ensure state updates are processed
   };
 
   const getPresetDescription = (days: number): string => {

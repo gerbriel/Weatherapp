@@ -7,10 +7,11 @@ interface SimpleWeatherChartsProps {
     name?: string;
     latitude?: number;
     longitude?: number;
+    weatherData?: any; // The actual weather data from API
   };
 }
 
-export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ location: _location }) => {
+export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ location }) => {
   const [isReady, setIsReady] = useState(false);
 
   // Delay rendering to ensure parent container has proper dimensions
@@ -21,22 +22,45 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
     
     return () => clearTimeout(timer);
   }, []);
-  const mockData = [
-    { date: 'Oct 21', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 22', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 23', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 24', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 25', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 26', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 27', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 28', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 29', precipitation: 0.00, et0: 0.004 },
-    { date: 'Oct 30', precipitation: 0.00, et0: 0.005 },
-    { date: 'Oct 31', precipitation: 0.00, et0: 0.005 },
-    { date: 'Nov 1', precipitation: 0.00, et0: 0.005 },
-    { date: 'Nov 2', precipitation: 0.00, et0: 0.005 },
-    { date: 'Nov 3', precipitation: 0.00, et0: 0.004 },
-  ];
+
+  // Process weather data into chart format
+  const chartData = React.useMemo(() => {
+    if (!location?.weatherData?.daily) {
+      // Fallback to mock data if no weather data available
+      return [
+        { date: 'Oct 21', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 22', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 23', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 24', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 25', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 26', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 27', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 28', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 29', precipitation: 0.00, et0: 0.004 },
+        { date: 'Oct 30', precipitation: 0.00, et0: 0.005 },
+        { date: 'Oct 31', precipitation: 0.00, et0: 0.005 },
+        { date: 'Nov 1', precipitation: 0.00, et0: 0.005 },
+        { date: 'Nov 2', precipitation: 0.00, et0: 0.005 },
+        { date: 'Nov 3', precipitation: 0.00, et0: 0.004 },
+      ];
+    }
+
+    const weather = location.weatherData.daily;
+    const dates = weather.time || [];
+    const precipitation = weather.precipitation_sum || [];
+    const et0 = weather.et0_fao_evapotranspiration || [];
+
+    return dates.map((date: string, index: number) => {
+      const dateObj = new Date(date);
+      return {
+        date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        precipitation: precipitation[index] || 0,
+        et0: (et0[index] * 0.0393701) || 0 // Convert mm to inches
+      };
+    }).slice(0, 14); // Limit to 14 days
+  }, [location?.weatherData]);
+
+  const mockData = chartData; // Use processed data instead of static mock data
 
   // Show loading placeholder until ready
   if (!isReady) {
@@ -56,7 +80,7 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
     <div className="space-y-6" style={{ width: '100%', minWidth: '400px' }}>
       <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
         <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
-          Precipitation Forecast (14 Days)
+          Precipitation Data {location?.name ? `- ${location.name}` : ''}
         </h3>
         <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
           📡 Data Source: Open-Meteo API • Temperature, precipitation, and wind data
@@ -77,7 +101,7 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
 
       <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
         <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
-          Evapotranspiration (ET₀) Forecast
+          Evapotranspiration (ET₀) {location?.name ? `- ${location.name}` : ''}
         </h3>
         <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
           📡 Data Source: Open-Meteo API • FAO-56 reference evapotranspiration calculation
