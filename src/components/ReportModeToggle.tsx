@@ -1,15 +1,19 @@
 import React from 'react';
-import { Calendar, TrendingUp, Clock, BarChart3 } from 'lucide-react';
+import { Calendar, TrendingUp, Clock, BarChart3, Sun, CloudRain } from 'lucide-react';
 
 interface ReportModeToggleProps {
   mode: 'current' | 'historical';
   onModeChange: (mode: 'current' | 'historical') => void;
+  forecastPreset?: 'today' | '7day' | '14day';
+  onPresetChange?: (preset: 'today' | '7day' | '14day') => void;
   className?: string;
 }
 
 export const ReportModeToggle: React.FC<ReportModeToggleProps> = ({
   mode,
   onModeChange,
+  forecastPreset = '14day',
+  onPresetChange,
   className = ""
 }) => {
   return (
@@ -36,7 +40,9 @@ export const ReportModeToggle: React.FC<ReportModeToggleProps> = ({
             <span className="text-sm font-medium">Current Report</span>
           </div>
           <div className="text-xs opacity-80 mb-2">
-            14-day forecast from today
+            {forecastPreset === 'today' ? 'Today\'s forecast' : 
+             forecastPreset === '7day' ? '7-day forecast from today' : 
+             '14-day forecast from today'}
           </div>
           {mode === 'current' && (
             <div className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
@@ -70,6 +76,48 @@ export const ReportModeToggle: React.FC<ReportModeToggleProps> = ({
           )}
         </button>
       </div>
+
+      {/* Forecast Presets - Only show when in Current mode */}
+      {mode === 'current' && onPresetChange && (
+        <div className="mt-4">
+          <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Quick Presets</h4>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => onPresetChange('today')}
+              className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                forecastPreset === 'today'
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-600'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <Sun className="h-3 w-3 inline mr-1" />
+              Today
+            </button>
+            <button
+              onClick={() => onPresetChange('7day')}
+              className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                forecastPreset === '7day'
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-600'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <CloudRain className="h-3 w-3 inline mr-1" />
+              7-Day
+            </button>
+            <button
+              onClick={() => onPresetChange('14day')}
+              className={`px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                forecastPreset === '14day'
+                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-600'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <TrendingUp className="h-3 w-3 inline mr-1" />
+              14-Day
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mode Description */}
       <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">

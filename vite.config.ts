@@ -10,6 +10,15 @@ export default defineConfig(({ command }) => ({
     strictPort: false,
     host: true, // Allow external connections
     hmr: true, // Let Vite handle HMR automatically
+    proxy: {
+      // Proxy CMIS API requests to avoid CORS issues in development
+      '/api/cmis': {
+        target: 'https://et.water.ca.gov',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/cmis/, '/api/data'),
+        secure: true,
+      }
+    }
   },
   build: {
     outDir: 'dist',

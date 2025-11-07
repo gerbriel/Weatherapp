@@ -33,17 +33,20 @@ class CMISService {
   private apiKey: string | null = null;
 
   constructor() {
-    // Use environment variables for configuration
-    this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://api.cimis.water.ca.gov/api/data';
+    // Use proxy in development to avoid CORS issues, direct URL in production
+    if (import.meta.env.DEV) {
+      // Use Vite proxy in development
+      this.baseUrl = '/api/cmis';
+    } else {
+      // Use direct API URL in production (needs CORS configured on server or serverless function)
+      this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/api/data';
+    }
     this.apiKey = import.meta.env.VITE_CMIS_API_KEY || null;
     
     // Validate environment setup
     const cmisValidation = environmentValidator.validateCMIS();
     if (!cmisValidation.isValid) {
       console.warn('CMIS API Configuration:', cmisValidation.message);
-      if (!cmisValidation.canUseMock) {
-        console.error('CMIS API key is invalid and mock data cannot be used');
-      }
     }
     
     // Log environment status in development
@@ -127,15 +130,21 @@ class CMISService {
         const endDateStr = endDate.toISOString().split('T')[0];
         
         try {
-          const response = await fetch(
-            `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=eto&unitOfMeasure=E`
-          );
+          // CIMIS API format: unitOfMeasure should be 'E' for English units
+          const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
+          
+          console.log('🌐 Fetching CMIS data from:', apiUrl.replace(this.apiKey, '***'));
+          
+          const response = await fetch(apiUrl);
           
           if (!response.ok) {
+            const errorText = await response.text();
+            console.error('CMIS API Error Response:', errorText);
             throw new Error(`CMIS API error: ${response.status} ${response.statusText}`);
           }
           
           const data = await response.json();
+          console.log('✅ CMIS API Response received:', data);
           const result = this.parseETCResponse(data);
           
           return {
@@ -145,77 +154,37 @@ class CMISService {
             isCaliforniaLocation: true
           };
         } catch (networkError) {
-          // In development, fall back to mock data if API is not accessible
-          if (import.meta.env.DEV) {
-            const mockData = this.generateMockETCData(stationId, startDate, endDate);
-            return {
-              success: true,
-              data: mockData,
-              isCaliforniaLocation: true
-            };
-          }
-          
-          // In production, return error
-          throw networkError;
+          // Return error when API is not accessible (no mock data fallback)
+          console.error('CMIS API network error:', networkError);
+          return {
+            success: false,
+            data: [],
+            error: 'CMIS API is currently unavailable. Please check your internet connection or try again later.',
+            isCaliforniaLocation: true
+          };
         }
       } else {
-        // Fall back to mock data when no API key is available
-        console.log(`Using mock CMIS data for station ${stationId} (no API key)`);
-        const mockData = this.generateMockETCData(stationId, startDate, endDate);
+        // Return error when no API key is available (no mock data fallback)
+        console.warn(`CMIS API key not configured for station ${stationId}`);
         
         return {
-          success: true,
-          data: mockData,
+          success: false,
+          data: [],
+          error: 'CMIS API key is not configured. Please add your API key to use California irrigation data.',
           isCaliforniaLocation: true
         };
       }
     } catch (error) {
       console.error('Error fetching CMIS ETC data:', error);
       
-      // Fall back to mock data on any error (only for CA locations)
-      if (!locationInfo || isLocationInCalifornia(locationInfo)) {
-        const mockData = this.generateMockETCData(stationId, startDate, endDate);
-        return {
-          success: true, // Return success with mock data
-          data: mockData,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          isCaliforniaLocation: true
-        };
-      } else {
-        return {
-          success: false,
-          data: [],
-          error: getCMISUnavailableMessage(locationInfo),
-          isCaliforniaLocation: false
-        };
-      }
+      // Return error instead of falling back to mock data
+      return {
+        success: false,
+        data: [],
+        error: error instanceof Error ? error.message : 'Failed to fetch CMIS data',
+        isCaliforniaLocation: locationInfo ? isLocationInCalifornia(locationInfo) : true
+      };
     }
-  }
-
-  /**
-   * Generate realistic mock ETC data for testing
-   */
-  private generateMockETCData(stationId: string, startDate: Date, endDate: Date): CMISETCData[] {
-    const data: CMISETCData[] = [];
-    const currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      // Generate realistic ETC values (typically 85-95% of ET₀)
-      const baseETC = 0.15; // Base ETC value in inches
-      const variation = (Math.random() - 0.5) * 0.08; // ±0.04 inches variation
-      const etc_actual = Math.max(0.05, baseETC + variation);
-
-      data.push({
-        date: currentDate.toISOString().split('T')[0],
-        etc_actual: Number(etc_actual.toFixed(3)),
-        station_id: stationId,
-        crop_type: 'Mixed Agriculture'
-      });
-
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    return data;
   }
 
   /**

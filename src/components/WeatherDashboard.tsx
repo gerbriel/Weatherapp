@@ -125,7 +125,7 @@ export const WeatherDashboard: React.FC = () => {
                     {selectedLocation ? selectedLocation.name : 'Weather & ET Dashboard'}
                   </h1>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    NCEP GFS Seamless Model • 14-day Forecast
+                    NOAA GFS Seamless (Global Forecast System) • 14-day Forecast
                   </p>
                   {selectedLocation && (
                     <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 mt-1">

@@ -33,8 +33,8 @@ class EnvironmentValidator {
     if (!this.config.cmisApiKey) {
       return {
         isValid: false,
-        message: 'CMIS API key not found. Set VITE_CMIS_API_KEY in .env.local. Using mock data.',
-        canUseMock: true
+        message: 'CMIS API key not found. Set VITE_CMIS_API_KEY in .env.local to enable California irrigation data.',
+        canUseMock: false
       };
     }
 
@@ -42,7 +42,7 @@ class EnvironmentValidator {
       return {
         isValid: false,
         message: 'CMIS API key is placeholder value. Replace with actual key from CIMIS website.',
-        canUseMock: true
+        canUseMock: false
       };
     }
 
@@ -50,7 +50,7 @@ class EnvironmentValidator {
       return {
         isValid: false,
         message: 'CMIS API key appears to be invalid (too short). Check your key.',
-        canUseMock: true
+        canUseMock: false
       };
     }
 

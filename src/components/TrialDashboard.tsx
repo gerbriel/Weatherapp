@@ -3,6 +3,7 @@ import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, TrendingUp
 import { useTrial } from '../contexts/TrialContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocations } from '../contexts/LocationsContext';
+import { weatherService } from '../services/weatherService';
 import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
 import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
@@ -90,8 +91,13 @@ export const TrialDashboard: React.FC = () => {
   const { trialLocations, disableTrialMode, removeLocation: removeTrialLocation } = useTrial();
   const { locations: userLocations, removeLocation: removeUserLocation } = useLocations();
   
-  // Use user locations if authenticated, otherwise use trial locations
-  const availableLocations = user ? userLocations : trialLocations;
+  // State for trial locations with weather data - initialize with trial locations
+  const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>(
+    trialLocations.map(loc => ({ ...loc, loading: true }))
+  );
+  
+  // Use user locations if authenticated, otherwise use trial locations with weather data
+  const availableLocations = user ? userLocations : (trialLocationsWithWeather.length > 0 ? trialLocationsWithWeather : trialLocations);
   const removeLocation = user ? removeUserLocation : removeTrialLocation;
   
   const [selectedLocation, setSelectedLocation] = useState(availableLocations[0] || null);
@@ -125,7 +131,54 @@ export const TrialDashboard: React.FC = () => {
   const [fieldBlocks, setFieldBlocks] = useState<FieldBlock[]>([]);
   const [displayedLocations, setDisplayedLocations] = useState<any[]>(availableLocations);
 
-  // Mock weather data for trial
+  // Fetch real weather data for trial locations
+  useEffect(() => {
+    if (!user && trialLocations.length > 0) {
+      // First, initialize with trial locations marked as loading
+      setTrialLocationsWithWeather(
+        trialLocations.map(loc => ({ ...loc, loading: true }))
+      );
+      
+      const fetchWeatherForTrialLocations = async () => {
+        const locationsWithWeather = await Promise.all(
+          trialLocations.map(async (location) => {
+            try {
+              console.log(`Fetching weather data for ${location.name}...`);
+              const weatherData = await weatherService.getWeatherData({
+                id: location.id,
+                name: location.name,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                isFavorite: false
+              });
+              
+              console.log(`✅ Weather data loaded for ${location.name}`);
+              return {
+                ...location,
+                weatherData,
+                loading: false,
+                error: undefined
+              };
+            } catch (error) {
+              console.error(`❌ Failed to fetch weather for ${location.name}:`, error);
+              return {
+                ...location,
+                loading: false,
+                error: error instanceof Error ? error.message : 'Failed to fetch weather data'
+              };
+            }
+          })
+        );
+        
+        setTrialLocationsWithWeather(locationsWithWeather);
+        console.log(`✅ All trial locations updated with weather data`);
+      };
+      
+      fetchWeatherForTrialLocations();
+    }
+  }, [user, trialLocations]);
+
+  // Mock weather data for trial overview card
   useEffect(() => {
     const mockWeatherData: WeatherData = {
       temperature: 22 + Math.random() * 10,
