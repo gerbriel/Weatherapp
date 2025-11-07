@@ -779,7 +779,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       {location.name || 'Unknown Location'}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      📍 Trial Location - Mock Weather Data
+                      📍 NOAA Weather Data (GFS Global & NAM CONUS via Open-Meteo API)
                     </p>
                   </div>
                   <div className="text-right">
@@ -787,7 +787,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       Location {locationIndex + 1} of {displayLocations.length}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      Demo Data
+                      Real NOAA Data
                     </div>
                   </div>
                 </div>
