@@ -4,6 +4,11 @@ import type { WeatherApiResponse, LocationData } from '../types/weather';
 const FORECAST_URL = 'https://api.open-meteo.com/v1/forecast';
 const HISTORICAL_URL = 'https://archive-api.open-meteo.com/v1/archive';
 
+// NOAA Weather Models Configuration:
+// - GFS Global: NOAA Global Forecast System - primary US weather model
+// - NAM CONUS: NOAA North American Mesoscale Model - high-resolution US model
+// - ERA5: European Centre reanalysis data (used for historical, comparable to NOAA quality)
+
 interface DateRange {
   startDate: string; // YYYY-MM-DD format
   endDate: string;   // YYYY-MM-DD format
@@ -24,7 +29,7 @@ class WeatherService {
         'et0_fao_evapotranspiration_sum'
       ].join(','),
       forecast_days: 14,
-      models: 'gfs_seamless',
+      models: 'gfs_global,nam_conus', // Use NOAA GFS Global and NAM CONUS models for US data
       timezone: 'America/Los_Angeles',
       temperature_unit: 'fahrenheit',
       wind_speed_unit: 'mph',
@@ -60,6 +65,7 @@ class WeatherService {
         'rain_sum',
         'et0_fao_evapotranspiration'
       ].join(','),
+      models: 'era5', // Use ERA5 reanalysis data for historical weather (NOAA-quality historical data)
       timezone: 'America/Los_Angeles',
       temperature_unit: 'fahrenheit',
       wind_speed_unit: 'mph',
