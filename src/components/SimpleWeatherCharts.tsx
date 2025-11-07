@@ -26,23 +26,8 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
   // Process weather data into chart format
   const chartData = React.useMemo(() => {
     if (!location?.weatherData?.daily) {
-      // Fallback to mock data if no weather data available
-      return [
-        { date: 'Oct 21', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 22', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 23', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 24', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 25', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 26', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 27', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 28', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 29', precipitation: 0.00, et0: 0.004 },
-        { date: 'Oct 30', precipitation: 0.00, et0: 0.005 },
-        { date: 'Oct 31', precipitation: 0.00, et0: 0.005 },
-        { date: 'Nov 1', precipitation: 0.00, et0: 0.005 },
-        { date: 'Nov 2', precipitation: 0.00, et0: 0.005 },
-        { date: 'Nov 3', precipitation: 0.00, et0: 0.004 },
-      ];
+      // Return empty array if no NOAA weather data available - this will show error state
+      return [];
     }
 
     const weather = location.weatherData.daily;
@@ -60,17 +45,35 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
     }).slice(0, 14); // Limit to 14 days
   }, [location?.weatherData]);
 
-  const mockData = chartData; // Use processed data instead of static mock data
-
   // Show loading placeholder until ready
   if (!isReady) {
     return (
       <div className="space-y-6">
         <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: 'white', fontSize: '16px' }}>Loading charts...</div>
+          <div style={{ color: 'white', fontSize: '16px' }}>Loading NOAA weather data...</div>
         </div>
         <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: 'white', fontSize: '16px' }}>Loading charts...</div>
+          <div style={{ color: 'white', fontSize: '16px' }}>Loading NOAA weather data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if no weather data is available
+  if (chartData.length === 0) {
+    return (
+      <div className="space-y-6" style={{ width: '100%', minWidth: '400px' }}>
+        <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', color: '#f87171' }}>
+            <div style={{ fontSize: '16px', marginBottom: '8px' }}>⚠️ No NOAA Weather Data Available</div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Unable to fetch NOAA data from Open-Meteo API</div>
+          </div>
+        </div>
+        <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ textAlign: 'center', color: '#f87171' }}>
+            <div style={{ fontSize: '16px', marginBottom: '8px' }}>⚠️ No NOAA Weather Data Available</div>
+            <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Unable to fetch NOAA data from Open-Meteo API</div>
+          </div>
         </div>
       </div>
     );
@@ -83,11 +86,11 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
           Precipitation Data {location?.name ? `- ${location.name}` : ''}
         </h3>
         <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
-          📡 Data Source: Open-Meteo API • Temperature, precipitation, and wind data
+          📡 Data Source: NOAA GFS Global & NAM CONUS models via Open-Meteo API • Precipitation, temperature, and wind data
         </div>
         <div style={{ width: '100%', height: '320px', minWidth: '360px', minHeight: '300px' }}>
           <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
-            <BarChart data={mockData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="date" tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} />
               <YAxis tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} />
@@ -104,11 +107,11 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
           Evapotranspiration (ET₀) {location?.name ? `- ${location.name}` : ''}
         </h3>
         <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
-          📡 Data Source: Open-Meteo API • FAO-56 reference evapotranspiration calculation
+          📡 Data Source: NOAA GFS Global & NAM CONUS models via Open-Meteo API • FAO-56 reference evapotranspiration
         </div>
         <div style={{ width: '100%', height: '320px', minWidth: '360px', minHeight: '300px' }}>
           <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
-            <LineChart data={mockData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis dataKey="date" tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} />
               <YAxis tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} domain={[0, 0.01]} />

@@ -171,7 +171,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
           <span>📡 Data Sources:</span>
           <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-            Open-Meteo API (Weather)
+            NOAA GFS Global & NAM CONUS via Open-Meteo API
           </span>
           <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
             CMIS API (CA Irrigation)
@@ -222,8 +222,8 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           </ResponsiveContainer>
         </div>
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-          <p>• <strong>ETC:</strong> Actual crop water use calculated using Open-Meteo weather data + FAO-56 crop coefficients</p>
-          <p>• <strong>ETO:</strong> Reference evapotranspiration from Open-Meteo's FAO-56 Penman-Monteith model</p>
+          <p>• <strong>ETC:</strong> Actual crop water use calculated using NOAA weather data via Open-Meteo + FAO-56 crop coefficients</p>
+          <p>• <strong>ETO:</strong> Reference evapotranspiration from NOAA GFS Global & NAM CONUS models via Open-Meteo's FAO-56 Penman-Monteith implementation</p>
           <p>• <strong>CA Locations:</strong> Enhanced with CMIS irrigation data when available</p>
         </div>
       </div>
@@ -235,7 +235,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           {location && <span className="text-sm font-normal text-gray-500">• {location.name}</span>}
         </h4>
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          🔬 Calculation: ETC = ETO × Kc (crop coefficient) • Using Open-Meteo weather + FAO-56 standards
+          🔬 Calculation: ETC = ETO × Kc (crop coefficient) • Using NOAA weather data via Open-Meteo + FAO-56 standards
         </div>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -287,7 +287,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
         </div>
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
           <p>• <strong>Line comparison:</strong> Shows how crop water needs (ETC) relate to weather-based reference ET (ETO)</p>
-          <p>• <strong>ETO Source:</strong> Open-Meteo API using FAO-56 Penman-Monteith equation</p>
+          <p>• <strong>ETO Source:</strong> NOAA GFS Global & NAM CONUS models via Open-Meteo API using FAO-56 Penman-Monteith equation</p>
           <p>• <strong>ETC Calculation:</strong> ETO × crop-specific Kc values from FAO-56 guidelines</p>
         </div>
       </div>
