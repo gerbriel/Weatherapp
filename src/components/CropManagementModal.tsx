@@ -9,7 +9,6 @@ interface CropManagementModalProps {
   availableCrops: AvailableCrop[];
   selectedCrops: string[];
   onCropToggle: (cropId: string) => void;
-  onAddCropInstance: (crop: AvailableCrop) => void; // New prop for adding crop instances
   onAddAllCrops: () => void;
   onRemoveAllCrops: () => void;
 }
@@ -20,7 +19,6 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
   availableCrops,
   selectedCrops,
   onCropToggle,
-  onAddCropInstance,
   onAddAllCrops,
   onRemoveAllCrops
 }) => {
@@ -118,7 +116,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+      <div className="bg-gray-900 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
@@ -195,7 +193,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 200px)' }}>
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {/* Quick Add Info */}
           <div className="mb-6 p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
             <div className="flex items-start space-x-3">
@@ -205,8 +203,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
               <div>
                 <h3 className="text-blue-300 font-medium text-sm">Quick Add Mode</h3>
                 <p className="text-blue-200 text-xs mt-1">
-                  Click "Add" on any crop to instantly add it to your dashboard with today's planting date. 
-                  Use the <Plus className="w-3 h-3 inline mx-1" /> button after adding to configure detailed settings.
+                  Click "Add" on any crop to instantly add it to your dashboard with today's planting date.
                 </p>
               </div>
             </div>
@@ -254,19 +251,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
                         {isSelected && <Check className="w-3 h-3 text-white" />}
                       </button>
                       
-                      {/* Secondary Action - Advanced add */}
-                      {isSelected && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onAddCropInstance(crop);
-                          }}
-                          className="p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs"
-                          title="Add with detailed planting information"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      )}
+
                     </div>
                   </div>
                   
@@ -324,7 +309,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-700 bg-gray-800">
+        <div className="p-6 border-t border-gray-700 bg-gray-800 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-400">
               Showing {filteredCrops.length} of {totalCount} crops

@@ -27,6 +27,7 @@ interface CropETCChartsProps {
   cropInstances: any[];
   locations: any[];
   location?: any; // Single location for location-specific display
+  weatherData?: any; // Optional weather data for current location
   className?: string;
 }
 
@@ -70,6 +71,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
   cropInstances,
   locations,
   location,
+  weatherData,
   className = ""
 }) => {
   const etcData = useMemo(() => {
@@ -85,7 +87,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
         const cropLocation = targetLocations.find(loc => loc.id === crop.locationId);
         if (!cropLocation) return;
         
-        const eto = calculateETO(cropLocation.weatherData);
+        const eto = calculateETO(weatherData || cropLocation.weatherData);
         const kc = getCropCoefficient(crop.cropId, crop.currentStage);
         const etc = eto * kc;
         

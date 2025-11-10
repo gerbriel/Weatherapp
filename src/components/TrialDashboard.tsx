@@ -8,15 +8,12 @@ import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
 import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
 import { EmailNotifications } from './EmailNotifications';
-import { AddCropInstanceModal } from './AddCropInstanceModal';
-import { SoilSelectionModal } from './SoilSelectionModal';
-import { CalculatorVisualizations } from './CalculatorVisualizations';
+
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { FieldBlocksManager } from './FieldBlocksManager';
 import type { FieldBlock } from './FieldBlocksManager';
 import { OrganizationalDashboard } from './OrganizationalDashboard';
 import { ReportView } from './ReportView';
-import { type SoilType, SOIL_DATABASE } from '../data/soils';
 
 interface WeatherData {
   temperature: number;
@@ -36,6 +33,7 @@ interface CropInstance {
   fieldName?: string;
   notes?: string;
   locationId?: string; // Location where this crop instance is planted
+  customKcValues?: {[key: number]: number}; // Custom Kc values by month (1-12)
 }
 
 interface IrrigationSystem {
@@ -48,7 +46,7 @@ interface IrrigationSystem {
 interface CalculatorInputs {
   crop: string;
   kcValue?: number;
-  growthStage?: string;
+  selectedMonth?: number; // 1-12 for January-December
   etSource: 'weather-station' | 'cimis' | 'manual';
   manualET?: number;
   zoneFlowGPM: number;
@@ -109,12 +107,11 @@ export const TrialDashboard: React.FC = () => {
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
   const [cropInstances, setCropInstances] = useState<CropInstance[]>([]);
-  const [showAddCropInstanceModal, setShowAddCropInstanceModal] = useState(false);
-  const [selectedCropForInstance, setSelectedCropForInstance] = useState<AvailableCrop | null>(null);
-  const [editingCropInstance, setEditingCropInstance] = useState<CropInstance | null>(null);
-  const [selectedSoil, setSelectedSoil] = useState<SoilType | null>(null);
-  const [showSoilSelector, setShowSoilSelector] = useState(false);
   const [showCropSelector, setShowCropSelector] = useState(false);
+  const [showEditCropModal, setShowEditCropModal] = useState(false);
+  const [editingCropInstance, setEditingCropInstance] = useState<CropInstance | null>(null);
+  const [editingKcValues, setEditingKcValues] = useState<{[key: number]: number}>({});
+
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [cropProfiles, setCropProfiles] = useState<CropProfile[]>([]);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -222,7 +219,7 @@ export const TrialDashboard: React.FC = () => {
     setCalculatorInputs({
       crop: '',
       kcValue: undefined,
-      growthStage: '',
+      selectedMonth: undefined,
       etSource: 'weather-station',
       manualET: undefined,
       zoneFlowGPM: 0,
@@ -592,56 +589,6 @@ export const TrialDashboard: React.FC = () => {
     });
   };
 
-  const handleCreateFieldBlockFromCrop = (blockData: Partial<FieldBlock>) => {
-    if (!organization || !selectedLocation) return;
-    
-    const newBlock: FieldBlock = {
-      id: `block-${Date.now()}`,
-      organization_id: organization.id,
-      name: blockData.name || 'New Field Block',
-      description: blockData.description,
-      location_name: selectedLocation.name,
-      assigned_users: [user?.id || 'user-1'],
-      crop_id: blockData.crop_id || '',
-      crop_name: blockData.crop_name || '',
-      acres: 0, // Default value, can be updated in field blocks manager
-      irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }], // Default value
-      soil_type: 'Garden Soil', // Default value
-      date_planted: blockData.date_planted || new Date().toISOString().split('T')[0],
-      growth_stage: blockData.growth_stage || 'Planted',
-      system_efficiency: 90, // Default value
-      water_allocation: 0, // Default value
-      status: blockData.status || 'active',
-      notes: blockData.description,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    // Add the new field block to the current list
-    setFieldBlocks(prev => [...prev, newBlock]);
-
-    // Create a corresponding crop instance if crop info is available
-    if (blockData.crop_id && blockData.crop_name) {
-      const crop = availableCrops.find(c => c.id === blockData.crop_id);
-      if (crop) {
-        const stageIndex = crop.stages.findIndex(stage => stage.name === blockData.growth_stage) || 0;
-        
-        const newCropInstance: CropInstance = {
-          id: `instance-${Date.now()}`,
-          cropId: blockData.crop_id,
-          plantingDate: blockData.date_planted || new Date().toISOString().split('T')[0],
-          currentStage: Math.max(0, stageIndex),
-          currentWateringCycle: crop.isPerennial ? 0 : undefined,
-          fieldName: blockData.name,
-          notes: blockData.description,
-          locationId: selectedLocation.id
-        };
-
-        setCropInstances(prev => [...prev, newCropInstance]);
-      }
-    }
-  };
-
   const addAllCrops = () => {
     setSelectedCrops(availableCrops.map(crop => crop.id));
   };
@@ -729,7 +676,7 @@ export const TrialDashboard: React.FC = () => {
       name: profileName,
       cropId,
       cropName: calculatorInputs.crop,
-      soilType: selectedSoil?.name || 'Loam',
+      soilType: 'Loam', // Default soil type
       irrigationMethod: (calculatorInputs.systemType as any) || 'drip',
       systemEfficiency: 85, // Default efficiency
       zoneFlowGPM: calculatorInputs.zoneFlowGPM,
@@ -740,71 +687,9 @@ export const TrialDashboard: React.FC = () => {
     });
   };
 
-  const handleAddCropInstance = (crop: AvailableCrop) => {
-    setSelectedCropForInstance(crop);
-    setShowAddCropInstanceModal(true);
-  };
 
-  const handleAddInstance = (instanceData: Omit<CropInstance, 'id'>) => {
-    const newInstance: CropInstance = {
-      ...instanceData,
-      id: Date.now().toString(),
-      locationId: selectedLocation?.id // Assign to current selected location
-    };
-    setCropInstances(prev => [...prev, newInstance]);
 
-    // If a field name is provided, check if we need to create/update a field block
-    if (instanceData.fieldName && selectedLocation && organization) {
-      const existingBlock = fieldBlocks.find(block => 
-        block.name === instanceData.fieldName && 
-        block.location_name === selectedLocation.name
-      );
 
-      const crop = availableCrops.find(c => c.id === instanceData.cropId);
-      
-      if (!existingBlock && crop) {
-        // Create a new field block
-        const currentStage = crop.stages[instanceData.currentStage || 0];
-        const newBlock: FieldBlock = {
-          id: `block-${Date.now()}-auto`,
-          organization_id: organization.id,
-          name: instanceData.fieldName,
-          description: `Auto-created from ${crop.name} planting`,
-          location_name: selectedLocation.name,
-          assigned_users: [user?.id || 'user-1'],
-          crop_id: crop.id,
-          crop_name: crop.name,
-          acres: 0,
-          irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
-          soil_type: 'Garden Soil',
-          date_planted: instanceData.plantingDate,
-          growth_stage: currentStage?.name || 'Initial',
-          system_efficiency: 90,
-          water_allocation: 0,
-          status: 'active',
-          notes: instanceData.notes || `Auto-created from ${crop.name} planting`,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-        setFieldBlocks(prev => [...prev, newBlock]);
-      }
-    }
-
-    setShowAddCropInstanceModal(false);
-    setSelectedCropForInstance(null);
-    setEditingCropInstance(null);
-  };
-
-  const handleUpdateInstance = (instanceId: string, updatedData: Partial<CropInstance>) => {
-    setCropInstances(prev => prev.map(instance => 
-      instance.id === instanceId 
-        ? { ...instance, ...updatedData }
-        : instance
-    ));
-    setShowAddCropInstanceModal(false);
-    setSelectedCropForInstance(null);
-    setEditingCropInstance(null);
-  };
 
   // Sync field block updates back to crop instances and calculator
   const handleFieldBlockUpdate = (updatedBlock: FieldBlock) => {
@@ -878,15 +763,7 @@ export const TrialDashboard: React.FC = () => {
     return deduplicatedInstances;
   };
 
-  const getStageColor = (stage: string) => {
-    switch (stage.toLowerCase()) {
-      case 'initial': return 'text-blue-400';
-      case 'development': return 'text-yellow-400';
-      case 'mid-season': return 'text-green-400';
-      case 'late season': return 'text-orange-400';
-      default: return 'text-gray-400';
-    }
-  };
+
 
   const irrigationSystems: IrrigationSystem[] = [
     { id: 'drip', name: 'Drip Irrigation', efficiency: 0.90, description: 'High efficiency, precise water application' },
@@ -907,12 +784,12 @@ export const TrialDashboard: React.FC = () => {
     let kc = 1.0; // default
     if (inputs.kcValue) {
       kc = inputs.kcValue;
-    } else if (inputs.growthStage && inputs.crop) {
+    } else if (inputs.selectedMonth && inputs.crop) {
       const crop = availableCrops.find(c => c.name.toLowerCase() === inputs.crop.toLowerCase());
-      if (crop) {
-        const stage = crop.stages.find(s => s.name.toLowerCase() === inputs.growthStage?.toLowerCase());
-        if (stage) {
-          kc = stage.kc;
+      if (crop && crop.monthlyKc) {
+        const monthlyKc = crop.monthlyKc.find(m => m.month === inputs.selectedMonth);
+        if (monthlyKc) {
+          kc = monthlyKc.kc;
         }
       }
     }
@@ -1123,7 +1000,15 @@ export const TrialDashboard: React.FC = () => {
             <div className="hidden lg:block px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  {/* Location info removed per user request */}
+                  {/* Show ET Weather branding only when NOT in overview mode (since overview has sidebar with branding) */}
+                  {currentView !== 'overview' && (
+                    <div className="flex items-center space-x-2">
+                      <Gauge className="h-6 w-6 text-blue-400" />
+                      <h1 className="text-lg font-semibold text-white">
+                        ET Weather
+                      </h1>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="flex items-center space-x-3">
@@ -1231,7 +1116,15 @@ export const TrialDashboard: React.FC = () => {
             <div className="lg:hidden">
               {/* Top row with location and menu */}
               <div className="px-4 py-3 flex items-center justify-between">
-                {/* Location info removed from mobile header per user request */}
+                {/* Show ET Weather branding only when NOT in overview mode (since overview has sidebar with branding) */}
+                {currentView !== 'overview' && (
+                  <div className="flex items-center space-x-2">
+                    <Gauge className="h-6 w-6 text-blue-400" />
+                    <h1 className="text-lg font-semibold text-white">
+                      ET Weather
+                    </h1>
+                  </div>
+                )}
                 
                 <div className="flex items-center space-x-2">
                   <OrganizationSwitcher />
@@ -1570,10 +1463,7 @@ export const TrialDashboard: React.FC = () => {
                     <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
                       <p className="text-gray-300 text-sm">
                         <strong className="text-white">Crop coefficients (Kc)</strong> adjust reference evapotranspiration (ET₀) to calculate actual crop water requirements (ETc). 
-                        Values vary by crop growth stage: <span className="text-blue-400">Initial (0.3-0.4)</span>, 
-                        <span className="text-yellow-400"> Development (0.4-0.8)</span>, 
-                        <span className="text-green-400"> Mid-season (0.8-1.2)</span>, 
-                        <span className="text-orange-400"> Late season (0.6-0.8)</span>.
+                        Values vary by month based on seasonal crop water needs and are automatically selected based on the current month.
                       </p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1585,22 +1475,16 @@ export const TrialDashboard: React.FC = () => {
                           (new Date().getTime() - new Date(instance.plantingDate).getTime()) / (1000 * 60 * 60 * 24)
                         );
 
-                        // Calculate current stage based on days since planting
-                        let cumulativeDays = 0;
-                        let currentStageIndex = instance.currentStage;
+                        // Get current month and corresponding Kc value
+                        const currentDate = new Date();
+                        const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
                         
-                        for (let i = 0; i < instance.currentStage; i++) {
-                          cumulativeDays += crop.stages[i].duration;
-                        }
-                        
-                        const currentStage = crop.stages[currentStageIndex];
-                        const currentWateringCycle = crop.isPerennial && crop.wateringCycles ? 
-                          crop.wateringCycles[instance.currentWateringCycle || 0] : null;
-                        
-                        const displayKc = currentWateringCycle?.kc || currentStage.kc;
-                        const displayStage = currentWateringCycle ? 
-                          `${currentWateringCycle.name} - ${currentWateringCycle.season.charAt(0).toUpperCase() + currentWateringCycle.season.slice(1)}` :
-                          currentStage.name;
+                        // Find monthly Kc data for current month
+                        const currentMonthData = crop.monthlyKc?.find(m => m.month === currentMonth);
+                        // Use custom Kc value if available, otherwise use default monthly Kc
+                        const displayKc = instance.customKcValues?.[currentMonth] || currentMonthData?.kc || crop.stages[0]?.kc || 0.4;
+                        const displayMonth = currentMonthData?.monthName || new Date().toLocaleString('default', { month: 'long' });
+                        const isCustomKc = instance.customKcValues?.[currentMonth] !== undefined;
                         
                         const etc = displayKc * (weatherData?.et0 || 5); // mm/day
                         const etcInches = etc * 0.0393701; // Convert to inches/day
@@ -1616,17 +1500,25 @@ export const TrialDashboard: React.FC = () => {
                                 )}
                               </div>
                               <div className="flex items-center space-x-2">
-                                <span className={`text-sm font-medium px-2 py-1 rounded ${currentWateringCycle ? 'text-purple-300 bg-purple-900/30' : getStageColor(currentStage.name)} bg-gray-700`}>
-                                  {crop.isPerennial && currentWateringCycle ? '88% efficient' : displayStage}
+                                <span className="text-sm font-medium px-2 py-1 rounded text-blue-400 bg-blue-900/30">
+                                  {displayMonth}
                                 </span>
                                 <button
                                   onClick={() => {
+                                    setEditingCropInstance(instance);
+                                    
+                                    // Initialize Kc values for editing
                                     const crop = availableCrops.find(c => c.id === instance.cropId);
-                                    if (crop) {
-                                      setSelectedCropForInstance(crop);
-                                      setEditingCropInstance(instance);
-                                      setShowAddCropInstanceModal(true);
+                                    if (crop?.monthlyKc) {
+                                      const initialKcValues: {[key: number]: number} = {};
+                                      crop.monthlyKc.forEach(month => {
+                                        // Use custom Kc if it exists in the instance, otherwise use default
+                                        initialKcValues[month.month] = instance.customKcValues?.[month.month] || month.kc;
+                                      });
+                                      setEditingKcValues(initialKcValues);
                                     }
+                                    
+                                    setShowEditCropModal(true);
                                   }}
                                   className="text-blue-400 hover:text-blue-300 transition-colors"
                                   title="Edit crop instance"
@@ -1652,7 +1544,14 @@ export const TrialDashboard: React.FC = () => {
                               <h4 className="text-sm font-semibold text-blue-400 mb-3">Crop Coefficient (Kc) Details</h4>
                               <div className="grid grid-cols-2 gap-4 mb-4">
                                 <div>
-                                  <p className="text-sm text-gray-400">Current Kc Value</p>
+                                  <p className="text-sm text-gray-400 flex items-center">
+                                    Current Kc Value
+                                    {isCustomKc && (
+                                      <span className="ml-2 text-xs text-orange-400 bg-orange-900/30 px-2 py-0.5 rounded" title="Using custom Kc value">
+                                        Custom
+                                      </span>
+                                    )}
+                                  </p>
                                   <p className="text-xl font-bold text-blue-400">{displayKc.toFixed(2)}</p>
                                 </div>
                                 <div>
@@ -1676,23 +1575,23 @@ export const TrialDashboard: React.FC = () => {
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-400">Current Stage</p>
-                                <p className="text-white font-medium">{displayStage}</p>
-                                <p className="text-xs text-gray-500">Stage {currentStageIndex + 1}/4</p>
+                                <p className="text-sm text-gray-400">Current Month</p>
+                                <p className="text-white font-medium">{displayMonth}</p>
+                                <p className="text-xs text-gray-500">Monthly Kc: {displayKc}</p>
                               </div>
                               <div>
                                 <p className="text-sm text-gray-400">Coefficient Range</p>
                                 <p className="text-white text-sm">
-                                  {Math.min(...crop.stages.map(s => s.kc)).toFixed(2)} - {Math.max(...crop.stages.map(s => s.kc)).toFixed(2)} (across all stages)
+                                  {crop.monthlyKc ? 
+                                    `${Math.min(...crop.monthlyKc.map(m => m.kc)).toFixed(2)} - ${Math.max(...crop.monthlyKc.map(m => m.kc)).toFixed(2)} (annual range)` :
+                                    `${Math.min(...crop.stages.map(s => s.kc)).toFixed(2)} - ${Math.max(...crop.stages.map(s => s.kc)).toFixed(2)} (across all stages)`
+                                  }
                                 </p>
                               </div>
                               <div>
                                 <p className="text-sm text-gray-400">Recommendation</p>
                                 <p className="text-gray-300 text-sm">
-                                  {currentWateringCycle ? 
-                                    currentWateringCycle.description :
-                                    `${currentStage.name} stage - maintain consistent soil moisture for optimal ${crop.name.toLowerCase()} production`
-                                  }
+                                  {currentMonthData?.description || `${displayMonth} - maintain consistent soil moisture for optimal ${crop.name.toLowerCase()} production`}
                                 </p>
                               </div>
                               <div>
@@ -1722,13 +1621,6 @@ export const TrialDashboard: React.FC = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-white">Irrigation Runtime Calculator</h2>
                     <div className="flex items-center space-x-3">
-                      <button
-                        onClick={() => setShowCropSelector(true)}
-                        className="text-sm text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1"
-                      >
-                        <Sprout className="h-4 w-4" />
-                        <span>Manage Crops</span>
-                      </button>
                       <p className="text-sm text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
                       {!user && (
                         <div className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded border border-gray-600">
@@ -1891,9 +1783,7 @@ export const TrialDashboard: React.FC = () => {
                                           ...calculatorInputs,
                                           crop: crop.name,
                                           kcValue: currentWateringCycle?.kc || currentStage?.kc || crop.stages[0]?.kc,
-                                          growthStage: currentWateringCycle ? 
-                                            `${currentWateringCycle.name} (${currentWateringCycle.season})` :
-                                            currentStage?.name,
+                                          selectedMonth: new Date().getMonth() + 1, // Set to current month
                                           area: associatedBlock?.acres || 0,
                                           areaUnit: 'acres'
                                         });
@@ -1945,68 +1835,22 @@ export const TrialDashboard: React.FC = () => {
                           </select>
                         </div>
 
-                        {/* Kc or Growth Stage */}
+                        {/* Kc or Monthly Selection */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Growth Stage or Kc Value</label>
-                          
-                          {/* Quick Select from Crop Instances */}
-                          {calculatorInputs.crop && getLocationCropInstances().filter(instance => {
-                            const crop = availableCrops.find(c => c.id === instance.cropId);
-                            return crop?.name === calculatorInputs.crop;
-                          }).length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs text-gray-400 mb-2">From your planted crops:</p>
-                              <div className="space-y-2">
-                                {getLocationCropInstances().filter(instance => {
-                                  const crop = availableCrops.find(c => c.id === instance.cropId);
-                                  return crop?.name === calculatorInputs.crop;
-                                }).map(instance => {
-                                  const crop = availableCrops.find(c => c.id === instance.cropId);
-                                  if (!crop) return null;
-                                  
-                                  const daysSincePlanting = Math.floor(
-                                    (new Date().getTime() - new Date(instance.plantingDate).getTime()) / (1000 * 60 * 60 * 24)
-                                  );
-                                  
-                                  const currentStage = crop.stages[instance.currentStage];
-                                  
-                                  return (
-                                    <button
-                                      key={instance.id}
-                                      onClick={() => setCalculatorInputs({
-                                        ...calculatorInputs, 
-                                        growthStage: currentStage.name,
-                                        kcValue: undefined
-                                      })}
-                                      className={`w-full text-left p-2 text-xs rounded-lg transition-colors ${
-                                        calculatorInputs.growthStage === currentStage.name
-                                          ? 'bg-green-600 text-white'
-                                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                      }`}
-                                    >
-                                      <div className="flex justify-between items-center">
-                                        <span>{instance.fieldName || `${crop.name} #${instance.id.slice(-4)}`}</span>
-                                        <span>{currentStage.name} (Kc: {currentStage.kc})</span>
-                                      </div>
-                                      <div className="text-gray-400">{daysSincePlanting} days old</div>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                              <div className="text-center text-gray-400 text-sm mt-2">or select manually:</div>
-                            </div>
-                          )}
+                          <label className="block text-sm font-medium text-gray-300 mb-2">Monthly Kc Value or Custom</label>
                           
                           <div className="space-y-2">
                             {calculatorInputs.crop && (
                               <select 
-                                value={calculatorInputs.growthStage || ''}
-                                onChange={(e) => setCalculatorInputs({...calculatorInputs, growthStage: e.target.value, kcValue: undefined})}
+                                value={calculatorInputs.selectedMonth || ''}
+                                onChange={(e) => setCalculatorInputs({...calculatorInputs, selectedMonth: parseInt(e.target.value), kcValue: undefined})}
                                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
                               >
-                                <option value="">Select Growth Stage</option>
-                                {availableCrops.find(c => c.name === calculatorInputs.crop)?.stages.map(stage => (
-                                  <option key={stage.name} value={stage.name}>{stage.name} (Kc: {stage.kc})</option>
+                                <option value="">Select Month</option>
+                                {availableCrops.find(c => c.name === calculatorInputs.crop)?.monthlyKc?.map(monthKc => (
+                                  <option key={monthKc.month} value={monthKc.month}>
+                                    {monthKc.monthName} (Kc: {monthKc.kc})
+                                  </option>
                                 ))}
                               </select>
                             )}
@@ -2016,7 +1860,7 @@ export const TrialDashboard: React.FC = () => {
                               step="0.01"
                               placeholder="Enter Kc value manually"
                               value={calculatorInputs.kcValue || ''}
-                              onChange={(e) => setCalculatorInputs({...calculatorInputs, kcValue: parseFloat(e.target.value), growthStage: undefined})}
+                              onChange={(e) => setCalculatorInputs({...calculatorInputs, kcValue: parseFloat(e.target.value), selectedMonth: undefined})}
                               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
@@ -2066,31 +1910,6 @@ export const TrialDashboard: React.FC = () => {
                           </select>
                         </div>
 
-                        {/* Soil Type Integration */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Soil Type</label>
-                          <div className="flex items-center space-x-2">
-                            <select 
-                              value={selectedSoil?.name || ''}
-                              onChange={(e) => {
-                                const soil = SOIL_DATABASE.find((s: SoilType) => s.name === e.target.value);
-                                setSelectedSoil(soil || null);
-                              }}
-                              className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="">Select Soil Type</option>
-                              {SOIL_DATABASE.map((soil: SoilType) => (
-                                <option key={soil.id} value={soil.name}>{soil.name}</option>
-                              ))}
-                            </select>
-                            {selectedSoil && (
-                              <span className="text-xs text-gray-400">
-                                WHC: {selectedSoil.characteristics.waterHoldingCapacity}mm
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
                         {/* Zone Flow */}
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">Zone Flow Rate (GPM)</label>
@@ -2127,60 +1946,7 @@ export const TrialDashboard: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* System Type */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Irrigation System</label>
-                          <select 
-                            value={calculatorInputs.systemType}
-                            onChange={(e) => setCalculatorInputs({...calculatorInputs, systemType: e.target.value})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">Select System Type</option>
-                            {irrigationSystems.map(system => (
-                              <option key={system.id} value={system.id}>
-                                {system.name} ({(system.efficiency * 100).toFixed(0)}% efficiency)
-                              </option>
-                            ))}
-                          </select>
-                        </div>
 
-                        {/* Soil Type */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Soil Type</label>
-                          <div className="flex space-x-2">
-                            <div className="flex-1">
-                              {selectedSoil ? (
-                                <div className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    <div 
-                                      className="w-4 h-4 rounded-full border border-gray-500"
-                                      style={{ backgroundColor: selectedSoil.color }}
-                                    />
-                                    <span>{selectedSoil.name}</span>
-                                  </div>
-                                  <span className="text-xs text-gray-400">
-                                    {selectedSoil.characteristics.infiltrationRate} mm/h
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-gray-400">
-                                  No soil type selected
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => setShowSoilSelector(true)}
-                              className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition-colors whitespace-nowrap"
-                            >
-                              {selectedSoil ? 'Change' : 'Select'} Soil
-                            </button>
-                          </div>
-                          {selectedSoil && (
-                            <div className="mt-2 text-xs text-gray-400">
-                              {selectedSoil.characteristics.description}
-                            </div>
-                          )}
-                        </div>
 
                         {/* Calculate Button */}
                         <button
@@ -2256,18 +2022,7 @@ export const TrialDashboard: React.FC = () => {
                             </pre>
                           </div>
                           
-                          {/* Visual Analytics */}
-                          {selectedSoil && (
-                            <div className="mt-8">
-                              <CalculatorVisualizations
-                                soilType={selectedSoil}
-                                etcValue={calculatorResult!.etc}
-                                irrigationRuntime={calculatorResult!.runtimeHours + (calculatorResult!.runtimeMinutes / 60)}
-                                systemEfficiency={calculatorResult!.efficiency}
-                                cropName={calculatorInputs.crop}
-                              />
-                            </div>
-                          )}
+
                         </div>
                       ) : (
                         <div className="text-center py-8">
@@ -2285,10 +2040,13 @@ export const TrialDashboard: React.FC = () => {
                 <div className="mb-4">
                   <div className="flex items-center justify-between">
                     <h2 className="text-xl font-semibold text-white">
-                      Comprehensive Reports - {displayedLocations.length > 1 ? 
-                        `${displayedLocations.length} Locations (${displayedLocations.map(loc => loc.name).join(', ')})` : 
-                        displayedLocations[0]?.name || 'No Location'
-                      }
+                      {displayedLocations.length === 0 ? (
+                        'Weather Reports Dashboard - Select Location to View Data'
+                      ) : displayedLocations.length > 1 ? (
+                        `Comprehensive Reports - ${displayedLocations.length} Locations (${displayedLocations.map(loc => loc.name).join(', ')})`
+                      ) : (
+                        `Weather Report - ${displayedLocations[0]?.name || 'No Location'}`
+                      )}
                     </h2>
                     <div className="flex items-center space-x-4 text-sm text-gray-400">
                       <span className="flex items-center space-x-1">
@@ -2359,39 +2117,10 @@ export const TrialDashboard: React.FC = () => {
         availableCrops={availableCrops}
         selectedCrops={selectedCrops}
         onCropToggle={handleCropToggle}
-        onAddCropInstance={handleAddCropInstance}
         onAddAllCrops={addAllCrops}
         onRemoveAllCrops={removeAllCrops}
       />
       
-      {selectedCropForInstance && (
-        <AddCropInstanceModal
-          isOpen={showAddCropInstanceModal}
-          onClose={() => {
-            setShowAddCropInstanceModal(false);
-            setSelectedCropForInstance(null);
-            setEditingCropInstance(null);
-          }}
-          crop={selectedCropForInstance}
-          onAddInstance={handleAddInstance}
-          onUpdateInstance={handleUpdateInstance}
-          // fieldBlocks={fieldBlocks} // Temporarily disabled due to interface conflict
-          selectedLocation={selectedLocation}
-          onCreateFieldBlock={handleCreateFieldBlockFromCrop}
-          editingInstance={editingCropInstance}
-        />
-      )}
-      
-      {/* Soil Selection Modal */}
-      <SoilSelectionModal
-        isOpen={showSoilSelector}
-        onClose={() => setShowSoilSelector(false)}
-        onSoilSelect={(soil: SoilType) => {
-          setSelectedSoil(soil);
-          setShowSoilSelector(false);
-        }}
-        selectedSoilId={selectedSoil?.id}
-      />
 
       {/* Profile Management Modal */}
       {showProfileModal && (
@@ -2439,7 +2168,7 @@ export const TrialDashboard: React.FC = () => {
                     <h4 className="text-sm font-medium text-gray-300 mb-2">Current Configuration:</h4>
                     <div className="text-sm text-gray-400 space-y-1">
                       <div>Crop: {calculatorInputs.crop || 'None selected'}</div>
-                      <div>Soil: {selectedSoil?.name || 'None selected'}</div>
+
                       <div>System: {calculatorInputs.systemType || 'None selected'}</div>
                       <div>Flow Rate: {calculatorInputs.zoneFlowGPM} GPM</div>
                       <div>Area: {calculatorInputs.area} {calculatorInputs.areaUnit}</div>
@@ -2487,6 +2216,180 @@ export const TrialDashboard: React.FC = () => {
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {editingProfile ? 'Update Profile' : 'Save Profile'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Crop Edit Modal */}
+      {showEditCropModal && editingCropInstance && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-900 rounded-lg">
+                    <Sprout className="w-5 h-5 text-green-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-white">
+                      Edit {availableCrops.find(c => c.id === editingCropInstance.cropId)?.name} Instance
+                    </h2>
+                    <p className="text-sm text-gray-400">
+                      <span className="italic">{availableCrops.find(c => c.id === editingCropInstance.cropId)?.scientificName}</span> • {availableCrops.find(c => c.id === editingCropInstance.cropId)?.category}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowEditCropModal(false);
+                    setEditingCropInstance(null);
+                    setEditingKcValues({});
+                  }}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+            
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target as HTMLFormElement);
+                const notes = formData.get('notes') as string;
+                
+                // Update the crop instance with notes and custom Kc values
+                setCropInstances(prev => prev.map(instance => 
+                  instance.id === editingCropInstance.id 
+                    ? { 
+                        ...instance, 
+                        notes: notes || instance.notes,
+                        customKcValues: Object.keys(editingKcValues).length > 0 ? editingKcValues : instance.customKcValues
+                      }
+                    : instance
+                ));
+                
+                setShowEditCropModal(false);
+                setEditingCropInstance(null);
+                setEditingKcValues({});
+              }}
+              className="p-6 space-y-6"
+            >
+              <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
+                <div className="flex items-center space-x-2 text-blue-300">
+                  <MapPin className="h-4 w-4" />
+                  <span className="font-medium">Location: {selectedLocation?.name || 'Unknown Location'}</span>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-300">Monthly Kc Coefficients</h3>
+                  <div className="text-xs text-gray-400">
+                    Click values to edit • Range: 0.0 - 2.0
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {availableCrops.find(c => c.id === editingCropInstance.cropId)?.monthlyKc?.map((month) => {
+                    const isCurrentMonth = new Date().getMonth() + 1 === month.month;
+                    const currentKc = editingKcValues[month.month] !== undefined ? editingKcValues[month.month] : month.kc;
+                    
+                    return (
+                      <div 
+                        key={month.month}
+                        className={`p-3 rounded-lg border ${
+                          isCurrentMonth 
+                            ? 'bg-blue-900/50 border-blue-600' 
+                            : 'bg-gray-800 border-gray-700'
+                        }`}
+                        title={month.description}
+                      >
+                        <div className="font-medium text-center mb-2 text-xs text-gray-300">{month.monthName}</div>
+                        <div className="text-center">
+                          <label className="block text-xs text-gray-400 mb-1">Kc</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="2"
+                            step="0.01"
+                            value={currentKc}
+                            onChange={(e) => {
+                              const newValue = parseFloat(e.target.value) || 0;
+                              setEditingKcValues(prev => ({
+                                ...prev,
+                                [month.month]: newValue
+                              }));
+                            }}
+                            className={`w-full px-2 py-1 text-xs font-mono font-bold text-center rounded border ${
+                              isCurrentMonth 
+                                ? 'bg-blue-800 border-blue-500 text-blue-200' 
+                                : 'bg-gray-700 border-gray-600 text-white'
+                            } focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-3 flex items-center justify-between text-xs">
+                  <div className="text-gray-400">
+                    <span className="inline-block w-2 h-2 bg-blue-600 rounded-full mr-1"></span>Current month
+                    <span className="inline-block w-2 h-2 bg-gray-600 rounded-full mr-1 ml-3"></span>Other months
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Reset to original values
+                      const crop = availableCrops.find(c => c.id === editingCropInstance.cropId);
+                      if (crop?.monthlyKc) {
+                        const resetValues: {[key: number]: number} = {};
+                        crop.monthlyKc.forEach(month => {
+                          resetValues[month.month] = month.kc;
+                        });
+                        setEditingKcValues(resetValues);
+                      }
+                    }}
+                    className="text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Reset to defaults
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-300 mb-2">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  rows={3}
+                  defaultValue={editingCropInstance.notes || ''}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Add any notes about this crop instance..."
+                />
+              </div>
+
+              <div className="flex items-center space-x-3 pt-4 border-t border-gray-700">
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  Save Changes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditCropModal(false);
+                    setEditingCropInstance(null);
+                    setEditingKcValues({});
+                  }}
+                  className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  Cancel
                 </button>
               </div>
             </form>

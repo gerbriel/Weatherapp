@@ -29,7 +29,7 @@ class WeatherService {
         'et0_fao_evapotranspiration_sum'
       ].join(','),
       forecast_days: 14,
-      models: 'gfs_global,nam_conus', // Use NOAA GFS Global and NAM CONUS models for US data
+      models: 'gfs_global', // Use NOAA GFS Global model for reliable US weather data
       timezone: 'America/Los_Angeles',
       temperature_unit: 'fahrenheit',
       wind_speed_unit: 'mph',

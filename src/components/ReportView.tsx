@@ -72,7 +72,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const refreshAllLocations = refreshFunction;
   
   // State for location filtering
-  const [locationFilter, setLocationFilter] = useState<string>('all');
+  const [locationFilter, setLocationFilter] = useState<string>('');
+  const [showAllLocations, setShowAllLocations] = useState<boolean>(false);
   const [showCropInsights, setShowCropInsights] = useState(true);
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -192,7 +193,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
     const locationCmisData = cmisData.get(location.id) || [];
     const dayData = locationCmisData.find(d => d.date === date);
-    return dayData ? `${dayData.etc_actual.toFixed(3)} in` : '— in';
+    return dayData ? `${dayData.etc_actual.toFixed(2)} in` : '— in';
   };
 
   // Auto-refresh weather data only once if locations exist but have no weather data
@@ -225,10 +226,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
   
   // Apply location filter (memoized for performance)
   const filteredLocations = useMemo(() => {
-    return locationFilter === 'all' 
-      ? locationsWithWeather
-      : locationsWithWeather.filter(loc => loc.id === locationFilter);
-  }, [locationsWithWeather, locationFilter]);
+    if (showAllLocations) {
+      return locationsWithWeather;
+    }
+    if (locationFilter) {
+      return locationsWithWeather.filter(loc => loc.id === locationFilter);
+    }
+    // If neither "All Locations" is checked nor a specific location is selected, return empty array
+    return [];
+  }, [locationsWithWeather, locationFilter, showAllLocations]);
   
   // For reports view, show all filtered locations regardless of selectedLocation
   const displayLocations = useMemo(() => {
@@ -345,24 +351,50 @@ export const ReportView: React.FC<ReportViewProps> = ({
         {/* Location Filter Controls */}
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <label htmlFor="location-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Filter by Location:
               </label>
+              
+              {/* Location Dropdown */}
               <select
                 id="location-filter"
                 value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                onChange={(e) => {
+                  setLocationFilter(e.target.value);
+                  if (e.target.value) {
+                    setShowAllLocations(false);
+                  }
+                }}
+                disabled={showAllLocations}
+                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <option value="all">All Locations ({locationsWithWeather.length})</option>
+                <option value="">Select Location</option>
                 {locationsWithWeather.map((location) => (
                   <option key={location.id} value={location.id}>
                     {location.name}
                   </option>
                 ))}
               </select>
+
+              {/* All Locations Checkbox */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showAllLocations}
+                  onChange={(e) => {
+                    setShowAllLocations(e.target.checked);
+                    if (e.target.checked) {
+                      setLocationFilter('');
+                    }
+                  }}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  All Locations ({locationsWithWeather.length})
+                </span>
+              </label>
             </div>
             
             <div className="flex items-center gap-2">
@@ -442,24 +474,50 @@ export const ReportView: React.FC<ReportViewProps> = ({
       {/* Location Filter Controls */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
         <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <label htmlFor="location-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Filter by Location:
             </label>
+            
+            {/* Location Dropdown */}
             <select
               id="location-filter"
               value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+              onChange={(e) => {
+                setLocationFilter(e.target.value);
+                if (e.target.value) {
+                  setShowAllLocations(false);
+                }
+              }}
+              disabled={showAllLocations}
+              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="all">All Locations ({locationsWithWeather.length})</option>
+              <option value="">Select Location</option>
               {locationsWithWeather.map((location) => (
                 <option key={location.id} value={location.id}>
                   {location.name}
                 </option>
               ))}
             </select>
+
+            {/* All Locations Checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showAllLocations}
+                onChange={(e) => {
+                  setShowAllLocations(e.target.checked);
+                  if (e.target.checked) {
+                    setLocationFilter('');
+                  }
+                }}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              />
+              <span className="text-sm text-gray-700 dark:text-gray-300">
+                All Locations ({locationsWithWeather.length})
+              </span>
+            </label>
           </div>
           
           <div className="flex items-center gap-2">
@@ -478,7 +536,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
       <div className="text-center mb-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          📊 Comprehensive Reports - {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
+          {!showAllLocations && !locationFilter ? (
+            "� Weather Reports Dashboard"
+          ) : (
+            `�📊 Comprehensive Reports - ${displayLocations.length} Location${displayLocations.length !== 1 ? 's' : ''}`
+          )}
         </h2>
         
         {/* Dynamic Location List */}
@@ -486,10 +548,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
           <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
             📍 Locations: 
             <span className="ml-1 text-gray-800 dark:text-gray-200">
-              {displayLocations.length > 0 ? 
-                displayLocations.map(loc => loc.name).join(', ') : 
+              {!showAllLocations && !locationFilter ? (
+                'Please select a location or check "All Locations" to view data'
+              ) : displayLocations.length > 0 ? (
+                displayLocations.map(loc => loc.name).join(', ')
+              ) : (
                 'No locations selected'
-              }
+              )}
             </span>
           </p>
         </div>
@@ -719,8 +784,32 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </button>
       </div>
 
-      {/* Location Reports */}
-      {displayLocations.map((location, locationIndex) => {
+      {/* Custom view when no location is selected */}
+      {!showAllLocations && !locationFilter ? (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 mb-6 text-center">
+          <div className="max-w-md mx-auto">
+            <MapPin className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+              Select a Location to View Weather Data
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Choose a specific location from the dropdown above to see detailed weather forecasts, 
+              charts, and agricultural data for that area.
+            </p>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Available Options:</h4>
+              <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>• Select a specific location for detailed weather data</li>
+                <li>• Check "All Locations" to compare multiple areas</li>
+                <li>• View charts, forecasts, and agricultural insights</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Location Reports */}
+          {displayLocations.map((location, locationIndex) => {
         // Check if location has weather data and proper structure
         const weather = location.weatherData;
         
@@ -754,8 +843,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 tempMax: highTemp,
                 tempMin: lowTemp,
                 precipitation: Math.random() < 0.2 ? (Math.random() * 0.5).toFixed(2) : '0.00',
-                et0: et0_inches.toFixed(3),
-                et0_sum: et0_sum_inches.toFixed(3)
+                et0: et0_inches.toFixed(2),
+                et0_sum: et0_sum_inches.toFixed(2)
               });
             }
             return mockDays;
@@ -822,17 +911,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     </div>
                   </div>
 
-                  {/* ETC Actual */}
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center mb-2">
-                      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
-                    </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {getETCDisplayText(location, todayData.date)}
-                    </div>
-                  </div>
-
                   {/* Precipitation */}
                   <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex items-center mb-2">
@@ -851,7 +929,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀</span>
                     </div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {todayData.et0} inches
+                      {Number(todayData.et0).toFixed(2)} inches
                     </div>
                   </div>
 
@@ -862,7 +940,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀ Sum</span>
                     </div>
                     <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {todayData.et0_sum} inches
+                      {Number(todayData.et0_sum).toFixed(2)} inches
+                    </div>
+                  </div>
+
+                  {/* ETC Actual */}
+                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-2">
+                      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
+                    </div>
+                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      {getETCDisplayText(location, todayData.date)}
                     </div>
                   </div>
                 </div>
@@ -900,10 +989,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           ET₀ Projected (in)
                         </th>
                         <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                          ETC Actual (in)
+                          ET₀ Sum (inches)
                         </th>
                         <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                          ET₀ Sum (inches)
+                          ETC Actual (in)
                         </th>
                       </tr>
                     </thead>
@@ -930,16 +1019,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
                             {day.precipitation}
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                            {day.et0}
+                            {Number(day.et0).toFixed(2)}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                            {Number(day.et0_sum).toFixed(2)}
                           </td>
                           <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                             <div className="flex items-center">
                               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
                               {getETCDisplayText(location, day.date).replace(' in', '')}
                             </div>
-                          </td>
-                          <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                            {day.et0_sum}
                           </td>
                         </tr>
                       ))}
@@ -963,6 +1052,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       cropInstances={cropInstances}
                       locations={[location]}
                       location={location}
+                      weatherData={weather}
                     />
                   </ChartErrorBoundary>
                 </div>
@@ -1037,17 +1127,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   </div>
                 </div>
 
-                {/* ETC Actual */}
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center mb-2">
-                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
-                  </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {getETCDisplayText(location, weather.daily.time[0])}
-                  </div>
-                </div>
-
                 {/* Precipitation */}
                 <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center mb-2">
@@ -1066,7 +1145,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀</span>
                   </div>
                   <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {todayData.et0.toFixed(3)} inches
+                    {Number(todayData.et0).toFixed(2)} inches
                   </div>
                 </div>
 
@@ -1077,7 +1156,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀ Sum</span>
                   </div>
                   <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {todayData.et0_sum.toFixed(3)} inches
+                    {Number(todayData.et0_sum).toFixed(2)} inches
+                  </div>
+                </div>
+
+                {/* ETC Actual */}
+                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center mb-2">
+                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
+                  </div>
+                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                    {getETCDisplayText(location, weather.daily.time[0])}
                   </div>
                 </div>
               </div>
@@ -1115,10 +1205,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                         ET₀ Projected (in)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        ETC Actual (in)
+                        ET₀ Sum (inches)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
-                        ET₀ Sum (inches)
+                        ETC Actual (in)
                       </th>
                     </tr>
                   </thead>
@@ -1141,16 +1231,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           {safe(weather.daily.precipitation_sum[index]?.toFixed(2))}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                          {safe((weather.daily.et0_fao_evapotranspiration[index] * 0.0393701)?.toFixed(3))}
+                          {safe((weather.daily.et0_fao_evapotranspiration[index] * 0.0393701)?.toFixed(2))}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
+                          {safe((weather.daily.et0_fao_evapotranspiration_sum[index] * 0.0393701)?.toFixed(2))}
                         </td>
                         <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
                           <div className="flex items-center">
                             <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
                             {getETCDisplayText(location, date).replace(' in', '')}
                           </div>
-                        </td>
-                        <td className="px-3 py-2 text-sm text-gray-600 dark:text-gray-300">
-                          {safe((weather.daily.et0_fao_evapotranspiration_sum[index] * 0.0393701)?.toFixed(3))}
                         </td>
                       </tr>
                     ))}
@@ -1174,15 +1264,19 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     cropInstances={cropInstances}
                     locations={[location]}
                     location={location}
+                    weatherData={weather}
                   />
                 </ChartErrorBoundary>
               </div>
             )}
           </div>
         );
-      })}
+          })}
+        </>
+      )}
 
-      {/* Summary Footer */}
+      {/* Summary Footer - only show when locations are displayed */}
+      {(showAllLocations || locationFilter) && (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
         <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
           📊 Comprehensive Report Generated for {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
@@ -1216,6 +1310,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
           })}
         </p>
       </div>
+      )}
     </div>
   );
 };

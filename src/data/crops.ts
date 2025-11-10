@@ -21,6 +21,13 @@ interface KcPeriod {
   description?: string;
 }
 
+interface MonthlyKc {
+  month: number; // 1-12 (January = 1, December = 12)
+  monthName: string;
+  kc: number;
+  description: string;
+}
+
 export interface AvailableCrop {
   id: string;
   name: string;
@@ -29,6 +36,7 @@ export interface AvailableCrop {
   stages: CropStage[];
   wateringCycles?: WateringCycle[]; // For perennial crops with annual watering cycles
   kcSchedule?: KcPeriod[]; // Detailed date-based Kc values
+  monthlyKc?: MonthlyKc[]; // Monthly Kc values (simplified approach)
   isPerennial?: boolean; // True for trees, vines, etc.
   plantingType?: 'annual' | 'perennial'; // Optional for backward compatibility
 }
@@ -48,25 +56,19 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
       { name: 'Mid-season', kc: 1.11, duration: 60, description: 'Full canopy and peak water demand' },
       { name: 'Late season', kc: 0.85, duration: 45, description: 'Nut maturation and harvest preparation' }
     ],
-    kcSchedule: [
-      { startDate: "01-01", endDate: "01-31", kc: 0.40, description: "January dormancy" },
-      { startDate: "02-01", endDate: "02-28", kc: 0.41, description: "February dormancy" },
-      { startDate: "03-01", endDate: "03-15", kc: 0.55, description: "Early March awakening" },
-      { startDate: "03-16", endDate: "03-31", kc: 0.67, description: "Late March bud break" },
-      { startDate: "04-01", endDate: "04-15", kc: 0.75, description: "Early April flowering" },
-      { startDate: "04-16", endDate: "04-30", kc: 0.84, description: "Late April development" },
-      { startDate: "05-01", endDate: "05-15", kc: 0.89, description: "Early May growth" },
-      { startDate: "05-16", endDate: "05-31", kc: 0.98, description: "Late May rapid growth" },
-      { startDate: "06-01", endDate: "06-15", kc: 1.02, description: "Early June nut development" },
-      { startDate: "06-16", endDate: "06-30", kc: 1.07, description: "Late June peak growth" },
-      { startDate: "07-01", endDate: "07-31", kc: 1.11, description: "July peak water demand" },
-      { startDate: "08-01", endDate: "08-31", kc: 1.11, description: "August continued peak demand" },
-      { startDate: "09-01", endDate: "09-15", kc: 1.08, description: "Early September maturation" },
-      { startDate: "09-16", endDate: "09-30", kc: 1.04, description: "Late September harvest prep" },
-      { startDate: "10-01", endDate: "10-15", kc: 0.96, description: "Early October harvest" },
-      { startDate: "10-16", endDate: "10-31", kc: 0.88, description: "Late October post-harvest" },
-      { startDate: "11-01", endDate: "11-30", kc: 0.69, description: "November dormancy transition" },
-      { startDate: "12-01", endDate: "12-31", kc: 0.43, description: "December dormancy" }
+    monthlyKc: [
+      { month: 1, monthName: "January", kc: 0.40, description: "Dormant season - minimal water needs" },
+      { month: 2, monthName: "February", kc: 0.41, description: "Late dormancy - preparing for bud break" },
+      { month: 3, monthName: "March", kc: 0.61, description: "Bud break and early leaf development" },
+      { month: 4, monthName: "April", kc: 0.80, description: "Flowering and initial nut development" },
+      { month: 5, monthName: "May", kc: 0.94, description: "Rapid vegetative growth" },
+      { month: 6, monthName: "June", kc: 1.05, description: "Peak nut development" },
+      { month: 7, monthName: "July", kc: 1.11, description: "Maximum water demand period" },
+      { month: 8, monthName: "August", kc: 1.11, description: "Continued peak water demand" },
+      { month: 9, monthName: "September", kc: 1.06, description: "Nut maturation and harvest preparation" },
+      { month: 10, monthName: "October", kc: 0.92, description: "Harvest period" },
+      { month: 11, monthName: "November", kc: 0.69, description: "Post-harvest transition to dormancy" },
+      { month: 12, monthName: "December", kc: 0.43, description: "Winter dormancy begins" }
     ]
   },
   {
@@ -78,21 +80,21 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     isPerennial: true,
     stages: [
       { name: 'Initial', kc: 0.00, duration: 90, description: 'Winter dormancy - no irrigation needs' },
-      { name: 'Development', kc: 0.50, duration: 30, description: 'Bud break and catkin development' },
+      { name: 'Development', kc: 0.61, duration: 30, description: 'Bud break and catkin development' },
       { name: 'Mid-season', kc: 1.14, duration: 60, description: 'Peak growth and hull filling' },
-      { name: 'Late season', kc: 0.80, duration: 60, description: 'Hull split and harvest' }
+      { name: 'Late season', kc: 0.70, duration: 60, description: 'Hull split and harvest' }
     ],
     kcSchedule: [
       { startDate: "01-01", endDate: "01-31", kc: 0.00, description: "January dormancy" },
       { startDate: "02-01", endDate: "02-28", kc: 0.00, description: "February dormancy" },
       { startDate: "03-01", endDate: "03-15", kc: 0.00, description: "Early March dormancy" },
       { startDate: "03-16", endDate: "03-31", kc: 0.12, description: "Late March bud break" },
-      { startDate: "04-01", endDate: "04-15", kc: 0.53, description: "Early April catkin development" },
-      { startDate: "04-16", endDate: "04-30", kc: 0.68, description: "Late April leaf expansion" },
-      { startDate: "05-01", endDate: "05-15", kc: 0.79, description: "Early May growth" },
-      { startDate: "05-16", endDate: "05-31", kc: 0.86, description: "Late May rapid growth" },
-      { startDate: "06-01", endDate: "06-15", kc: 0.93, description: "Early June nut development" },
-      { startDate: "06-16", endDate: "06-30", kc: 1.00, description: "Late June hull filling" },
+      { startDate: "04-01", endDate: "04-15", kc: 0.53, description: "Early April development" },
+      { startDate: "04-16", endDate: "04-30", kc: 0.68, description: "Late April catkin development" },
+      { startDate: "05-01", endDate: "05-15", kc: 0.79, description: "Early May rapid growth" },
+      { startDate: "05-16", endDate: "05-31", kc: 0.86, description: "Late May hull development" },
+      { startDate: "06-01", endDate: "06-15", kc: 0.93, description: "Early June hull filling" },
+      { startDate: "06-16", endDate: "06-30", kc: 1.00, description: "Late June peak growth" },
       { startDate: "07-01", endDate: "07-15", kc: 1.14, description: "Early July peak demand" },
       { startDate: "07-16", endDate: "07-31", kc: 1.14, description: "Late July peak demand" },
       { startDate: "08-01", endDate: "08-15", kc: 1.14, description: "Early August peak demand" },
@@ -104,6 +106,20 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
       { startDate: "11-01", endDate: "11-15", kc: 0.28, description: "Early November dormancy transition" },
       { startDate: "11-16", endDate: "11-30", kc: 0.00, description: "Late November dormancy" },
       { startDate: "12-01", endDate: "12-31", kc: 0.00, description: "December dormancy" }
+    ],
+    monthlyKc: [
+      { month: 1, monthName: "Jan", kc: 0.00, description: "Winter dormancy - no water needs" },
+      { month: 2, monthName: "Feb", kc: 0.00, description: "Continued winter dormancy" },
+      { month: 3, monthName: "Mar", kc: 0.06, description: "Late bud break begins" },
+      { month: 4, monthName: "Apr", kc: 0.61, description: "Spring development and catkins" },
+      { month: 5, monthName: "May", kc: 0.83, description: "Rapid vegetative growth" },
+      { month: 6, monthName: "Jun", kc: 0.97, description: "Hull development and filling" },
+      { month: 7, monthName: "Jul", kc: 1.14, description: "Peak water demand period" },
+      { month: 8, monthName: "Aug", kc: 1.14, description: "Continued high water needs" },
+      { month: 9, monthName: "Sep", kc: 1.03, description: "Hull split and maturation" },
+      { month: 10, monthName: "Oct", kc: 0.70, description: "Harvest and senescence" },
+      { month: 11, monthName: "Nov", kc: 0.14, description: "Transition to dormancy" },
+      { month: 12, monthName: "Dec", kc: 0.00, description: "Winter dormancy begins" }
     ]
   },
   {
@@ -141,6 +157,20 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
       { startDate: "11-01", endDate: "11-15", kc: 0.35, description: "Early November dormancy transition" },
       { startDate: "11-16", endDate: "11-30", kc: 0.00, description: "Late November dormancy" },
       { startDate: "12-01", endDate: "12-31", kc: 0.00, description: "December dormancy" }
+    ],
+    monthlyKc: [
+      { month: 1, monthName: 'Jan', kc: 0.00, description: 'Winter dormancy - no irrigation needed' },
+      { month: 2, monthName: 'Feb', kc: 0.00, description: 'Continued winter dormancy' },
+      { month: 3, monthName: 'Mar', kc: 0.00, description: 'Late winter dormancy period' },
+      { month: 4, monthName: 'Apr', kc: 0.25, description: 'Bud break and initial growth' },
+      { month: 5, monthName: 'May', kc: 0.81, description: 'Rapid vegetative growth' },
+      { month: 6, monthName: 'Jun', kc: 1.13, description: 'Peak nut development period' },
+      { month: 7, monthName: 'Jul', kc: 1.19, description: 'Maximum water demand period' },
+      { month: 8, monthName: 'Aug', kc: 1.16, description: 'Continued high water needs' },
+      { month: 9, monthName: 'Sep', kc: 0.93, description: 'Nut maturation period' },
+      { month: 10, monthName: 'Oct', kc: 0.59, description: 'Harvest and post-harvest' },
+      { month: 11, monthName: 'Nov', kc: 0.18, description: 'Transition to dormancy' },
+      { month: 12, monthName: 'Dec', kc: 0.00, description: 'Winter dormancy begins' }
     ]
   },
 
@@ -157,16 +187,17 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
     ]
   },
   {
-    id: 'oranges',
-    name: 'Oranges',
+    id: 'citrus',
+    name: 'Citrus',
+    scientificName: 'Citrus spp.',
     category: 'Tree Fruits',
     plantingType: 'perennial',
     isPerennial: true,
     stages: [
-      { name: 'Winter', kc: 0.65, duration: 90, description: 'Winter dormancy and pruning period' },
-      { name: 'Spring Flush', kc: 0.72, duration: 90, description: 'Spring flush and flowering' },
-      { name: 'Fruit Development', kc: 0.78, duration: 90, description: 'Fruit set and development' },
-      { name: 'Harvest', kc: 0.70, duration: 95, description: 'Fruit maturation and harvest' }
+      { name: 'Winter', kc: 0.70, duration: 90, description: 'Winter period with lower water needs' },
+      { name: 'Spring Flush', kc: 0.71, duration: 90, description: 'Spring flush and flowering' },
+      { name: 'Fruit Development', kc: 0.67, duration: 90, description: 'Summer fruit development' },
+      { name: 'Harvest', kc: 0.70, duration: 95, description: 'Fall maturation and harvest' }
     ],
     kcSchedule: [
       { startDate: "01-01", endDate: "01-31", kc: 0.75, description: "January winter period" },
@@ -189,6 +220,20 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
       { startDate: "09-24", endDate: "09-30", kc: 0.66, description: "End September harvest start" },
       { startDate: "10-01", endDate: "12-23", kc: 0.70, description: "October-December harvest period" },
       { startDate: "12-24", endDate: "12-31", kc: 0.73, description: "Late December winter transition" }
+    ],
+    monthlyKc: [
+      { month: 1, monthName: 'Jan', kc: 0.75, description: 'Winter period with steady water needs' },
+      { month: 2, monthName: 'Feb', kc: 0.74, description: 'Late winter maintenance period' },
+      { month: 3, monthName: 'Mar', kc: 0.72, description: 'Spring transition and bud break' },
+      { month: 4, monthName: 'Apr', kc: 0.70, description: 'Spring flowering and fruit set' },
+      { month: 5, monthName: 'May', kc: 0.70, description: 'Early fruit development' },
+      { month: 6, monthName: 'Jun', kc: 0.66, description: 'Summer growth period' },
+      { month: 7, monthName: 'Jul', kc: 0.65, description: 'Peak summer heat stress period' },
+      { month: 8, monthName: 'Aug', kc: 0.65, description: 'Late summer fruit sizing' },
+      { month: 9, monthName: 'Sep', kc: 0.71, description: 'Early fall maturation period' },
+      { month: 10, monthName: 'Oct', kc: 0.70, description: 'Harvest and post-harvest recovery' },
+      { month: 11, monthName: 'Nov', kc: 0.70, description: 'Late harvest period' },
+      { month: 12, monthName: 'Dec', kc: 0.72, description: 'Winter preparation period' }
     ]
   },
   {
@@ -270,6 +315,20 @@ export const COMPREHENSIVE_CROP_DATABASE: AvailableCrop[] = [
       { name: 'Development', kc: 0.75, duration: 25, description: 'Leaf development and head formation' },
       { name: 'Mid-season', kc: 1.00, duration: 30, description: 'Head filling and maturation' },
       { name: 'Late season', kc: 0.70, duration: 10, description: 'Harvest maturity' }
+    ],
+    monthlyKc: [
+      { month: 1, monthName: "January", kc: 0.65, description: "Cool season growing - moderate water needs" },
+      { month: 2, monthName: "February", kc: 0.70, description: "Prime cool season - increasing growth" },
+      { month: 3, monthName: "March", kc: 0.85, description: "Spring growth - higher water demand" },
+      { month: 4, monthName: "April", kc: 0.90, description: "Active growth period" },
+      { month: 5, monthName: "May", kc: 0.95, description: "Peak spring growing season" },
+      { month: 6, monthName: "June", kc: 0.75, description: "Hot weather - bolting risk, less ideal" },
+      { month: 7, monthName: "July", kc: 0.60, description: "Summer heat stress - not ideal season" },
+      { month: 8, monthName: "August", kc: 0.60, description: "Late summer heat - challenging conditions" },
+      { month: 9, monthName: "September", kc: 0.80, description: "Fall planting begins" },
+      { month: 10, monthName: "October", kc: 0.90, description: "Excellent fall growing conditions" },
+      { month: 11, monthName: "November", kc: 0.85, description: "Cool season optimal growth" },
+      { month: 12, monthName: "December", kc: 0.70, description: "Winter growing - slower but steady" }
     ]
   },
   {
