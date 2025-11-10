@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
-import { exportToCSV, exportToExcel } from '../utils/exportUtils';
+import { exportToCSV, exportToExcel, exportComprehensiveData, type ComprehensiveExportOptions } from '../utils/exportUtils';
 import { SimpleWeatherCharts } from './SimpleWeatherCharts';
 import { ChartErrorBoundary } from './ChartErrorBoundary';
 import { CropETCCharts } from './CropETCCharts';
 import { DateRangePicker } from './DateRangePicker';
 import { ReportModeToggle } from './ReportModeToggle';
+import { ExportOptionsModal } from './ExportOptionsModal';
 import { cmisService } from '../services/cmisService';
 import { weatherService } from '../services/weatherService';
 import { isLocationInCalifornia } from '../utils/locationUtils';
@@ -72,11 +73,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const refreshAllLocations = refreshFunction;
   
   // State for location filtering
-  const [locationFilter, setLocationFilter] = useState<string>('');
-  const [showAllLocations, setShowAllLocations] = useState<boolean>(false);
+  const [selectedLocationIds, setSelectedLocationIds] = useState<Set<string>>(new Set());
   const [showCropInsights, setShowCropInsights] = useState(true);
+  // showAllLocations replaced with multiselect dropdown functionality
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // const [isRefreshing, setIsRefreshing] = useState(false);
   const [cmisData, setCmisData] = useState<Map<string, CMISETCData[]>>(new Map());
   const [isFetchingCmis, setIsFetchingCmis] = useState(false);
 
@@ -88,6 +89,21 @@ export const ReportView: React.FC<ReportViewProps> = ({
   });
   const [isLoadingHistorical, setIsLoadingHistorical] = useState(false);
   const [historicalWeatherData, setHistoricalWeatherData] = useState<Map<string, any>>(new Map());
+  const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('[data-location-dropdown]')) {
+        setIsLocationDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Initialize default date range (last 14 days)
   useEffect(() => {
@@ -102,16 +118,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
   }, []);
 
   // Handle refresh with rate limiting protection
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await refreshAllLocations();
-    } catch (error) {
-      console.error('Refresh failed:', error);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  // const handleRefresh = async () => {
+  //   setIsRefreshing(true);
+  //   try {
+  //     await refreshAllLocations();
+  //   } catch (error) {
+  //     console.error('Refresh failed:', error);
+  //   } finally {
+  //     setIsRefreshing(false);
+  //   }
+  // };
 
   // Handle historical data fetching
   const fetchHistoricalData = async () => {
@@ -223,18 +239,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
       return loc.weatherData && !loc.error;
     });
   }, [locations]);
+
+  // Don't auto-select all locations - let users choose via dropdown
+  // Remove auto-initialization to require explicit user selection
   
   // Apply location filter (memoized for performance)
   const filteredLocations = useMemo(() => {
-    if (showAllLocations) {
-      return locationsWithWeather;
+    if (selectedLocationIds.size > 0) {
+      return locationsWithWeather.filter(loc => selectedLocationIds.has(loc.id));
     }
-    if (locationFilter) {
-      return locationsWithWeather.filter(loc => loc.id === locationFilter);
-    }
-    // If neither "All Locations" is checked nor a specific location is selected, return empty array
+    // If no locations are selected, return empty array to show selection prompt
     return [];
-  }, [locationsWithWeather, locationFilter, showAllLocations]);
+  }, [locationsWithWeather, selectedLocationIds]);
   
   // For reports view, show all filtered locations regardless of selectedLocation
   const displayLocations = useMemo(() => {
@@ -342,111 +358,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
     };
   }, [displayLocations.length]); // Only depend on length to avoid unnecessary refetches
 
+  // Show message when no locations are selected - dropdown is always visible at top
   if (displayLocations.length === 0) {
-    // Check if we're in trial mode (locations without weatherData property)
-    const isTrialMode = locations.length > 0 && !('weatherData' in (locations[0] || {}));
+    // const isTrialMode = locations.length > 0 && !('weatherData' in (locations[0] || {}));
     
-    return (
-      <div className="space-y-6">
-        {/* Location Filter Controls */}
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-4">
-              <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Filter by Location:
-              </label>
-              
-              {/* Location Dropdown */}
-              <select
-                id="location-filter"
-                value={locationFilter}
-                onChange={(e) => {
-                  setLocationFilter(e.target.value);
-                  if (e.target.value) {
-                    setShowAllLocations(false);
-                  }
-                }}
-                disabled={showAllLocations}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">Select Location</option>
-                {locationsWithWeather.map((location) => (
-                  <option key={location.id} value={location.id}>
-                    {location.name}
-                  </option>
-                ))}
-              </select>
-
-              {/* All Locations Checkbox */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showAllLocations}
-                  onChange={(e) => {
-                    setShowAllLocations(e.target.checked);
-                    if (e.target.checked) {
-                      setLocationFilter('');
-                    }
-                  }}
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-                />
-                <span className="text-sm text-gray-700 dark:text-gray-300">
-                  All Locations ({locationsWithWeather.length})
-                </span>
-              </label>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={showCropInsights}
-                  onChange={(e) => setShowCropInsights(e.target.checked)}
-                  className="mr-2"
-                />
-                Show Crop Watering Insights
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-          <p className="text-gray-500 dark:text-gray-400 mb-2">
-            {isTrialMode ? 
-              'Weather data not available in trial mode' :
-              selectedLocation ? 
-                `No weather data available for ${selectedLocation.name}` :
-                'No weather data available'
-            }
-          </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
-            {isTrialMode ?
-              'Sign up for a full account to access weather reports and data' :
-              'Add locations and refresh their weather data to view the report'
-            }
-          </p>
-          
-          {!isTrialMode && (
-            <div className="mt-4">
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors duration-200"
-              >
-                {isRefreshing ? 'Refreshing...' : 'Refresh Weather Data'}
-              </button>
-              {isRefreshing && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Refreshing locations with 1-second delays to prevent rate limiting...
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    // Don't return early - continue to main render with message
   }
 
   const formatDate = (dateString: string) => {
@@ -462,81 +378,207 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   const handleExportCSV = () => {
-    exportToCSV(displayLocations, true);
+    // Quick export with weather data and crop calculations
+    const quickOptions: ComprehensiveExportOptions = {
+      includeWeatherData: true,
+      includeCMISData: false,
+      includeCropData: selectedCrops.length > 0,
+      includeCalculatorResults: false,
+      includeFieldBlocks: false,
+      includeHistoricalData: false,
+      fileFormat: 'csv',
+      separateSheets: false
+    };
+    
+    exportComprehensiveData(displayLocations, quickOptions, {
+      cmisData,
+      cropInstances,
+      selectedCrops,
+      calculatorResult: null, // Don't include calculator for quick export
+      calculatorInputs: null,
+      selectedLocation,
+      fieldBlocks: []
+    });
   };
 
   const handleExportExcel = () => {
-    exportToExcel(displayLocations, true);
+    // Quick export with weather data and crop calculations
+    const quickOptions: ComprehensiveExportOptions = {
+      includeWeatherData: true,
+      includeCMISData: false,
+      includeCropData: selectedCrops.length > 0,
+      includeCalculatorResults: false,
+      includeFieldBlocks: false,
+      includeHistoricalData: false,
+      fileFormat: 'excel',
+      separateSheets: true
+    };
+    
+    exportComprehensiveData(displayLocations, quickOptions, {
+      cmisData,
+      cropInstances,
+      selectedCrops,
+      calculatorResult: null, // Don't include calculator for quick export
+      calculatorInputs: null,
+      selectedLocation,
+      fieldBlocks: []
+    });
+  };
+
+  const handleComprehensiveExport = (options: ComprehensiveExportOptions) => {
+    exportComprehensiveData(displayLocations, options, {
+      cmisData,
+      cropInstances,
+      selectedCrops,
+      calculatorResult,
+      calculatorInputs,
+      selectedLocation,
+      fieldBlocks
+    });
+  };
+
+  // Determine what data types are available for export
+  const availableDataTypes = {
+    hasWeatherData: displayLocations.some(loc => loc.weatherData),
+    hasCMISData: cmisData.size > 0,
+    hasCropData: selectedCrops.length > 0,
+    hasCalculatorResults: !!calculatorResult,
+    hasFieldBlocks: fieldBlocks.length > 0,
+    hasHistoricalData: reportMode === 'historical' && historicalWeatherData.size > 0,
+    hasCharts: displayLocations.some(loc => loc.weatherData?.daily) // Charts available if weather data exists
   };
 
   return (
     <div className="space-y-6">
-      {/* Location Filter Controls */}
+      {/* Always Visible Location Filter Controls */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
         <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-4">
-            <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Filter by Location:
-            </label>
+          <div className="flex flex-col gap-3 w-full">
+            <div className="flex items-center gap-4">
+              <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Select Locations:
+              </label>
+              
+              {/* Custom Multiselect Dropdown - Always Visible */}
+              <div className="relative flex-1 max-w-lg" data-location-dropdown>
+                <button
+                  onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setIsLocationDropdownOpen(!isLocationDropdownOpen);
+                    } else if (e.key === 'Escape') {
+                      setIsLocationDropdownOpen(false);
+                    }
+                  }}
+                  className="flex items-center justify-between w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 dark:text-white min-h-[40px]"
+                  aria-expanded={isLocationDropdownOpen}
+                  aria-haspopup="listbox"
+                  aria-label="Select locations"
+                >
+                  <span className="truncate">
+                    {selectedLocationIds.size === 0 ? (
+                      <span className="text-gray-500">Select locations...</span>
+                    ) : selectedLocationIds.size === 1 ? (
+                      locationsWithWeather.find(loc => selectedLocationIds.has(loc.id))?.name || 'Unknown'
+                    ) : (
+                      `${selectedLocationIds.size} locations selected`
+                    )}
+                  </span>
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {isLocationDropdownOpen && (
+                  <div 
+                    className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-64 overflow-y-auto"
+                    role="listbox"
+                    aria-multiselectable="true"
+                  >
+                    {/* Select All Option */}
+                    <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-600">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-gray-700 dark:text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={selectedLocationIds.size === locationsWithWeather.length}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedLocationIds(new Set(locationsWithWeather.map(loc => loc.id)));
+                            } else {
+                              setSelectedLocationIds(new Set());
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
+                        />
+                        Select All ({locationsWithWeather.length})
+                      </label>
+                    </div>
+                    
+                    {/* Individual Location Options */}
+                    {locationsWithWeather.map((location) => (
+                      <label
+                        key={location.id}
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedLocationIds.has(location.id)}
+                          onChange={() => {
+                            const newSelectedLocations = new Set(selectedLocationIds);
+                            if (newSelectedLocations.has(location.id)) {
+                              newSelectedLocations.delete(location.id);
+                            } else {
+                              newSelectedLocations.add(location.id);
+                            }
+                            setSelectedLocationIds(newSelectedLocations);
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
+                        />
+                        <span className="truncate">{location.name}</span>
+                      </label>
+                    ))}
+                    
+                    {/* Footer with stats and clear button */}
+                    <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 flex items-center justify-between">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {selectedLocationIds.size} of {locationsWithWeather.length} selected
+                      </span>
+                      {selectedLocationIds.size > 0 && (
+                        <button
+                          onClick={() => {
+                            setSelectedLocationIds(new Set());
+                          }}
+                          className="text-xs text-red-600 dark:text-red-400 hover:underline"
+                        >
+                          Clear All
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
             
-            {/* Location Dropdown */}
-            <select
-              id="location-filter"
-              value={locationFilter}
-              onChange={(e) => {
-                setLocationFilter(e.target.value);
-                if (e.target.value) {
-                  setShowAllLocations(false);
-                }
-              }}
-              disabled={showAllLocations}
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">Select Location</option>
-              {locationsWithWeather.map((location) => (
-                <option key={location.id} value={location.id}>
-                  {location.name}
-                </option>
-              ))}
-            </select>
-
-            {/* All Locations Checkbox */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showAllLocations}
-                onChange={(e) => {
-                  setShowAllLocations(e.target.checked);
-                  if (e.target.checked) {
-                    setLocationFilter('');
-                  }
-                }}
-                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                All Locations ({locationsWithWeather.length})
-              </span>
-            </label>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={showCropInsights}
-                onChange={(e) => setShowCropInsights(e.target.checked)}
-                className="mr-2"
-              />
-              Show Crop Watering Insights
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={showCropInsights}
+                  onChange={(e) => setShowCropInsights(e.target.checked)}
+                  className="mr-2"
+                />
+                Show Crop Watering Insights
+              </label>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="text-center mb-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          {!showAllLocations && !locationFilter ? (
+          {selectedLocationIds.size === 0 ? (
             "� Weather Reports Dashboard"
           ) : (
             `�📊 Comprehensive Reports - ${displayLocations.length} Location${displayLocations.length !== 1 ? 's' : ''}`
@@ -548,8 +590,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
           <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
             📍 Locations: 
             <span className="ml-1 text-gray-800 dark:text-gray-200">
-              {!showAllLocations && !locationFilter ? (
-                'Please select a location or check "All Locations" to view data'
+              {selectedLocationIds.size === 0 ? (
+                'Please select locations using the dropdown above'
               ) : displayLocations.length > 0 ? (
                 displayLocations.map(loc => loc.name).join(', ')
               ) : (
@@ -770,22 +812,31 @@ export const ReportView: React.FC<ReportViewProps> = ({
       <div className="flex justify-center gap-3 mb-6">
         <button
           onClick={handleExportCSV}
-          className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          className="flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          title="Export weather data and crop calculations to CSV files"
         >
           <Download className="h-4 w-4 mr-2" />
-          Export CSV
+          Weather & Crops CSV
         </button>
         <button
           onClick={handleExportExcel}
-          className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          className="flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+          title="Export weather data and crop calculations to Excel file"
         >
           <FileSpreadsheet className="h-4 w-4 mr-2" />
-          Export Excel
+          Weather & Crops Excel
+        </button>
+        <button
+          onClick={() => setIsExportModalOpen(true)}
+          className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Comprehensive Export
         </button>
       </div>
 
       {/* Custom view when no location is selected */}
-      {!showAllLocations && !locationFilter ? (
+      {selectedLocationIds.size === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 mb-6 text-center">
           <div className="max-w-md mx-auto">
             <MapPin className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
@@ -1053,6 +1104,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       locations={[location]}
                       location={location}
                       weatherData={weather}
+                      dateRange={dateRange}
+                      reportMode={reportMode}
                     />
                   </ChartErrorBoundary>
                 </div>
@@ -1265,6 +1318,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     locations={[location]}
                     location={location}
                     weatherData={weather}
+                    dateRange={dateRange}
+                    reportMode={reportMode}
                   />
                 </ChartErrorBoundary>
               </div>
@@ -1276,7 +1331,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       )}
 
       {/* Summary Footer - only show when locations are displayed */}
-      {(showAllLocations || locationFilter) && (
+      {selectedLocationIds.size > 0 && (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
         <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
           📊 Comprehensive Report Generated for {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
@@ -1311,6 +1366,14 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </p>
       </div>
       )}
+
+      {/* Export Options Modal */}
+      <ExportOptionsModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onExport={handleComprehensiveExport}
+        availableDataTypes={availableDataTypes}
+      />
     </div>
   );
 };
