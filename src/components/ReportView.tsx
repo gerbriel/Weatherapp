@@ -8,6 +8,7 @@ import { CropETCCharts } from './CropETCCharts';
 import { DateRangePicker } from './DateRangePicker';
 import { ReportModeToggle } from './ReportModeToggle';
 import { ExportOptionsModal } from './ExportOptionsModal';
+import ChartAIInsights from './ChartAIInsights';
 import { cmisService } from '../services/cmisService';
 import { weatherService } from '../services/weatherService';
 import { isLocationInCalifornia } from '../utils/locationUtils';
@@ -75,6 +76,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // State for location filtering
   const [selectedLocationIds, setSelectedLocationIds] = useState<Set<string>>(new Set());
   const [showCropInsights, setShowCropInsights] = useState(true);
+  const [showAIInsights, setShowAIInsights] = useState(false);
   // showAllLocations replaced with multiselect dropdown functionality
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   // const [isRefreshing, setIsRefreshing] = useState(false);
@@ -563,7 +565,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-6">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 <input
                   type="checkbox"
@@ -573,64 +575,27 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 />
                 Show Crop Watering Insights
               </label>
+              
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showAIInsights}
+                  onChange={(e) => setShowAIInsights(e.target.checked)}
+                  className="mr-2"
+                />
+                <span className="flex items-center">
+                  🤖 AI Insights
+                  <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                    Beta
+                  </span>
+                </span>
+              </label>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="text-center mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-          {selectedLocationIds.size === 0 ? (
-            "� Weather Reports Dashboard"
-          ) : (
-            `�📊 Comprehensive Reports - ${displayLocations.length} Location${displayLocations.length !== 1 ? 's' : ''}`
-          )}
-        </h2>
-        
-        {/* Dynamic Location List */}
-        <div className="mb-3">
-          <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-            📍 Locations: 
-            <span className="ml-1 text-gray-800 dark:text-gray-200">
-              {selectedLocationIds.size === 0 ? (
-                'Please select locations using the dropdown above'
-              ) : displayLocations.length > 0 ? (
-                displayLocations.map(loc => loc.name).join(', ')
-              ) : (
-                'No locations selected'
-              )}
-            </span>
-          </p>
-        </div>
-
-        {/* Dynamic Crop List */}
-        {(selectedCrops.length > 0 || cropInstances.length > 0) && (
-          <div className="mb-3">
-            <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
-              🌱 Active Crops: 
-              <span className="ml-1 text-gray-800 dark:text-gray-200">
-                {(() => {
-                  const allCrops = new Set();
-                  
-                  // Add selected crops
-                  selectedCrops.forEach(crop => allCrops.add(crop));
-                  
-                  // Add crops from crop instances
-                  cropInstances.forEach(instance => allCrops.add(instance.cropId));
-                  
-                  return allCrops.size > 0 ? 
-                    Array.from(allCrops).join(', ') : 
-                    'No crops selected';
-                })()}
-              </span>
-            </p>
-          </div>
-        )}
-
-        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-          Current conditions and weather forecasts with ETC actuals comparison
-        </p>
-
+      <div className="mb-6">
         {/* Report Mode Controls */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <ReportModeToggle 
@@ -1012,9 +977,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
               {/* 14-Day Forecast Table */}
               <div className="p-6">
-                <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
-                  📈 14-Day Forecast Data
-                </h4>
+                <div className="text-center mb-2">
+                  <h4 className="text-md font-medium text-gray-900 dark:text-white">
+                    📈 14-Day Forecast Data
+                  </h4>
+                </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
                   <span>📡 API:</span>
                   <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Open-Meteo</span>
@@ -1088,6 +1055,26 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     </tbody>
                   </table>
                 </div>
+                
+                {/* Centered AI Insights for Weather Summary Table */}
+                {showAIInsights && (
+                  <div className="flex justify-center mt-6 mb-4">
+                    <ChartAIInsights
+                      chartType="weather-summary"
+                      chartData={weather?.daily ? weather.daily.time.map((date: string, index: number) => ({
+                        date,
+                        temperature: weather.daily.temperature_2m_max?.[index] || 0,
+                        humidity: weather.daily.relative_humidity_2m?.[index] || 0,
+                        precipitation: weather.daily.precipitation_sum?.[index] || 0,
+                        evapotranspiration: weather.daily.et0_fao_evapotranspiration?.[index] || 0
+                      })) : []}
+                      location={location?.name || 'Field Location'}
+                      className=""
+                      compact={true}
+                    />
+                  </div>
+                )}
+
               </div>
 
               {/* Weather Charts */}
@@ -1230,9 +1217,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
             {/* 14-Day Forecast Table */}
             <div className="p-6">
-              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-2">
-                📈 14-Day Forecast Data
-              </h4>
+              <div className="text-center mb-2">
+                <h4 className="text-md font-medium text-gray-900 dark:text-white">
+                  📈 14-Day Forecast Data
+                </h4>
+              </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
                 <span>📡 API:</span>
                 <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Open-Meteo</span>
@@ -1302,6 +1291,26 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   </tbody>
                 </table>
               </div>
+              
+              {/* Centered AI Insights for Weather Summary Table */}
+              {showAIInsights && (
+                <div className="flex justify-center mt-6 mb-4">
+                  <ChartAIInsights
+                    chartType="weather-summary"
+                    chartData={weather?.daily ? weather.daily.time.map((date: string, index: number) => ({
+                      date,
+                      temperature: weather.daily.temperature_2m_max?.[index] || 0,
+                      humidity: weather.daily.relative_humidity_2m?.[index] || 0,
+                      precipitation: weather.daily.precipitation_sum?.[index] || 0,
+                      evapotranspiration: weather.daily.et0_fao_evapotranspiration?.[index] || 0
+                    })) : []}
+                    location={location?.name || 'Field Location'}
+                    className=""
+                    compact={true}
+                  />
+                </div>
+              )}
+
             </div>
 
             {/* Weather Charts */}

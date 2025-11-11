@@ -8,15 +8,21 @@ import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
 import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
 import { EmailNotifications } from './EmailNotifications';
+import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
 
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { FieldBlocksManager } from './FieldBlocksManager';
 import type { FieldBlock } from './FieldBlocksManager';
 import { OrganizationalDashboard } from './OrganizationalDashboard';
 import { ReportView } from './ReportView';
+import FrostWarningDashboard from './FrostWarningDashboard';
+import FrostAlertSubscription from './FrostAlertSubscription';
+import { FrostEmailService } from '../services/frostEmailService';
 
 interface WeatherData {
   temperature: number;
+  temperatureMax: number;
+  temperatureMin: number;
   humidity: number;
   windSpeed: number;
   precipitation: number;
@@ -103,7 +109,7 @@ export const TrialDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'emails' | 'org-dashboard' | 'field-blocks'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications' | 'org-dashboard' | 'field-blocks'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
   const [cropInstances, setCropInstances] = useState<CropInstance[]>([]);
@@ -127,6 +133,12 @@ export const TrialDashboard: React.FC = () => {
   const [calculatorResult, setCalculatorResult] = useState<RuntimeResult | null>(null);
   const [fieldBlocks, setFieldBlocks] = useState<FieldBlock[]>([]);
   const [displayedLocations, setDisplayedLocations] = useState<any[]>(availableLocations);
+
+  // Frost warnings hook
+  const { activeFrostWarnings, criticalFrostWarnings } = useFrostWarnings(
+    availableLocations, 
+    cropInstances
+  );
 
   // Fetch real weather data for trial locations
   useEffect(() => {
@@ -179,6 +191,8 @@ export const TrialDashboard: React.FC = () => {
   useEffect(() => {
     const mockWeatherData: WeatherData = {
       temperature: 22 + Math.random() * 10,
+      temperatureMax: 28 + Math.random() * 8, // Daily high
+      temperatureMin: 12 + Math.random() * 8, // Daily low  
       humidity: 60 + Math.random() * 20,
       windSpeed: 5 + Math.random() * 10,
       precipitation: Math.random() * 2,
@@ -1048,15 +1062,15 @@ export const TrialDashboard: React.FC = () => {
                       Reports
                     </button>
                     <button
-                      onClick={() => setCurrentView('emails')}
+                      onClick={() => setCurrentView('notifications')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'emails'
+                        currentView === 'notifications'
                           ? 'bg-gray-800 text-white shadow-sm'
                           : 'text-gray-400 hover:text-white'
                       }`}
                     >
                       <Mail className="h-4 w-4 mr-1 inline" />
-                      Emails
+                      Notifications
                     </button>
                     
                     <button
@@ -1185,17 +1199,17 @@ export const TrialDashboard: React.FC = () => {
                     </button>
                     <button
                       onClick={() => {
-                        setCurrentView('emails');
+                        setCurrentView('notifications');
                         setMobileMenuOpen(false);
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'emails'
+                        currentView === 'notifications'
                           ? 'bg-gray-800 text-white'
                           : 'text-gray-400 hover:text-white hover:bg-gray-700'
                       }`}
                     >
                       <Mail className="h-4 w-4 mr-3" />
-                      Emails
+                      Notifications
                     </button>
                     <button
                       onClick={() => {
@@ -1291,10 +1305,14 @@ export const TrialDashboard: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-400">{((weatherData?.temperature || 0) * 9/5 + 32).toFixed(0)}°F</div>
-                          <div className="text-gray-400">Temperature</div>
+                          <div className="text-2xl font-bold text-red-400">{((weatherData?.temperatureMax || weatherData?.temperature || 0) * 9/5 + 32).toFixed(0)}°F</div>
+                          <div className="text-gray-400">High Temp</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-400">{((weatherData?.temperatureMin || weatherData?.temperature || 0) * 9/5 + 32).toFixed(0)}°F</div>
+                          <div className="text-gray-400">Low Temp</div>
                         </div>
                         <div className="text-center">
                           <div className="text-2xl font-bold text-green-400">{((weatherData?.et0 || 0) * 0.0393701).toFixed(3)}</div>
@@ -1310,6 +1328,38 @@ export const TrialDashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Frost Alert Widget */}
+                    {activeFrostWarnings.length > 0 && (
+                      <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="text-2xl">
+                              {criticalFrostWarnings.length > 0 ? '🚨' : '❄️'}
+                            </div>
+                            <div>
+                              <div className="font-bold text-white text-sm">
+                                {criticalFrostWarnings.length > 0 ? 'CRITICAL FROST ALERT' : 'Frost Warning'}
+                              </div>
+                              <div className="text-gray-400 text-xs">
+                                {activeFrostWarnings.length} location(s) affected
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-white font-bold text-lg">
+                              {Math.min(...activeFrostWarnings.map(w => w.temperature))}°F
+                            </div>
+                            <div className="text-gray-400 text-xs">Predicted Low</div>
+                          </div>
+                        </div>
+                        {criticalFrostWarnings.length > 0 && (
+                          <div className="mt-2 text-xs text-gray-300 border-t border-gray-600 pt-2">
+                            ⚠️ Take immediate protective action for sensitive crops
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                 {/* Weather Overview */}
                 <div className="mb-8">
@@ -2071,10 +2121,50 @@ export const TrialDashboard: React.FC = () => {
                   onDisplayLocationsChange={setDisplayedLocations}
                 />
               </>
-            ) : currentView === 'emails' ? (
+            ) : currentView === 'notifications' ? (
               <>
-                {/* Email Notifications */}
-                <EmailNotifications />
+                {/* Notifications - Combined Email and Frost Alerts */}
+                <div className="space-y-8">
+                  {/* Email Notifications Section */}
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                      <Mail className="h-6 w-6 mr-3" />
+                      Email Notifications
+                    </h2>
+                    <EmailNotifications />
+                  </div>
+                  
+                  {/* Frost Alert Subscription Section */}
+                  <div>
+                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                      <Thermometer className="h-6 w-6 mr-3" />
+                      Frost Alert Subscriptions
+                    </h2>
+                    <div className="space-y-6">
+                      <FrostWarningDashboard 
+                        locations={availableLocations}
+                        cropInstances={getLocationCropInstances()}
+                        onSendAlert={async (warning) => {
+                          try {
+                            const email = prompt('Enter email address for frost alert:');
+                            if (email) {
+                              await FrostEmailService.sendFrostWarning(
+                                email, 
+                                [warning], 
+                                [warning.locationName]
+                              );
+                              alert('Frost alert sent successfully!');
+                            }
+                          } catch (error) {
+                            console.error('Error sending frost alert:', error);
+                            alert('Failed to send frost alert');
+                          }
+                        }}
+                      />
+                      <FrostAlertSubscription />
+                    </div>
+                  </div>
+                </div>
               </>
             ) : currentView === 'org-dashboard' ? (
               <>

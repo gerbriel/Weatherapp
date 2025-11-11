@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Calendar, TrendingUp, BarChart3, LineChart as LineChartIcon, Settings } from 'lucide-react';
+import ChartAIInsights from './ChartAIInsights';
 
 interface CropETCData {
   cropId: string;
@@ -438,29 +439,25 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
     }));
   };
 
-  // Preset configurations
-  const applyPreset = (preset: string) => {
+  // Multi-select preset configurations
+  const togglePreset = (preset: string) => {
     switch (preset) {
-      case 'etc-only':
-        setEnabledLineTypes({ etc: true, eto: false, kc: false });
+      case 'etc':
+        setEnabledLineTypes(prev => ({ ...prev, etc: !prev.etc }));
         break;
-      case 'eto-only':
-        setEnabledLineTypes({ etc: false, eto: true, kc: false });
+      case 'eto':
+        setEnabledLineTypes(prev => ({ ...prev, eto: !prev.eto }));
         break;
-      case 'kc-only':
-        setEnabledLineTypes({ etc: false, eto: false, kc: true });
-        break;
-      case 'etc-eto':
-        setEnabledLineTypes({ etc: true, eto: true, kc: false });
-        break;
-      case 'etc-kc':
-        setEnabledLineTypes({ etc: true, eto: false, kc: true });
+      case 'kc':
+        setEnabledLineTypes(prev => ({ ...prev, kc: !prev.kc }));
         break;
       case 'all':
-        setEnabledLineTypes({ etc: true, eto: true, kc: true });
-        break;
-      case 'none':
-        setEnabledLineTypes({ etc: false, eto: false, kc: false });
+        const allEnabled = enabledLineTypes.etc && enabledLineTypes.eto && enabledLineTypes.kc;
+        if (allEnabled) {
+          setEnabledLineTypes({ etc: false, eto: false, kc: false });
+        } else {
+          setEnabledLineTypes({ etc: true, eto: true, kc: true });
+        }
         break;
     }
   };
@@ -555,9 +552,9 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
       {/* Individual Crop Water Use Time Series */}
       {etcData.length > 0 && (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2">
           📊 Individual Crop Water Use - Time Series
-          {location && <span className="text-sm font-normal text-gray-500">• {location.name}</span>}
+          {location && <span className="text-sm font-normal text-gray-500"> • {location.name}</span>}
         </h4>
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
           <span>📡 Time-Series Data:</span>
@@ -700,6 +697,20 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           )}
         </div>
         
+        {/* Centered AI Insights for Individual Crop Water Use */}
+        <div className="mt-6 mb-4">
+          <ChartAIInsights
+            chartType="crop-water-use"
+            chartData={cropWaterUseTimeSeriesData}
+            cropType={visibleCrops.size === 1 ? Array.from(visibleCrops)[0] : 'Mixed Crops'}
+            cropTypes={Array.from(visibleCrops)}
+            location={location?.name || 'Field Location'}
+            className="w-full"
+            compact={true}
+            enabledLineTypes={enabledLineTypes}
+          />
+        </div>
+        
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
           {dateRange?.startDate && dateRange?.endDate ? (
             <>
@@ -715,16 +726,20 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           )}
           <p>• <strong>Data Source:</strong> NOAA weather models via Open-Meteo API with FAO-56 calculations</p>
         </div>
+        
+
       </div>
       )}
 
       {/* ETC vs ETO Comparison Chart */}
       {etcData.length > 0 && (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-          📈 Crop vs Reference ET Comparison
-          {location && <span className="text-sm font-normal text-gray-500">• {location.name}</span>}
-        </h4>
+        <div className="text-center mb-2">
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center justify-center gap-2">
+            📈 Crop vs Reference ET Comparison
+            {location && <span className="text-sm font-normal text-gray-500">• {location.name}</span>}
+          </h4>
+        </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
           � Time Series: ETC = ETO × Kc (crop coefficient) over selected date range • Using NOAA weather data via Open-Meteo + FAO-56 standards
         </div>
@@ -743,39 +758,49 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
             </h5>
           </div>
 
-          {/* Quick Presets */}
+          {/* Quick Presets - Multi-Select */}
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Quick Presets:</label>
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Quick Presets (multi-select):</label>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => applyPreset('etc-only')}
-                className="text-xs px-3 py-1 rounded-full border border-blue-300 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                onClick={() => togglePreset('etc')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.etc 
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
               >
-                📊 ETC Only
+                📊 ETC
               </button>
               <button
-                onClick={() => applyPreset('eto-only')}
-                className="text-xs px-3 py-1 rounded-full border border-green-300 dark:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                onClick={() => togglePreset('eto')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.eto 
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
               >
-                🌡️ ETO Only
+                🌡️ ETO
               </button>
               <button
-                onClick={() => applyPreset('etc-eto')}
-                className="text-xs px-3 py-1 rounded-full border border-purple-300 dark:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                onClick={() => togglePreset('kc')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.kc 
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
               >
-                ⚖️ ETC vs ETO
+                🔢 KC
               </button>
               <button
-                onClick={() => applyPreset('kc-only')}
-                className="text-xs px-3 py-1 rounded-full border border-orange-300 dark:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors"
+                onClick={() => togglePreset('all')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.etc && enabledLineTypes.eto && enabledLineTypes.kc 
+                    ? 'border-emerald-500 bg-emerald-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
               >
-                🔢 KC Only
-              </button>
-              <button
-                onClick={() => applyPreset('all')}
-                className="text-xs px-3 py-1 rounded-full border border-gray-400 dark:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                👁️ Show All
+                👁️ Toggle All
               </button>
             </div>
           </div>
@@ -998,12 +1023,29 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
             </div>
           )}
         </div>
+        
+        {/* AI Insights - Full Width */}
+        <div className="mt-6 mb-4">
+          <ChartAIInsights
+            chartType="etc-comparison"
+            chartData={etcVsEtoData}
+            cropType={visibleCrops.size === 1 ? Array.from(visibleCrops)[0] : 'Mixed Crops'}
+            cropTypes={Array.from(visibleCrops)}
+            location={location?.name || 'Field Location'}
+            className="w-full"
+            compact={true}
+            enabledLineTypes={enabledLineTypes}
+          />
+        </div>
+        
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
           <p>• <strong>Time Series:</strong> Shows ETC, ETO, and KC values over the selected date range</p>
           <p>• <strong>Line Types:</strong> ETC (solid), ETO (dashed), KC (dotted) - each with distinct colors</p>
           <p>• <strong>Dual Y-Axis:</strong> Left axis for water use (mm/day), right axis for crop coefficient</p>
           <p>• <strong>Data Source:</strong> NOAA weather models via Open-Meteo API with FAO-56 calculations</p>
         </div>
+        
+
       </div>
       )}
 

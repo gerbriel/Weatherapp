@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts';
+import ChartAIInsights from './ChartAIInsights';
 
 interface SimpleWeatherChartsProps {
   location: {
@@ -81,7 +82,7 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
 
   return (
     <div className="space-y-6" style={{ width: '100%', minWidth: '400px' }}>
-      <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
+      <div style={{ width: '100%', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
         <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
           Precipitation Data {location?.name ? `- ${location.name}` : ''}
         </h3>
@@ -100,9 +101,19 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
             </BarChart>
           </ResponsiveContainer>
         </div>
+        
+        {/* AI Insights for Precipitation - Centered */}
+        <ChartAIInsights
+          chartType="precipitation"
+          chartData={chartData}
+          location={location?.name || 'Field Location'}
+          className=""
+          compact={true}
+        />
+
       </div>
 
-      <div style={{ width: '100%', height: '400px', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
+      <div style={{ width: '100%', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
         <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
           Evapotranspiration (ET₀) {location?.name ? `- ${location.name}` : ''}
         </h3>
@@ -121,6 +132,16 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
             </LineChart>
           </ResponsiveContainer>
         </div>
+        
+        {/* AI Insights for Evapotranspiration - Centered */}
+        <ChartAIInsights
+          chartType="evapotranspiration"
+          chartData={chartData}
+          location={location?.name || 'Field Location'}
+          className=""
+          compact={true}
+        />
+        
       </div>
     </div>
   );
