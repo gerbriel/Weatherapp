@@ -33,6 +33,7 @@ interface CropETCChartsProps {
   className?: string;
   dateRange?: { startDate: string; endDate: string; };
   reportMode?: 'current' | 'historical';
+  showAIInsights?: boolean;
 }
 
 // Helper function to calculate ETO using simplified Penman equation
@@ -91,7 +92,8 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
   weatherData,
   className = "",
   dateRange,
-  reportMode = 'current'
+  reportMode = 'current',
+  showAIInsights = false
 }) => {
   // Get all available crop types
   const availableCrops = useMemo(() => {
@@ -698,18 +700,20 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
         </div>
         
         {/* Centered AI Insights for Individual Crop Water Use */}
-        <div className="mt-6 mb-4">
-          <ChartAIInsights
-            chartType="crop-water-use"
-            chartData={cropWaterUseTimeSeriesData}
-            cropType={visibleCrops.size === 1 ? Array.from(visibleCrops)[0] : 'Mixed Crops'}
-            cropTypes={Array.from(visibleCrops)}
-            location={location?.name || 'Field Location'}
-            className="w-full"
-            compact={true}
-            enabledLineTypes={enabledLineTypes}
-          />
-        </div>
+        {showAIInsights && (
+          <div className="mt-6 mb-4">
+            <ChartAIInsights
+              chartType="crop-water-use"
+              chartData={cropWaterUseTimeSeriesData}
+              cropType={visibleCrops.size === 1 ? Array.from(visibleCrops)[0] : 'Mixed Crops'}
+              cropTypes={Array.from(visibleCrops)}
+              location={location?.name || 'Field Location'}
+              className="w-full"
+              compact={true}
+              enabledLineTypes={enabledLineTypes}
+            />
+          </div>
+        )}
         
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
           {dateRange?.startDate && dateRange?.endDate ? (
@@ -1025,18 +1029,20 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
         </div>
         
         {/* AI Insights - Full Width */}
-        <div className="mt-6 mb-4">
-          <ChartAIInsights
-            chartType="etc-comparison"
-            chartData={etcVsEtoData}
+        {showAIInsights && (
+          <div className="mt-6 mb-4">
+            <ChartAIInsights
+              chartType="etc-comparison"
+              chartData={etcVsEtoData}
             cropType={visibleCrops.size === 1 ? Array.from(visibleCrops)[0] : 'Mixed Crops'}
             cropTypes={Array.from(visibleCrops)}
             location={location?.name || 'Field Location'}
-            className="w-full"
-            compact={true}
-            enabledLineTypes={enabledLineTypes}
-          />
-        </div>
+              className="w-full"
+              compact={true}
+              enabledLineTypes={enabledLineTypes}
+            />
+          </div>
+        )}
         
         <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
           <p>• <strong>Time Series:</strong> Shows ETC, ETO, and KC values over the selected date range</p>

@@ -1095,7 +1095,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
               {/* Weather Charts */}
               <div className="mt-6">
                 <ChartErrorBoundary>
-                  <SimpleWeatherCharts location={location} />
+                  <SimpleWeatherCharts location={location} showAIInsights={showAIInsights} />
                 </ChartErrorBoundary>
               </div>
 
@@ -1110,6 +1110,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       weatherData={weather}
                       dateRange={dateRange}
                       reportMode={reportMode}
+                      showAIInsights={showAIInsights}
                     />
                   </ChartErrorBoundary>
                 </div>
@@ -1337,7 +1338,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             {/* Weather Charts */}
             <div className="mt-6">
               <ChartErrorBoundary>
-                <SimpleWeatherCharts location={location} />
+                <SimpleWeatherCharts location={location} showAIInsights={showAIInsights} />
               </ChartErrorBoundary>
             </div>
 
@@ -1352,6 +1353,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     weatherData={weather}
                     dateRange={dateRange}
                     reportMode={reportMode}
+                    showAIInsights={showAIInsights}
                   />
                 </ChartErrorBoundary>
               </div>

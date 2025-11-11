@@ -2,18 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts';
 import ChartAIInsights from './ChartAIInsights';
 import { useTheme } from '../contexts/ThemeContext';
+import type { LocationWithWeather } from '../types/weather';
 
 interface SimpleWeatherChartsProps {
-  location: {
-    id?: string;
-    name?: string;
-    latitude?: number;
-    longitude?: number;
-    weatherData?: any; // The actual weather data from API
-  };
+  location: LocationWithWeather;
+  showAIInsights?: boolean;
 }
 
-export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ location }) => {
+export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ location, showAIInsights = false }) => {
   const [isReady, setIsReady] = useState(false);
   const { isDarkMode } = useTheme();
 
@@ -110,13 +106,15 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
         </div>
         
         {/* AI Insights for Precipitation - Centered */}
-        <ChartAIInsights
-          chartType="precipitation"
-          chartData={chartData}
-          location={location?.name || 'Field Location'}
-          className=""
-          compact={true}
-        />
+        {showAIInsights && (
+          <ChartAIInsights
+            chartType="precipitation"
+            chartData={chartData}
+            location={location?.name || 'Field Location'}
+            className=""
+            compact={true}
+          />
+        )}
 
       </div>
 
@@ -146,13 +144,15 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
         </div>
         
         {/* AI Insights for Evapotranspiration - Centered */}
-        <ChartAIInsights
-          chartType="evapotranspiration"
-          chartData={chartData}
-          location={location?.name || 'Field Location'}
-          className=""
-          compact={true}
-        />
+        {showAIInsights && (
+          <ChartAIInsights
+            chartType="evapotranspiration"
+            chartData={chartData}
+            location={location?.name || 'Field Location'}
+            className=""
+            compact={true}
+          />
+        )}
         
       </div>
     </div>
