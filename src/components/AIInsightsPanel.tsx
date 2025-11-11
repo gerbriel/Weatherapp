@@ -214,7 +214,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
         >
           <div className="flex items-center gap-2">
             <Brain className="h-6 w-6 text-white animate-bounce" />
-            <span className="font-bold text-lg text-white">🤖 GET AI CROP INSIGHTS</span>
+            <span className="font-bold text-lg text-white">GET AI CROP INSIGHTS</span>
             <span className="text-sm bg-orange-500 text-white px-2 py-1 rounded-full font-bold animate-pulse">NEW!</span>
           </div>
           <ChevronDown className="h-4 w-4 text-white" />
@@ -234,7 +234,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
           <Brain className="h-5 w-5 text-blue-400" />
           <div>
             <h4 className="text-sm font-bold text-white dark:text-white">
-              🤖 AI Crop Insights - Field Analysis
+              AI Crop Insights - Field Analysis
             </h4>
             <p className="text-xs text-gray-300 dark:text-gray-300 font-medium">
               What this data means for your irrigation decisions

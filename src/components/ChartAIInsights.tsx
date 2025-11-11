@@ -500,35 +500,87 @@ export const ChartAIInsights: React.FC<ChartAIInsightsProps> = ({
     
     // Count actual analyzed crops (those with data)
     const analyzedCropsCount = Object.keys(cropWaterUseData).length;
-    const actuallyMultiCrop = analyzedCropsCount > 1;
+    const actuallyMultiCrop = analyzedCropsCount > 1 || (selectedCrops.length > 1 && analyzedCropsCount >= 1); // Show multi-crop analysis if multiple crops selected
+
+    // Debug info to help identify crops
+    console.log('Multi-crop analysis debug:', {
+      selectedCrops,
+      analyzedCropsCount,
+      cropWaterUseData: Object.keys(cropWaterUseData),
+      actuallyMultiCrop,
+      dataPointsCount: timeframe
+    });
 
     let summary = actuallyMultiCrop 
-      ? `Multi-crop water use comparison over ${timeframe} data points: ${analyzedCropsCount} crops analyzed, averaging ${avgWaterUse.toFixed(2)} mm/day across all crops, ranging from ${minWaterUse.toFixed(2)} to ${maxWaterUse.toFixed(2)} mm/day.`
-      : `Crop water use over ${timeframe} data points: averaging ${avgWaterUse.toFixed(2)} mm/day, ranging from ${minWaterUse.toFixed(2)} to ${maxWaterUse.toFixed(2)} mm/day.`;
+      ? `Multi-crop water use analysis: ${analyzedCropsCount} crops with data (${Object.keys(cropWaterUseData).join(', ')}) over ${timeframe} data points, averaging ${avgWaterUse.toFixed(2)} mm/day, ranging from ${minWaterUse.toFixed(2)} to ${maxWaterUse.toFixed(2)} mm/day.`
+      : `Single crop water use over ${timeframe} data points: averaging ${avgWaterUse.toFixed(2)} mm/day, ranging from ${minWaterUse.toFixed(2)} to ${maxWaterUse.toFixed(2)} mm/day.`;
     let insights = [];
     let recommendations = [];
     let riskFactors = [];
 
     if (actuallyMultiCrop) {
-      // Multi-crop specific insights
+      // Multi-crop specific insights with individual crop breakdown
       const cropNames = Object.keys(cropWaterUseData);
-      const cropAverages = cropNames.map(crop => ({
-        name: crop,
-        avg: cropWaterUseData[crop].reduce((sum, v) => sum + v, 0) / cropWaterUseData[crop].length
-      }));
+      const cropAverages = cropNames.map(crop => {
+        const values = cropWaterUseData[crop];
+        const avg = values.reduce((sum, v) => sum + v, 0) / values.length;
+        const max = Math.max(...values);
+        const min = Math.min(...values);
+        const trend = values.length > 1 ? calculateTrend(values) : 0;
+        const cropType = crop.split('_')[0].toUpperCase();
+        return { name: crop, cropType, avg, max, min, trend };
+      });
       
       cropAverages.sort((a, b) => b.avg - a.avg);
       
-      insights.push(`🌱 Comparing ${selectedCrops.length} crops: ${cropAverages[0].name} has highest water use (${cropAverages[0].avg.toFixed(2)} mm/day)`);
-      insights.push(`💧 Water efficiency: ${cropAverages[cropAverages.length - 1].name} uses least water (${cropAverages[cropAverages.length - 1].avg.toFixed(2)} mm/day)`);
-      insights.push(`📊 Diversity factor: ${((cropAverages[0].avg - cropAverages[cropAverages.length - 1].avg) / cropAverages[0].avg * 100).toFixed(0)}% difference between highest and lowest water users`);
+      // Add individual crop header
+      insights.push(`INDIVIDUAL CROP ANALYSIS - ${analyzedCropsCount} crops with detailed breakdown:`);
       
-      recommendations.push(`Zone irrigation by crop type to optimize water distribution`);
-      recommendations.push(`Schedule high-demand crops (${cropAverages.slice(0, Math.ceil(cropAverages.length/2)).map(c => c.name).join(', ')}) during cooler hours`);
-      recommendations.push(`Consider water-efficient alternatives for high-use crops during water stress periods`);
+      // Add individual crop insights for each selected crop
+      cropAverages.forEach((crop, index) => {
+        const trendText = crop.trend > 0.05 ? '↗ increasing' : crop.trend < -0.05 ? '↘ decreasing' : '→ stable';
+        const waterCategory = crop.avg > 6 ? '[HIGH DEMAND]' : crop.avg > 3 ? '[MODERATE USE]' : '[EFFICIENT]';
+        const displayName = crop.name.replace(/_/g, ' ').toUpperCase();
+        
+        insights.push(`    ${index + 1}. ${displayName}: ${waterCategory} - ${crop.avg.toFixed(2)} mm/day average (${crop.min.toFixed(1)}-${crop.max.toFixed(1)} range) ${trendText}`);
+      });
+      
+      // Add comparative insights
+      insights.push(`[HIGHEST DEMAND] ${cropAverages[0].cropType} at ${cropAverages[0].avg.toFixed(2)} mm/day requires priority irrigation scheduling`);
+      insights.push(`[MOST EFFICIENT] ${cropAverages[cropAverages.length - 1].cropType} at ${cropAverages[cropAverages.length - 1].avg.toFixed(2)} mm/day offers water conservation opportunities`);
+      insights.push(`[WATER USE SPREAD] ${((cropAverages[0].avg - cropAverages[cropAverages.length - 1].avg) / cropAverages[0].avg * 100).toFixed(0)}% difference between most and least water-intensive crops`);
+      
+      // Add individual crop recommendations header
+      recommendations.push(`INDIVIDUAL CROP IRRIGATION SCHEDULES:`);
+      
+      // Individual crop recommendations
+      cropAverages.forEach((crop, index) => {
+        const displayName = crop.name.replace(/_/g, ' ').toUpperCase();
+        if (crop.avg > 5) {
+          recommendations.push(`    ${index + 1}. ${displayName}: Schedule irrigation 4-6 AM daily - HIGH DEMAND crop needs priority watering`);
+        } else if (crop.avg < 3) {
+          recommendations.push(`    ${index + 1}. ${displayName}: Water deeply every 2-3 days - EFFICIENT crop conserves water`);
+        } else {
+          recommendations.push(`    ${index + 1}. ${displayName}: Standard schedule every 2 days - MODERATE water use pattern`);
+        }
+      });
+      
+      // Farm-wide recommendations
+      recommendations.push(`Zone irrigation system: Group ${cropAverages.filter(c => c.avg > 4).map(c => c.cropType).join(', ')} (high-demand) vs ${cropAverages.filter(c => c.avg <= 4).map(c => c.cropType).join(', ')} (efficient) zones`);
+      recommendations.push(`Water allocation priority: During shortages, prioritize ${cropAverages.slice(0, Math.ceil(cropAverages.length/3)).map(c => c.cropType).join(', ')} over ${cropAverages.slice(-Math.ceil(cropAverages.length/3)).map(c => c.cropType).join(', ')}`);
+      
+      // Individual crop risk factors
+      cropAverages.forEach(crop => {
+        if (crop.trend > 0.1) {
+          riskFactors.push(`${crop.cropType}: Rapidly increasing water demand (${(crop.trend * 100).toFixed(0)}% daily increase) may stress irrigation capacity`);
+        }
+        if (crop.avg > cropAverages[cropAverages.length - 1].avg * 2.5) {
+          riskFactors.push(`${crop.cropType}: Extremely high water use compared to other crops may indicate stress or inefficient irrigation`);
+        }
+      });
       
       if (cropAverages[0].avg > cropAverages[cropAverages.length - 1].avg * 2) {
-        riskFactors.push(`Large water use variation between crops may lead to over/under watering`);
+        riskFactors.push(`Large water use variation between crops may lead to over/under watering without zone-based irrigation management`);
       }
     } else {
       // Single crop insights
@@ -1156,7 +1208,7 @@ export const ChartAIInsights: React.FC<ChartAIInsightsProps> = ({
         >
           <div className="flex items-center gap-2">
             <Brain className="h-6 w-6 text-white animate-bounce" />
-            <span className="font-bold text-lg text-white">🤖 GET AI INSIGHTS</span>
+            <span className="font-bold text-lg text-white">GET AI INSIGHTS</span>
             <span className="text-sm bg-orange-500 text-white px-2 py-1 rounded-full font-bold animate-pulse">NEW!</span>
           </div>
           <ChevronDown className="h-4 w-4 text-white" />
@@ -1284,7 +1336,7 @@ export const ChartAIInsights: React.FC<ChartAIInsightsProps> = ({
                     🎯 <strong>{Math.round(insights.confidence * 100)}%</strong> accuracy
                   </span>
                   <span className="flex items-center gap-1">
-                    🤖 <strong>AI-powered</strong> agricultural insights
+                    <strong>AI-powered</strong> agricultural insights
                   </span>
                 </div>
               </div>

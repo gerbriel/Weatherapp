@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings, Cloud, BarChart3, Wheat, Sun } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { exportComprehensiveData, type ComprehensiveExportOptions } from '../utils/exportUtils';
 import { SimpleWeatherCharts } from './SimpleWeatherCharts';
@@ -584,7 +584,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   className="mr-2"
                 />
                 <span className="flex items-center">
-                  🤖 AI Insights
+                  AI Insights
                   <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
                     Beta
                   </span>
@@ -637,7 +637,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
             <div className="bg-white dark:bg-gray-800 rounded p-3 border border-blue-200 dark:border-blue-600">
               <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">
-                🌤️ Weather Data
+                <div className="flex items-center gap-1">
+                  <Cloud className="h-4 w-4" />
+                  Weather Data
+                </div>
               </div>
               <div className="text-gray-600 dark:text-gray-400">
                 <strong>API:</strong> Open-Meteo {reportMode === 'historical' ? 'Archive' : 'Forecast'}<br/>
@@ -646,7 +649,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded p-3 border border-green-200 dark:border-green-600">
-              <div className="font-medium text-green-800 dark:text-green-200 mb-1">💧 Evapotranspiration</div>
+              <div className="font-medium text-green-800 dark:text-green-200 mb-1 flex items-center gap-1">
+                <Droplets className="h-4 w-4" />
+                Evapotranspiration
+              </div>
               <div className="text-gray-600 dark:text-gray-400">
                 <strong>API:</strong> Open-Meteo ET₀<br/>
                 <strong>Method:</strong> FAO-56 Penman-Monteith<br/>
@@ -654,7 +660,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded p-3 border border-purple-200 dark:border-purple-600">
-              <div className="font-medium text-purple-800 dark:text-purple-200 mb-1">🌾 Crop Coefficients</div>
+              <div className="font-medium text-purple-800 dark:text-purple-200 mb-1 flex items-center gap-1">
+                <Wheat className="h-4 w-4" />
+                Crop Coefficients
+              </div>
               <div className="text-gray-600 dark:text-gray-400">
                 <strong>Source:</strong> FAO-56 Guidelines<br/>
                 <strong>Enhancement:</strong> CMIS API (CA only)<br/>
@@ -886,7 +895,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       {location.name || 'Unknown Location'}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      📍 NOAA Weather Data (GFS Global & NAM CONUS via Open-Meteo API)
+                      <div className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        NOAA Weather Data (GFS Global & NAM CONUS via Open-Meteo API)
+                      </div>
                     </p>
                   </div>
                   <div className="text-right">
@@ -979,7 +991,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
               <div className="p-6">
                 <div className="text-center mb-2">
                   <h4 className="text-md font-medium text-gray-900 dark:text-white">
-                    📈 14-Day Forecast Data
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-4 w-4" />
+                      14-Day Forecast Data
+                    </div>
                   </h4>
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
@@ -1126,7 +1141,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     {location.name}
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    📍 {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                    </div>
                   </p>
                 </div>
                 <div className="text-right">
@@ -1219,7 +1237,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
             <div className="p-6">
               <div className="text-center mb-2">
                 <h4 className="text-md font-medium text-gray-900 dark:text-white">
-                  📈 14-Day Forecast Data
+                  <div className="flex items-center gap-1">
+                    <TrendingUp className="h-4 w-4" />
+                    14-Day Forecast Data
+                  </div>
                 </h4>
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
@@ -1345,18 +1366,27 @@ export const ReportView: React.FC<ReportViewProps> = ({
       {selectedLocationIds.size > 0 && (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
         <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
-          📊 Comprehensive Report Generated for {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Comprehensive Report Generated for {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
+          </div>
         </p>
         
         {displayLocations.length > 0 && (
           <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
-            📍 <strong>Locations:</strong> {displayLocations.map(loc => loc.name).join(', ')}
+            <div className="flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              <strong>Locations:</strong> {displayLocations.map(loc => loc.name).join(', ')}
+            </div>
           </p>
         )}
         
         {(selectedCrops.length > 0 || cropInstances.length > 0) && (
           <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
-            🌱 <strong>Active Crops:</strong> {(() => {
+            <div className="flex items-center gap-1">
+              <Sprout className="h-4 w-4" />
+              <strong>Active Crops:</strong>
+            </div> {(() => {
               const allCrops = new Set();
               selectedCrops.forEach(crop => allCrops.add(crop));
               cropInstances.forEach(instance => allCrops.add(instance.cropId));
