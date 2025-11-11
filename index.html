@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
     <!-- Security and CORS headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; font-src 'self' data: https:; connect-src 'self' https:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; style-src 'self' 'unsafe-inline' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: blob: https:; connect-src 'self' data: blob: https: wss:; worker-src 'self' data: blob:;">
     
     <!-- Ensure proper module loading -->
     <script>
@@ -18,9 +18,6 @@
     </script>
     
     <title>ET Weather - Live</title>
-    
-    <!-- Preload critical resources -->
-    <link rel="preload" href="./src/main.tsx" as="script" type="text/javascript" />
   </head>
   <body>
     <div id="root">

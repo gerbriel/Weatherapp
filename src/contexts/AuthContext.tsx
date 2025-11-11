@@ -423,7 +423,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const trialLocations = [
       {
         id: 'trial-cimis-125',
-        name: 'Castroville',
+        name: 'Castroville Agricultural Station',
         latitude: 36.7650,
         longitude: -121.7569,
         state: 'California',
@@ -432,7 +432,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       },
       {
         id: 'trial-cimis-80',
-        name: 'Fresno State',
+        name: 'Fresno State University',
         latitude: 36.8175,
         longitude: -119.7417,
         state: 'California',
@@ -441,7 +441,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       },
       {
         id: 'trial-cimis-71',
-        name: 'Manteca',
+        name: 'Manteca Farm Station',
         latitude: 37.7633,
         longitude: -121.2158,
         state: 'California',
@@ -450,7 +450,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       },
       {
         id: 'trial-cimis-250',
-        name: 'Buttonwillow',
+        name: 'Buttonwillow Agricultural Station',
         latitude: 35.3986,
         longitude: -119.4692,
         state: 'California',
@@ -459,7 +459,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       },
       {
         id: 'trial-cimis-77',
-        name: 'Oakville',
+        name: 'Oakville Vineyard Station',
         latitude: 38.4321,
         longitude: -122.4106,
         state: 'California',
@@ -468,7 +468,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       },
       {
         id: 'trial-cimis-214',
-        name: 'Torrey Pines',
+        name: 'Torrey Pines Coastal Station',
         latitude: 32.8831,
         longitude: -117.2419,
         state: 'California',
@@ -481,8 +481,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       id: `user-${loc.id}`,
       user_id: userId,
       organization_id: 'local-org',
-      name: `${loc.name}, ${loc.state}`,
-      description: `${loc.region} agricultural location`,
+      name: `${loc.name} (CIMIS #${loc.cimisStationId})`,
+      description: `${loc.region} agricultural weather station`,
       latitude: loc.latitude,
       longitude: loc.longitude,
       elevation: 100, // Default elevation

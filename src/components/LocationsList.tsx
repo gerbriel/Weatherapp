@@ -14,18 +14,59 @@ export const LocationsList: React.FC<LocationsListProps> = ({
   onLocationSelect, 
   selectedLocationId 
 }) => {
+  const { 
+    resetToTrialLocations, 
+    user, 
+    locations: authLocations, 
+    addLocation: authAddLocation,
+    deleteLocation: authDeleteLocation
+  } = useAuth();
+  
   const {
-    locations,
+    locations: trialLocations,
     favorites,
-    addLocation,
-    removeLocation,
+    addLocation: trialAddLocation,
+    removeLocation: trialRemoveLocation,
     toggleFavorite,
     refreshLocation,
     refreshAllLocations,
     loading: globalLoading
   } = useLocations();
 
-  const { resetToTrialLocations, user } = useAuth();
+  // Use appropriate locations and functions based on authentication
+  const locations = user ? authLocations : trialLocations;
+  
+  // Wrapper functions to handle different location types
+  const addLocationWrapper = (locationData: { name: string; latitude: number; longitude: number }) => {
+    if (user) {
+      // For authenticated users, add required fields for UserLocation
+      return authAddLocation({
+        ...locationData,
+        description: '',
+        elevation: 100,
+        address: locationData.name,
+        city: locationData.name.split(',')[0] || locationData.name,
+        state: 'CA',
+        country: 'United States',
+        postal_code: '00000',
+        timezone: 'America/Los_Angeles',
+        is_default: authLocations.length === 0,
+        is_active: true,
+        metadata: {}
+      });
+    } else {
+      // For trial users, use the trial format
+      return trialAddLocation(locationData);
+    }
+  };
+
+  const removeLocationWrapper = (id: string) => {
+    if (user) {
+      return authDeleteLocation(id);
+    } else {
+      return trialRemoveLocation(id);
+    }
+  };
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDefaultLocations, setShowDefaultLocations] = useState(false);
@@ -50,7 +91,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
       return;
     }
 
-    addLocation({
+    addLocationWrapper({
       name: newLocation.name.trim(),
       latitude: lat,
       longitude: lng
@@ -66,7 +107,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
         navigator.geolocation.getCurrentPosition(resolve, reject);
       });
       
-      addLocation({
+      addLocationWrapper({
         name: 'Current Location',
         latitude: position.coords.latitude,
         longitude: position.coords.longitude
@@ -116,7 +157,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
 
     // Add each new location
     newLocations.forEach(loc => {
-      addLocation({
+      addLocationWrapper({
         name: loc.name,
         latitude: loc.latitude,
         longitude: loc.longitude
@@ -151,7 +192,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
     }
   };
 
-  const LocationCard: React.FC<{ location: LocationWithWeather }> = ({ location }) => {
+  const LocationCard: React.FC<{ location: LocationWithWeather | any }> = ({ location }) => {
     const isSelected = selectedLocationId === location.id;
     const todayData = location.weatherData?.daily ? {
       precipitation: location.weatherData.daily.precipitation_sum[0] || 0,
@@ -209,7 +250,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                removeLocation(location.id);
+                removeLocationWrapper(location.id);
               }}
               className="p-1 rounded text-gray-400 hover:text-red-500"
             >
