@@ -15,117 +15,124 @@ import {
   Wifi,
   Smartphone,
   Globe,
-  Layers
+  Layers,
+  Wheat,
+  Droplets,
+  DollarSign,
+  Brain,
+  Calendar,
+  Zap,
+  Sprout,
+  Target,
+  Timer
 } from 'lucide-react';
 import { AuthModal } from '../auth/AuthModal';
 
 export const ProductPage: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('weather');
+  const [activeTab, setActiveTab] = useState('crops');
 
-  const weatherFeatures = [
+  const cropIntelligenceFeatures = [
     {
-      icon: <Thermometer className="h-8 w-8" />,
-      title: "Temperature Monitoring",
-      description: "Real-time temperature data with min/max tracking and heat stress alerts"
+      icon: <Wheat className="h-8 w-8" />,
+      title: "Multi-Crop Database",
+      description: "50+ crop varieties with specific ET coefficients, growth stages, and water requirements"
     },
     {
-      icon: <CloudRain className="h-8 w-8" />,
-      title: "Precipitation Tracking",
-      description: "Accurate rainfall measurements and forecasts for irrigation planning"
+      icon: <Brain className="h-8 w-8" />,
+      title: "AI-Powered Insights", 
+      description: "Machine learning algorithms analyze crop conditions and provide optimization recommendations"
     },
     {
-      icon: <Wind className="h-8 w-8" />,
-      title: "Wind Speed & Direction",
-      description: "Wind data for spray applications and ET calculations"
+      icon: <Calendar className="h-8 w-8" />,
+      title: "Growth Stage Tracking",
+      description: "Monitor crop development and adjust irrigation based on plant phenology"
     },
     {
-      icon: <Eye className="h-8 w-8" />,
-      title: "Solar Radiation",
-      description: "UV index and solar radiation measurements for crop growth optimization"
+      icon: <Target className="h-8 w-8" />,
+      title: "Yield Optimization",
+      description: "Maximize production while maintaining quality through precision water management"
     },
     {
-      icon: <Gauge className="h-8 w-8" />,
-      title: "Humidity & Pressure",
-      description: "Atmospheric conditions that affect plant growth and disease pressure"
+      icon: <DollarSign className="h-8 w-8" />,
+      title: "ROI Tracking",
+      description: "Monitor water cost savings and yield improvements with detailed financial analytics"
     },
     {
-      icon: <Sun className="h-8 w-8" />,
-      title: "Evapotranspiration",
-      description: "Precise ET calculations using Penman-Monteith and FAO methods"
+      icon: <Sprout className="h-8 w-8" />,
+      title: "Stress Prevention",
+      description: "Early detection of water stress to prevent yield loss and crop damage"
     }
   ];
 
-  const analyticsFeatures = [
+  const irrigationManagementFeatures = [
     {
-      icon: <BarChart3 className="h-8 w-8" />,
-      title: "Historical Analysis",
-      description: "Access years of weather data to identify patterns and trends"
+      icon: <Droplets className="h-8 w-8" />,
+      title: "Precision Scheduling",
+      description: "Automated irrigation schedules based on real-time crop water needs and weather conditions"
     },
     {
-      icon: <TrendingUp className="h-8 w-8" />,
-      title: "Predictive Models",
-      description: "AI-powered forecasting for better irrigation planning"
+      icon: <Timer className="h-8 w-8" />,
+      title: "Optimal Timing",
+      description: "Calculate the best irrigation windows to maximize water efficiency and minimize runoff"
     },
     {
-      icon: <Database className="h-8 w-8" />,
-      title: "Data Export",
-      description: "Export data in multiple formats for external analysis"
+      icon: <Zap className="h-8 w-8" />,
+      title: "Controller Integration",
+      description: "Connect with popular irrigation controllers for automated valve control"
     },
     {
       icon: <AlertTriangle className="h-8 w-8" />,
-      title: "Smart Alerts",
-      description: "Customizable notifications for weather events and irrigation needs"
+      title: "Field Alerts",
+      description: "Instant notifications for irrigation needs, weather threats, and equipment issues"
     }
   ];
 
-  const integrationFeatures = [
+  const fieldAnalyticsFeatures = [
     {
-      icon: <Wifi className="h-8 w-8" />,
-      title: "API Access",
-      description: "RESTful API for integrating with your existing systems"
+      icon: <BarChart3 className="h-8 w-8" />,
+      title: "Performance Analytics",
+      description: "Track yield improvements, water usage efficiency, and cost savings across fields"
     },
     {
-      icon: <Smartphone className="h-8 w-8" />,
-      title: "Mobile App",
-      description: "Native iOS and Android apps for field monitoring"
+      icon: <TrendingUp className="h-8 w-8" />,
+      title: "Trend Analysis",
+      description: "Historical data analysis to identify seasonal patterns and optimize future seasons"
+    },
+    {
+      icon: <Database className="h-8 w-8" />,
+      title: "Custom Reports",
+      description: "Generate detailed reports for compliance, investors, or operational analysis"
     },
     {
       icon: <Globe className="h-8 w-8" />,
-      title: "Web Dashboard",
-      description: "Responsive web interface accessible from any device"
-    },
-    {
-      icon: <Layers className="h-8 w-8" />,
-      title: "Third-party Tools",
-      description: "Integrate with irrigation controllers and farm management software"
+      title: "Farm Management Integration",
+      description: "Connect with John Deere, Climate FieldView, and other farm management platforms"
     }
-  ];
-
-  const tabs = [
-    { id: 'weather', label: 'Weather Data', features: weatherFeatures },
-    { id: 'analytics', label: 'Analytics', features: analyticsFeatures },
-    { id: 'integration', label: 'Integration', features: integrationFeatures }
+  ];  const tabs = [
+    { id: 'crops', label: 'Crop Intelligence', features: cropIntelligenceFeatures },
+    { id: 'irrigation', label: 'Irrigation Management', features: irrigationManagementFeatures },
+    { id: 'analytics', label: 'Field Analytics', features: fieldAnalyticsFeatures }
   ];
 
   return (
     <MarketingLayout currentPage="product">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 to-blue-800 text-white py-20">
+      <section className="bg-gradient-to-br from-green-600 to-blue-800 dark:from-green-800 dark:to-blue-900 text-white py-20 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-              Advanced Weather Intelligence for Smart Irrigation
+              Complete Crop Intelligence Platform for Modern Growers
             </h1>
             <p className="text-xl lg:text-2xl text-blue-100 mb-8 max-w-4xl mx-auto">
-              Get precise evapotranspiration calculations, real-time weather monitoring, 
-              and intelligent analytics to optimize your irrigation decisions.
+              Maximize yields and profits with crop-specific irrigation schedules, AI-powered insights, 
+              and precision agriculture tools built for today's farming operations.
             </p>
             <button
               onClick={() => setShowAuthModal(true)}
-              className="bg-white text-blue-700 text-lg font-semibold px-8 py-4 rounded-lg hover:bg-blue-50 transition-colors"
+              className="bg-white text-green-700 text-lg font-semibold px-8 py-4 rounded-lg hover:bg-green-50 transition-colors"
             >
-              Try Free Demo
+              Start Farm Trial
             </button>
           </div>
         </div>
@@ -143,8 +150,8 @@ export const ProductPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
-            <div className="bg-gray-800 px-6 py-4 flex items-center">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl overflow-hidden transition-colors">
+            <div className="bg-gray-800 dark:bg-gray-900 px-6 py-4 flex items-center">
               <div className="flex space-x-2">
                 <div className="w-3 h-3 bg-red-400 rounded-full"></div>
                 <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
@@ -158,8 +165,8 @@ export const ProductPage: React.FC = () => {
             <div className="p-8">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Today's Weather */}
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Current Conditions</h3>
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Current Conditions</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-white rounded-lg p-3">
                       <div className="text-2xl font-bold text-gray-800">78°F</div>
@@ -221,13 +228,13 @@ export const ProductPage: React.FC = () => {
       </section>
 
       {/* Features Tabs Section */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white dark:bg-gray-900 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Comprehensive Weather Intelligence Platform
             </h2>
-            <p className="text-xl text-gray-600">
+            <p className="text-xl text-gray-600 dark:text-gray-300">
               Everything you need for professional irrigation management
             </p>
           </div>
@@ -241,8 +248,8 @@ export const ProductPage: React.FC = () => {
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-6 py-3 rounded-md font-medium transition-colors ${
                     activeTab === tab.id
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
                   {tab.label}
@@ -253,13 +260,13 @@ export const ProductPage: React.FC = () => {
 
           {/* Tab Content */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {tabs.find(tab => tab.id === activeTab)?.features.map((feature, index) => (
+            {tabs.find(tab => tab.id === activeTab)?.features.map((feature: any, index: number) => (
               <div key={index} className="text-center">
-                <div className="bg-blue-100 text-blue-600 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4">
                   {feature.icon}
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -267,7 +274,7 @@ export const ProductPage: React.FC = () => {
       </section>
 
       {/* Technical Specifications */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
@@ -401,7 +408,7 @@ export const ProductPage: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-blue-600 py-16">
+      <section className="bg-blue-600 dark:bg-blue-800 py-16 transition-colors">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
             Ready to Experience Professional Weather Intelligence?
