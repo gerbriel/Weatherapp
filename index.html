@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     
+    <!-- Cache busting headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <!-- Security and CORS headers -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; style-src 'self' 'unsafe-inline' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: blob: https:; connect-src 'self' data: blob: https: wss:; worker-src 'self' data: blob:;">
     
@@ -18,6 +23,9 @@
     </script>
     
     <title>ET Weather - Live</title>
+    
+    <!-- Debug script for troubleshooting -->
+    <script src="./debug-localStorage.js"></script>
   </head>
   <body>
     <div id="root">

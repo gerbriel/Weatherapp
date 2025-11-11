@@ -534,15 +534,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // Use local storage for user locations instead of database
       const savedLocations = localStorage.getItem(`userLocations_${userId}`);
+      console.log('🔍 Fetching locations for user:', userId);
+      
       if (savedLocations) {
         const parsedLocations = JSON.parse(savedLocations);
+        console.log('📍 Found saved locations:', parsedLocations.length, 'locations');
         setLocations(parsedLocations);
       } else {
         // Start with trial locations for new users to give them the full trial experience
+        console.log('🆕 No saved locations, creating defaults for user:', userId);
         const defaultLocations = createDefaultUserLocations(userId);
         
         setLocations(defaultLocations);
         localStorage.setItem(`userLocations_${userId}`, JSON.stringify(defaultLocations));
+        console.log('💾 Saved', defaultLocations.length, 'default locations to localStorage');
       }
     } catch (error) {
       console.error('Error in fetchLocations:', error);
@@ -627,6 +632,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const updatedLocations = [...locations, newLocation];
     setLocations(updatedLocations);
     localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
+    
+    console.log('🔄 Added location for user:', user.id, 'New total:', updatedLocations.length);
+    console.log('💾 Saved to localStorage key:', `userLocations_${user.id}`);
 
     return { data: newLocation, error: null };
   };
@@ -651,6 +659,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const updatedLocations = locations.filter(loc => loc.id !== id);
     setLocations(updatedLocations);
     localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
+    
+    console.log('🗑️ Deleted location for user:', user.id, 'Remaining:', updatedLocations.length);
+    console.log('💾 Saved to localStorage key:', `userLocations_${user.id}`);
 
     return { error: null };
   };
