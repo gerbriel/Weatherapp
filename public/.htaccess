@@ -1,0 +1,31 @@
+# Force MIME types for JavaScript modules
+AddType application/javascript .js
+AddType application/javascript .mjs
+AddType text/css .css
+AddType text/html .html
+AddType application/json .json
+
+# Security headers
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-XSS-Protection "1; mode=block"
+
+# Cache control for static assets
+<filesMatch "\.(css|js|woff2|woff|ttf|otf|eot|svg|png|jpg|jpeg|gif|webp|ico)$">
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</filesMatch>
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Fallback for SPA routing
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /Weatherapp/
+    RewriteRule ^index\.html$ - [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule . /Weatherapp/index.html [L]
+</IfModule>
