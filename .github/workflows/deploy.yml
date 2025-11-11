@@ -97,6 +97,26 @@ jobs:
           touch dist/.nojekyll
         fi
         
+        # Copy .htaccess for MIME type and routing fixes
+        if [ -f "public/.htaccess" ]; then
+          cp public/.htaccess dist/.htaccess
+          echo "✅ Copied .htaccess for proper MIME types and routing"
+        else
+          echo "⚠️  .htaccess file not found in public/"
+        fi
+        
+        # Copy web.config for IIS compatibility
+        if [ -f "public/web.config" ]; then
+          cp public/web.config dist/web.config
+          echo "✅ Copied web.config for IIS compatibility"
+        fi
+        
+        # Copy _headers file for Netlify-style hosting
+        if [ -f "public/_headers" ]; then
+          cp public/_headers dist/_headers
+          echo "✅ Copied _headers for Netlify-style hosting"
+        fi
+        
         # Create 404.html for SPA routing
         cp dist/index.html dist/404.html
         echo "✅ Created 404.html for SPA routing"

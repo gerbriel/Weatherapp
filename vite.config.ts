@@ -27,7 +27,20 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         manualChunks: undefined,
+        // Ensure proper file extensions and MIME types
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash][extname]',
       },
+    },
+    // Fix MIME type issues
+    target: 'es2020',
+    minify: 'esbuild',
+  },
+  // Ensure proper module resolution
+  resolve: {
+    alias: {
+      '@': '/src',
     },
   },
 }))

@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "tsx server/resendServer.ts",
-    "dev:all": "concurrently \"npm run server\" \"npm run dev\""
+    "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
+    "test:server": "node server-test.js",
+    "build:test": "npm run build && npm run test:server"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
