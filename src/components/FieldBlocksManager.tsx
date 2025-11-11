@@ -309,14 +309,34 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
     }
   }, [organization?.id]);
 
-  // Use prop fieldBlocks or fallback to generated ones
-  const fieldBlocks = propFieldBlocks.length > 0 ? propFieldBlocks : getOrganizationFieldBlocks;
-  const [localFieldBlocks, setLocalFieldBlocks] = useState<FieldBlock[]>(fieldBlocks);
+  // Load field blocks from localStorage or fallback to generated ones
+  const getInitialFieldBlocks = () => {
+    if (propFieldBlocks.length > 0) return propFieldBlocks;
+    
+    if (organization?.id) {
+      const storageKey = `fieldBlocks_${organization.id}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          console.log('📍 Loaded', parsed.length, 'field blocks from localStorage for', organization.id);
+          return parsed;
+        } catch (error) {
+          console.error('Error parsing saved field blocks:', error);
+        }
+      }
+    }
+    
+    return getOrganizationFieldBlocks;
+  };
+
+  const [localFieldBlocks, setLocalFieldBlocks] = useState<FieldBlock[]>(getInitialFieldBlocks());
 
   // Update local field blocks when prop or organization changes
   React.useEffect(() => {
-    setLocalFieldBlocks(fieldBlocks);
-  }, [fieldBlocks]);
+    const newFieldBlocks = getInitialFieldBlocks();
+    setLocalFieldBlocks(newFieldBlocks);
+  }, [organization?.id, propFieldBlocks]);
 
   const filteredBlocks = localFieldBlocks.filter(block => {
     const matchesStatus = filterStatus === 'all' || block.status === filterStatus;
@@ -349,13 +369,15 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
 
   const handleSaveBlock = (blockData: Partial<FieldBlock>) => {
     let updatedBlock: FieldBlock;
+    let updatedBlocks: FieldBlock[];
     
     if (editingBlock) {
       // Update existing block
       updatedBlock = { ...editingBlock, ...blockData, updated_at: new Date().toISOString() };
-      setLocalFieldBlocks(prev => prev.map(block => 
+      updatedBlocks = localFieldBlocks.map(block => 
         block.id === editingBlock.id ? updatedBlock : block
-      ));
+      );
+      setLocalFieldBlocks(updatedBlocks);
     } else {
       // Create new block
       updatedBlock = {
@@ -365,7 +387,15 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
         updated_at: new Date().toISOString(),
         ...blockData
       } as FieldBlock;
-      setLocalFieldBlocks(prev => [...prev, updatedBlock]);
+      updatedBlocks = [...localFieldBlocks, updatedBlock];
+      setLocalFieldBlocks(updatedBlocks);
+    }
+
+    // Persist to localStorage
+    if (organization?.id) {
+      const storageKey = `fieldBlocks_${organization.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(updatedBlocks));
+      console.log('💾 Saved field blocks to localStorage:', updatedBlocks.length, 'blocks');
     }
 
     // Notify parent component of the update
@@ -379,7 +409,15 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
 
   const handleDeleteBlock = (blockId: string) => {
     if (confirm('Are you sure you want to delete this field block?')) {
-      setLocalFieldBlocks(prev => prev.filter(block => block.id !== blockId));
+      const updatedBlocks = localFieldBlocks.filter(block => block.id !== blockId);
+      setLocalFieldBlocks(updatedBlocks);
+      
+      // Persist deletion to localStorage
+      if (organization?.id) {
+        const storageKey = `fieldBlocks_${organization.id}`;
+        localStorage.setItem(storageKey, JSON.stringify(updatedBlocks));
+        console.log('🗑️ Deleted field block:', blockId, 'Remaining blocks:', updatedBlocks.length);
+      }
     }
   };
 
@@ -521,24 +559,24 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">{fieldBlocks.length}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{localFieldBlocks.length}</div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Total Blocks</div>
         </div>
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            {fieldBlocks.reduce((sum, block) => sum + block.acres, 0)}
+            {localFieldBlocks.reduce((sum: number, block: FieldBlock) => sum + block.acres, 0)}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Total Acres</div>
         </div>
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            {fieldBlocks.filter(block => block.status === 'active').length}
+            {localFieldBlocks.filter((block: FieldBlock) => block.status === 'active').length}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Active Blocks</div>
         </div>
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
-            {fieldBlocks.reduce((sum, block) => sum + block.water_allocation, 0).toFixed(1)}
+            {localFieldBlocks.reduce((sum: number, block: FieldBlock) => sum + block.water_allocation, 0).toFixed(1)}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">Total Water (AF)</div>
         </div>
