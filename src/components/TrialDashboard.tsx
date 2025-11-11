@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, TrendingUp, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 import { useTrial } from '../contexts/TrialContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocations } from '../contexts/LocationsContext';
@@ -848,10 +849,10 @@ export const TrialDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading {user ? 'your' : 'trial'} data...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-700 dark:text-gray-300">Loading {user ? 'your' : 'trial'} data...</p>
         </div>
       </div>
     );
@@ -859,11 +860,11 @@ export const TrialDashboard: React.FC = () => {
 
   if (!selectedLocation || availableLocations.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-white mb-2">No Locations Available</h2>
-          <p className="text-gray-400 mb-4">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Locations Available</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             {user ? 'Add your first location to get started' : 'Please try refreshing the page'}
           </p>
           {user && (
@@ -880,26 +881,26 @@ export const TrialDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="flex h-screen w-full">
         {/* Sidebar - Only visible for dashboard/overview view */}
         {currentView === 'overview' && (
           <div className={`
-            fixed inset-y-0 left-0 z-50 w-80 bg-gray-800 border-r border-gray-700
+            fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
             transform transition-transform duration-300 ease-in-out
             lg:translate-x-0 lg:static lg:inset-0
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           `}>
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-700">
+          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-2">
-              <Gauge className="h-6 w-6 text-blue-400" />
-              <h1 className="text-lg font-semibold text-white">
+              <Gauge className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
                 ET Weather
               </h1>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+              className="lg:hidden p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <X className="h-5 w-5" />
             </button>
@@ -908,10 +909,10 @@ export const TrialDashboard: React.FC = () => {
           <div className="p-6 overflow-y-auto h-full">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Locations</h3>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Locations</h3>
                 <button
                   onClick={() => setShowLocationModal(true)}
-                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                   title="Add New Location"
                 >
                   <Plus className="w-4 h-4" />
@@ -924,13 +925,13 @@ export const TrialDashboard: React.FC = () => {
                     className={`w-full text-left p-4 rounded-lg transition-all border cursor-pointer ${
                       selectedLocation.id === location.id
                         ? 'bg-blue-600 text-white border-blue-500'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700 border-gray-700'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-3">
                         <div className={`p-2 rounded-lg ${
-                          selectedLocation.id === location.id ? 'bg-blue-700' : 'bg-gray-700'
+                          selectedLocation.id === location.id ? 'bg-blue-700' : 'bg-gray-200 dark:bg-gray-700'
                         }`}>
                           <MapPin className="h-4 w-4" />
                         </div>
@@ -964,7 +965,7 @@ export const TrialDashboard: React.FC = () => {
                             e.stopPropagation();
                             // Toggle favorite status
                           }}
-                          className="p-1.5 text-yellow-400 hover:text-yellow-300 rounded-lg hover:bg-gray-600/50 transition-colors"
+                          className="p-1.5 text-yellow-500 dark:text-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/50 transition-colors"
                           title="Add to Favorites"
                         >
                           <Star className="h-3 w-3" />
@@ -974,7 +975,7 @@ export const TrialDashboard: React.FC = () => {
                             e.stopPropagation();
                             // Edit location
                           }}
-                          className="p-1.5 text-blue-400 hover:text-blue-300 rounded-lg hover:bg-gray-600/50 transition-colors"
+                          className="p-1.5 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/50 transition-colors"
                           title="Edit Location"
                         >
                           <Edit className="h-3 w-3" />
@@ -990,7 +991,7 @@ export const TrialDashboard: React.FC = () => {
                               }
                               removeLocation(location.id);
                             }}
-                            className="p-1.5 text-red-400 hover:text-red-300 rounded-lg hover:bg-gray-600/50 transition-colors"
+                            className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-gray-600/50 transition-colors"
                             title="Remove Location"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -1009,7 +1010,7 @@ export const TrialDashboard: React.FC = () => {
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="bg-gray-800 border-b border-gray-700">
+          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors">
             {/* Desktop Header */}
             <div className="hidden lg:block px-6 py-4">
               <div className="flex items-center justify-between">
@@ -1017,8 +1018,8 @@ export const TrialDashboard: React.FC = () => {
                   {/* Show ET Weather branding only when NOT in overview mode (since overview has sidebar with branding) */}
                   {currentView !== 'overview' && (
                     <div className="flex items-center space-x-2">
-                      <Gauge className="h-6 w-6 text-blue-400" />
-                      <h1 className="text-lg font-semibold text-white">
+                      <Gauge className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
                         ET Weather
                       </h1>
                     </div>
@@ -1027,13 +1028,13 @@ export const TrialDashboard: React.FC = () => {
                 
                 <div className="flex items-center space-x-3">
                   {/* View Toggle */}
-                  <div className="flex items-center space-x-1 bg-gray-700 rounded-lg p-1">
+                  <div className="flex items-center space-x-1 bg-gray-200 dark:bg-gray-700 rounded-lg p-1 transition-colors">
                     <button
                       onClick={() => setCurrentView('overview')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'overview'
-                          ? 'bg-gray-800 text-white shadow-sm'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       <Sprout className="h-4 w-4 mr-1 inline" />
@@ -1043,8 +1044,8 @@ export const TrialDashboard: React.FC = () => {
                       onClick={() => setCurrentView('calculator')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'calculator'
-                          ? 'bg-gray-800 text-white shadow-sm'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       <Gauge className="h-4 w-4 mr-1 inline" />
@@ -1054,8 +1055,8 @@ export const TrialDashboard: React.FC = () => {
                       onClick={() => setCurrentView('reports')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'reports'
-                          ? 'bg-gray-800 text-white shadow-sm'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       <TrendingUp className="h-4 w-4 mr-1 inline" />
@@ -1065,8 +1066,8 @@ export const TrialDashboard: React.FC = () => {
                       onClick={() => setCurrentView('notifications')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'notifications'
-                          ? 'bg-gray-800 text-white shadow-sm'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       <Mail className="h-4 w-4 mr-1 inline" />
@@ -1077,8 +1078,8 @@ export const TrialDashboard: React.FC = () => {
                       onClick={() => setCurrentView('org-dashboard')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
                         currentView === 'org-dashboard'
-                          ? 'bg-gray-800 text-white shadow-sm'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       <TrendingUp className="h-4 w-4" />
@@ -1088,8 +1089,8 @@ export const TrialDashboard: React.FC = () => {
                       onClick={() => setCurrentView('field-blocks')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
                         currentView === 'field-blocks'
-                          ? 'bg-gray-800 text-white shadow-sm'
-                          : 'text-gray-400 hover:text-white'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       <MapPin className="h-4 w-4" />
@@ -1099,13 +1100,14 @@ export const TrialDashboard: React.FC = () => {
                   
                   {user ? (
                     <div className="flex items-center space-x-3">
+                      <ThemeToggle />
                       <OrganizationSwitcher />
-                      <span className="text-gray-300 text-sm">
+                      <span className="text-gray-600 dark:text-gray-300 text-sm">
                         {user.email}
                       </span>
                       <button
                         onClick={() => signOut()}
-                        className="flex items-center space-x-2 bg-gray-700 text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
+                        className="flex items-center space-x-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                       >
                         <LogOut className="h-4 w-4" />
                         <span>Sign Out</span>
@@ -1113,6 +1115,7 @@ export const TrialDashboard: React.FC = () => {
                     </div>
                   ) : (
                     <div className="flex items-center space-x-3">
+                      <ThemeToggle />
                       <OrganizationSwitcher />
                       <button
                         onClick={disableTrialMode}
@@ -1133,8 +1136,8 @@ export const TrialDashboard: React.FC = () => {
                 {/* Show ET Weather branding only when NOT in overview mode (since overview has sidebar with branding) */}
                 {currentView !== 'overview' && (
                   <div className="flex items-center space-x-2">
-                    <Gauge className="h-6 w-6 text-blue-400" />
-                    <h1 className="text-lg font-semibold text-white">
+                    <Gauge className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
                       ET Weather
                     </h1>
                   </div>
@@ -1144,7 +1147,7 @@ export const TrialDashboard: React.FC = () => {
                   <OrganizationSwitcher />
                   <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className="p-2 rounded-md text-gray-400 hover:text-gray-300 hover:bg-gray-700"
+                    className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                   >
                     {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                   </button>
@@ -1153,7 +1156,7 @@ export const TrialDashboard: React.FC = () => {
 
               {/* Mobile navigation menu */}
               {mobileMenuOpen && (
-                <div className="border-t border-gray-700 bg-gray-750">
+                <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
                   <div className="px-2 py-3 space-y-1">
                     <button
                       onClick={() => {
@@ -1162,8 +1165,8 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'overview'
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       <Sprout className="h-4 w-4 mr-3" />
@@ -1176,8 +1179,8 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'calculator'
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       <Gauge className="h-4 w-4 mr-3" />
@@ -1190,8 +1193,8 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'reports'
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       <TrendingUp className="h-4 w-4 mr-3" />
@@ -1204,8 +1207,8 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'notifications'
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       <Mail className="h-4 w-4 mr-3" />
@@ -1218,8 +1221,8 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'org-dashboard'
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       <TrendingUp className="h-4 w-4 mr-3" />
@@ -1232,8 +1235,8 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'field-blocks'
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-gray-700'
+                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
                       <MapPin className="h-4 w-4 mr-3" />
@@ -1242,19 +1245,19 @@ export const TrialDashboard: React.FC = () => {
                   </div>
                   
                   {/* Mobile user actions */}
-                  <div className="border-t border-gray-700 px-2 py-3">
+                  <div className="border-t border-gray-200 dark:border-gray-700 px-2 py-3">
                     {user ? (
                       <div className="space-y-2">
                         <div className="px-3 py-2">
-                          <p className="text-xs text-gray-400">Signed in as</p>
-                          <p className="text-sm text-gray-300 truncate">{user.email}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Signed in as</p>
+                          <p className="text-sm text-gray-900 dark:text-gray-300 truncate">{user.email}</p>
                         </div>
                         <button
                           onClick={() => {
                             signOut();
                             setMobileMenuOpen(false);
                           }}
-                          className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-md transition-colors"
+                          className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-gray-700 rounded-md transition-colors"
                         >
                           <LogOut className="h-4 w-4 mr-3" />
                           Sign Out
@@ -1331,30 +1334,30 @@ export const TrialDashboard: React.FC = () => {
 
                     {/* Frost Alert Widget */}
                     {activeFrostWarnings.length > 0 && (
-                      <div className="bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-700">
+                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="text-2xl">
                               {criticalFrostWarnings.length > 0 ? '🚨' : '❄️'}
                             </div>
                             <div>
-                              <div className="font-bold text-white text-sm">
+                              <div className="font-bold text-gray-900 dark:text-white text-sm">
                                 {criticalFrostWarnings.length > 0 ? 'CRITICAL FROST ALERT' : 'Frost Warning'}
                               </div>
-                              <div className="text-gray-400 text-xs">
+                              <div className="text-gray-600 dark:text-gray-400 text-xs">
                                 {activeFrostWarnings.length} location(s) affected
                               </div>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-white font-bold text-lg">
+                            <div className="text-gray-900 dark:text-white font-bold text-lg">
                               {Math.min(...activeFrostWarnings.map(w => w.temperature))}°F
                             </div>
-                            <div className="text-gray-400 text-xs">Predicted Low</div>
+                            <div className="text-gray-600 dark:text-gray-400 text-xs">Predicted Low</div>
                           </div>
                         </div>
                         {criticalFrostWarnings.length > 0 && (
-                          <div className="mt-2 text-xs text-gray-300 border-t border-gray-600 pt-2">
+                          <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-600 pt-2">
                             ⚠️ Take immediate protective action for sensitive crops
                           </div>
                         )}
@@ -1363,97 +1366,97 @@ export const TrialDashboard: React.FC = () => {
 
                 {/* Weather Overview */}
                 <div className="mb-8">
-                  <h2 className="text-xl font-semibold text-white mb-4">Current Weather - {selectedLocation.name}</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Current Weather - {selectedLocation.name}</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                    <div className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-700 rounded-lg text-red-400">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-red-600 dark:text-red-400">
                             <Thermometer className="h-5 w-5" />
                           </div>
-                          <h3 className="text-base font-semibold text-white">Temperature</h3>
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Temperature</h3>
                         </div>
-                        <TrendingUp className="h-4 w-4 text-red-400" />
+                        <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400" />
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-white">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
                           {((weatherData?.temperature || 0) * 9/5 + 32).toFixed(1)}
                         </span>
-                        <span className="text-sm text-gray-400 font-mono">°F</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">°F</span>
                       </div>
-                      <p className="text-sm text-gray-400">Above average for this time of year</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Above average for this time of year</p>
                     </div>
                     
-                    <div className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-700 rounded-lg text-blue-400">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-blue-600 dark:text-blue-400">
                             <Droplets className="h-5 w-5" />
                           </div>
-                          <h3 className="text-base font-semibold text-white">Humidity</h3>
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Humidity</h3>
                         </div>
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-white">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
                           {weatherData?.humidity.toFixed(0)}
                         </span>
-                        <span className="text-sm text-gray-400 font-mono">%</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">%</span>
                       </div>
-                      <p className="text-sm text-gray-400">Optimal range for most crops</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Optimal range for most crops</p>
                     </div>
 
-                    <div className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-700 rounded-lg text-gray-400">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
                             <Wind className="h-5 w-5" />
                           </div>
-                          <h3 className="text-base font-semibold text-white">Wind Speed</h3>
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Wind Speed</h3>
                         </div>
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-white">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
                           {((weatherData?.windSpeed || 0) * 0.621371).toFixed(1)}
                         </span>
-                        <span className="text-sm text-gray-400 font-mono">mph</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">mph</span>
                       </div>
-                      <p className="text-sm text-gray-400">Light breeze conditions</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Light breeze conditions</p>
                     </div>
 
-                    <div className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-700 rounded-lg text-indigo-400">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-indigo-600 dark:text-indigo-400">
                             <Droplets className="h-5 w-5" />
                           </div>
-                          <h3 className="text-base font-semibold text-white">Precipitation</h3>
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Precipitation</h3>
                         </div>
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-white">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
                           {((weatherData?.precipitation || 0) * 0.0393701).toFixed(2)}
                         </span>
-                        <span className="text-sm text-gray-400 font-mono">in</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in</span>
                       </div>
-                      <p className="text-sm text-gray-400">Recent rainfall recorded</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Recent rainfall recorded</p>
                     </div>
 
-                    <div className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-700 rounded-lg text-green-400">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-green-600 dark:text-green-400">
                             <Sprout className="h-5 w-5" />
                           </div>
-                          <h3 className="text-base font-semibold text-white">Reference ET₀</h3>
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Reference ET₀</h3>
                         </div>
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-white">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
                           {((weatherData?.et0 || 0) * 0.0393701).toFixed(2)}
                         </span>
-                        <span className="text-sm text-gray-400 font-mono">in/day</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in/day</span>
                       </div>
-                      <p className="text-sm text-gray-400">Base for Kc calculations</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Base for Kc calculations</p>
                     </div>
                   </div>
                 </div>
@@ -1461,7 +1464,7 @@ export const TrialDashboard: React.FC = () => {
                 {/* Crop Management Section */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-white">Crop Management</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Crop Management</h2>
                     <button
                       onClick={() => setShowCropSelector(true)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
@@ -1472,10 +1475,10 @@ export const TrialDashboard: React.FC = () => {
                   </div>
                   
                   {getLocationCropInstances().length === 0 ? (
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
-                      <Sprout className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-white mb-2">No Crop Plantings Yet</h3>
-                      <p className="text-gray-400 mb-4">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
+                      <Sprout className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Crop Plantings Yet</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
                         Add crops to your location to start tracking their water requirements and growth stages.
                       </p>
                       <button
@@ -1486,15 +1489,15 @@ export const TrialDashboard: React.FC = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-white font-medium">{getLocationCropInstances().length} Active Crop{getLocationCropInstances().length !== 1 ? 's' : ''}</p>
-                          <p className="text-sm text-gray-400">Click "Manage Crops" to add more or modify existing crops</p>
+                          <p className="text-gray-900 dark:text-white font-medium">{getLocationCropInstances().length} Active Crop{getLocationCropInstances().length !== 1 ? 's' : ''}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Click "Manage Crops" to add more or modify existing crops</p>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                          <span className="text-sm text-green-400">Active</span>
+                          <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
+                          <span className="text-sm text-green-500 dark:text-green-400">Active</span>
                         </div>
                       </div>
                     </div>
@@ -1510,9 +1513,9 @@ export const TrialDashboard: React.FC = () => {
                         ET₀ × Kc = ETc (Crop Water Requirement)
                       </div>
                     </div>
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-                      <p className="text-gray-300 text-sm">
-                        <strong className="text-white">Crop coefficients (Kc)</strong> adjust reference evapotranspiration (ET₀) to calculate actual crop water requirements (ETc). 
+                    <div className="bg-blue-50 dark:bg-gray-800 border border-blue-200 dark:border-gray-700 rounded-lg p-4 mb-6">
+                      <p className="text-gray-700 dark:text-gray-300 text-sm">
+                        <strong className="text-gray-900 dark:text-white">Crop coefficients (Kc)</strong> adjust reference evapotranspiration (ET₀) to calculate actual crop water requirements (ETc). 
                         Values vary by month based on seasonal crop water needs and are automatically selected based on the current month.
                       </p>
                     </div>
@@ -1540,13 +1543,13 @@ export const TrialDashboard: React.FC = () => {
                         const etcInches = etc * 0.0393701; // Convert to inches/day
 
                         return (
-                          <div key={instance.id} className="bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-700">
+                          <div key={instance.id} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between mb-4">
                               <div>
-                                <h3 className="text-lg font-semibold text-white">{crop.name}</h3>
-                                <p className="text-sm text-gray-400">{crop.category}</p>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{crop.name}</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{crop.category}</p>
                                 {instance.fieldName && (
-                                  <p className="text-xs text-gray-500">{instance.fieldName}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-500">{instance.fieldName}</p>
                                 )}
                               </div>
                               <div className="flex items-center space-x-2">
@@ -1590,8 +1593,8 @@ export const TrialDashboard: React.FC = () => {
                             </div>
 
                             {/* Crop Coefficient (Kc) Details */}
-                            <div className="bg-gray-900/50 border border-gray-600 rounded-lg p-4 mb-4">
-                              <h4 className="text-sm font-semibold text-blue-400 mb-3">Crop Coefficient (Kc) Details</h4>
+                            <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4">
+                              <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-3">Crop Coefficient (Kc) Details</h4>
                               <div className="grid grid-cols-2 gap-4 mb-4">
                                 <div>
                                   <p className="text-sm text-gray-400 flex items-center">
@@ -1645,16 +1648,16 @@ export const TrialDashboard: React.FC = () => {
                                 </p>
                               </div>
                               <div>
-                                <p className="text-sm text-gray-400">Planted</p>
-                                <p className="text-white text-sm">{new Date(instance.plantingDate).toLocaleDateString()}</p>
-                                <p className="text-xs text-gray-500">{daysSincePlanting} days since planting</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Planted</p>
+                                <p className="text-gray-900 dark:text-white text-sm">{new Date(instance.plantingDate).toLocaleDateString()}</p>
+                                <p className="text-xs text-gray-500">({daysSincePlanting} days since planting)</p>
                               </div>
                             </div>
 
                             {instance.notes && (
-                              <div className="mt-4 p-3 bg-gray-900 rounded border border-gray-600">
-                                <p className="text-xs text-gray-400 mb-1">Notes</p>
-                                <p className="text-sm text-gray-300">{instance.notes}</p>
+                              <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Notes</p>
+                                <p className="text-sm text-gray-800 dark:text-gray-300">{instance.notes}</p>
                               </div>
                             )}
                           </div>
@@ -1669,14 +1672,14 @@ export const TrialDashboard: React.FC = () => {
                 {/* Irrigation Runtime Calculator */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-white">Irrigation Runtime Calculator</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Irrigation Runtime Calculator</h2>
                     <div className="flex items-center space-x-3">
-                      <p className="text-sm text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
                       {!user && (
-                        <div className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded border border-gray-600">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-600">
                           <button 
                             onClick={disableTrialMode}
-                            className="hover:text-blue-400 transition-colors"
+                            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                           >
                             Create account for saved calculations
                           </button>
@@ -1687,15 +1690,15 @@ export const TrialDashboard: React.FC = () => {
 
                   {/* Saved Profiles Section */}
                   {cropProfiles.length > 0 && (
-                    <div className="mb-6 bg-gray-800 border border-gray-700 rounded-lg p-4">
+                    <div className="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
-                          <Star className="h-5 w-5 text-yellow-400" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                          <Star className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
                           <span>Saved Crop Profiles</span>
                         </h3>
                         <button
                           onClick={() => setShowProfileModal(true)}
-                          className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                         >
                           Save Current Setup
                         </button>
@@ -1706,21 +1709,21 @@ export const TrialDashboard: React.FC = () => {
                             key={profile.id}
                             className={`p-3 rounded-lg border transition-all ${
                               calculatorInputs.crop === profile.cropName
-                                ? 'border-green-500 bg-green-900/20'
-                                : 'border-gray-600 bg-gray-700 hover:border-gray-500'
+                                ? 'border-green-500 bg-green-100 dark:bg-green-900/20'
+                                : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
                             }`}
                           >
                             <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-white text-sm">{profile.name}</h4>
+                              <h4 className="font-medium text-gray-900 dark:text-white text-sm">{profile.name}</h4>
                               <div className="flex items-center space-x-1">
-                                {profile.isFavorite && <Star className="h-3 w-3 text-yellow-400 fill-current" />}
+                                {profile.isFavorite && <Star className="h-3 w-3 text-yellow-500 dark:text-yellow-400 fill-current" />}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setEditingProfile(profile);
                                     setShowProfileModal(true);
                                   }}
-                                  className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                                  className="p-1 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                   title="Edit profile"
                                 >
                                   <Edit className="h-3 w-3" />
@@ -1732,7 +1735,7 @@ export const TrialDashboard: React.FC = () => {
                                       deleteCropProfile(profile.id);
                                     }
                                   }}
-                                  className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                                  className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                                   title="Delete profile"
                                 >
                                   <Trash2 className="h-3 w-3" />
@@ -1740,7 +1743,7 @@ export const TrialDashboard: React.FC = () => {
                               </div>
                             </div>
                             <div 
-                              className="text-xs text-gray-400 space-y-1 cursor-pointer"
+                              className="text-xs text-gray-600 dark:text-gray-400 space-y-1 cursor-pointer"
                               onClick={() => loadProfileToCalculator(profile)}
                             >
                               <div className="flex items-center space-x-1">
@@ -1759,8 +1762,8 @@ export const TrialDashboard: React.FC = () => {
                           </div>
                         ))}
                         {cropProfiles.length > 6 && (
-                          <div className="p-3 rounded-lg border border-gray-600 bg-gray-700 flex items-center justify-center">
-                            <span className="text-gray-400 text-sm">+{cropProfiles.length - 6} more profiles</span>
+                          <div className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                            <span className="text-gray-600 dark:text-gray-400 text-sm">+{cropProfiles.length - 6} more profiles</span>
                           </div>
                         )}
                       </div>
@@ -1769,18 +1772,18 @@ export const TrialDashboard: React.FC = () => {
 
                   <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
                     {/* Input Form */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 xl:col-span-2">
-                      <h3 className="text-lg font-semibold text-white mb-4">Input Parameters</h3>
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 xl:col-span-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Input Parameters</h3>
                       
                       <div className="space-y-4">
                         {/* Crop Selection */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Crop Type</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Crop Type</label>
                           
                           {/* Quick Select from Dashboard Crops */}
                           {selectedCrops.length > 0 && (
                             <div className="mb-3">
-                              <p className="text-xs text-gray-400 mb-2">Quick select from your dashboard crops:</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Quick select from your dashboard crops:</p>
                               <div className="flex flex-wrap gap-2">
                                 {selectedCrops.slice(0, 4).map(cropId => {
                                   const crop = availableCrops.find(c => c.id === cropId);
@@ -1791,7 +1794,7 @@ export const TrialDashboard: React.FC = () => {
                                       className={`px-3 py-1 text-xs rounded-lg transition-colors ${
                                         calculatorInputs.crop === crop.name
                                           ? 'bg-blue-600 text-white'
-                                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
                                       }`}
                                     >
                                       {crop.name}
@@ -1808,7 +1811,7 @@ export const TrialDashboard: React.FC = () => {
                           {/* Quick Selection from Your Planted Crops */}
                           {getLocationCropInstances().length > 0 && (
                             <div className="mb-3">
-                              <p className="text-xs text-green-400 mb-2">🌱 Your Planted Crops at {selectedLocation?.name}:</p>
+                              <p className="text-xs text-green-600 dark:text-green-400 mb-2">🌱 Your Planted Crops at {selectedLocation?.name}:</p>
                               <div className="space-y-2 mb-3">
                                 {getLocationCropInstances().slice(0, 3).map(instance => {
                                   const crop = availableCrops.find(c => c.id === instance.cropId);
@@ -1838,11 +1841,11 @@ export const TrialDashboard: React.FC = () => {
                                           areaUnit: 'acres'
                                         });
                                       }}
-                                      className="w-full flex items-center justify-between p-3 bg-green-900/30 border border-green-700 rounded-lg hover:bg-green-900/50 transition-colors text-left"
+                                      className="w-full flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors text-left"
                                     >
                                       <div className="flex-1">
-                                        <p className="text-green-300 font-medium text-sm">{crop.name}</p>
-                                        <p className="text-green-200 text-xs">
+                                        <p className="text-green-700 dark:text-green-300 font-medium text-sm">{crop.name}</p>
+                                        <p className="text-green-600 dark:text-green-200 text-xs">
                                           {instance.fieldName && `📍 ${instance.fieldName}`}
                                           {associatedBlock && ` (${associatedBlock.acres} acres)`}
                                         </p>
@@ -1876,7 +1879,7 @@ export const TrialDashboard: React.FC = () => {
                           <select 
                             value={calculatorInputs.crop}
                             onChange={(e) => setCalculatorInputs({...calculatorInputs, crop: e.target.value})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="">Select Crop</option>
                             {availableCrops.map(crop => (
@@ -1894,7 +1897,7 @@ export const TrialDashboard: React.FC = () => {
                               <select 
                                 value={calculatorInputs.selectedMonth || ''}
                                 onChange={(e) => setCalculatorInputs({...calculatorInputs, selectedMonth: parseInt(e.target.value), kcValue: undefined})}
-                                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                               >
                                 <option value="">Select Month</option>
                                 {availableCrops.find(c => c.name === calculatorInputs.crop)?.monthlyKc?.map(monthKc => (
@@ -1904,14 +1907,14 @@ export const TrialDashboard: React.FC = () => {
                                 ))}
                               </select>
                             )}
-                            <div className="text-center text-gray-400 text-sm">or</div>
+                            <div className="text-center text-gray-600 dark:text-gray-400 text-sm">or</div>
                             <input
                               type="number"
                               step="0.01"
                               placeholder="Enter Kc value manually"
                               value={calculatorInputs.kcValue || ''}
                               onChange={(e) => setCalculatorInputs({...calculatorInputs, kcValue: parseFloat(e.target.value), selectedMonth: undefined})}
-                              className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                              className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
                         </div>
@@ -1919,14 +1922,14 @@ export const TrialDashboard: React.FC = () => {
                         {/* ET Source */}
                         <div>
                           <label className="block text-sm font-medium text-gray-300 mb-2">ET₀ Source</label>
-                          <div className="mb-2 p-2 bg-gray-800 rounded border border-gray-600">
-                            <div className="text-xs text-gray-400">Current Location: {selectedLocation.name}</div>
-                            <div className="text-xs text-blue-400">Live ET₀: {((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day</div>
+                          <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">Current Location: {selectedLocation.name}</div>
+                            <div className="text-xs text-blue-600 dark:text-blue-400">Live ET₀: {((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day</div>
                           </div>
                           <select 
                             value={calculatorInputs.etSource}
                             onChange={(e) => setCalculatorInputs({...calculatorInputs, etSource: e.target.value as 'weather-station' | 'cimis' | 'manual'})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="weather-station">Use Current Location Data ({((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day)</option>
                             <option value="cimis">CIMIS Data</option>
@@ -1939,18 +1942,18 @@ export const TrialDashboard: React.FC = () => {
                               placeholder="Enter ET₀ in in/day"
                               value={calculatorInputs.manualET || ''}
                               onChange={(e) => setCalculatorInputs({...calculatorInputs, manualET: parseFloat(e.target.value)})}
-                              className="mt-2 w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                              className="mt-2 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
                             />
                           )}
                         </div>
 
                         {/* Irrigation System Type */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Irrigation System</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Irrigation System</label>
                           <select 
                             value={calculatorInputs.systemType}
                             onChange={(e) => setCalculatorInputs({...calculatorInputs, systemType: e.target.value})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="">Select System Type</option>
                             <option value="drip">Drip Irrigation (90-95% efficient)</option>
@@ -2005,7 +2008,7 @@ export const TrialDashboard: React.FC = () => {
                             setCalculatorResult(result);
                           }}
                           disabled={!calculatorInputs.crop || !calculatorInputs.zoneFlowGPM || !calculatorInputs.area || !calculatorInputs.systemType}
-                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
                         >
                           Calculate Runtime
                         </button>
@@ -2013,30 +2016,30 @@ export const TrialDashboard: React.FC = () => {
                     </div>
 
                     {/* Results */}
-                    <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 xl:col-span-3">
-                      <h3 className="text-lg font-semibold text-white mb-4">Calculation Results</h3>
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 xl:col-span-3">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Calculation Results</h3>
                       
                       {calculatorResult ? (
                         <div className="space-y-6">
                           {/* Runtime Results */}
                           <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-gray-900 rounded-lg p-4">
-                              <p className="text-sm text-gray-400">Daily Runtime</p>
-                              <p className="text-2xl font-bold text-blue-400">
+                            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Daily Runtime</p>
+                              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                                 {calculatorResult.runtimeHours}h {calculatorResult.runtimeMinutes}m
                               </p>
                             </div>
-                            <div className="bg-gray-900 rounded-lg p-4">
-                              <p className="text-sm text-gray-400">Weekly Hours</p>
-                              <p className="text-2xl font-bold text-green-400">
+                            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Weekly Hours</p>
+                              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                                 {calculatorResult.weeklyHours.toFixed(1)}h
                               </p>
                             </div>
                           </div>
 
-                          <div className="bg-gray-900 rounded-lg p-4">
-                            <p className="text-sm text-gray-400">Daily Water Need</p>
-                            <p className="text-xl font-bold text-white">
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-400">Daily Water Need</p>
+                            <p className="text-xl font-bold text-gray-900 dark:text-white">
                               {calculatorResult.dailyWaterNeed.toLocaleString()} gallons/day
                             </p>
                             <p className="text-sm text-gray-500">
@@ -2045,18 +2048,18 @@ export const TrialDashboard: React.FC = () => {
                           </div>
 
                           {/* Formula Breakdown */}
-                          <div className="bg-gray-900 rounded-lg p-4">
-                            <h4 className="text-sm font-semibold text-gray-300 mb-2">Calculation Formula</h4>
-                            <pre className="text-xs text-gray-400 whitespace-pre-wrap font-mono">
+                          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">Calculation Formula</h4>
+                            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
                               {calculatorResult.formula}
                             </pre>
                           </div>
 
                           {/* Template for App */}
-                          <div className="bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                            <h4 className="text-sm font-semibold text-blue-400 mb-2">Template for Your App</h4>
-                            <p className="text-xs text-gray-300 mb-2">Copy this configuration for your irrigation management system:</p>
-                            <pre className="text-xs text-gray-400 bg-gray-900 p-3 rounded whitespace-pre-wrap">
+                          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                            <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">Template for Your App</h4>
+                            <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">Copy this configuration for your irrigation management system:</p>
+                            <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 p-3 rounded whitespace-pre-wrap">
 {`{
   "block_id": "block_001",
   "crop": "${calculatorInputs.crop}",
@@ -2089,7 +2092,7 @@ export const TrialDashboard: React.FC = () => {
                 {/* Weather Reports with Crop Data */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-white">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                       {displayedLocations.length === 0 ? (
                         'Weather Reports Dashboard - Select Location to View Data'
                       ) : displayedLocations.length > 1 ? (
@@ -2098,7 +2101,7 @@ export const TrialDashboard: React.FC = () => {
                         `Weather Report - ${displayedLocations[0]?.name || 'No Location'}`
                       )}
                     </h2>
-                    <div className="flex items-center space-x-4 text-sm text-gray-400">
+                    <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
                       <span className="flex items-center space-x-1">
                         <Sprout className="h-3 w-3" />
                         <span>{selectedCrops.length} crops tracked</span>
@@ -2215,7 +2218,7 @@ export const TrialDashboard: React.FC = () => {
       {/* Profile Management Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-white mb-4">
               {editingProfile ? 'Edit Profile' : 'Create New Profile'}
             </h3>
@@ -2297,13 +2300,13 @@ export const TrialDashboard: React.FC = () => {
                     setShowProfileModal(false);
                     setEditingProfile(null);
                   }}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   {editingProfile ? 'Update Profile' : 'Save Profile'}
                 </button>
@@ -2316,15 +2319,15 @@ export const TrialDashboard: React.FC = () => {
       {/* Crop Edit Modal */}
       {showEditCropModal && editingCropInstance && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-700">
+          <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-900 rounded-lg">
-                    <Sprout className="w-5 h-5 text-green-400" />
+                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                    <Sprout className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-white">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                       Edit {availableCrops.find(c => c.id === editingCropInstance.cropId)?.name} Instance
                     </h2>
                     <p className="text-sm text-gray-400">
@@ -2477,7 +2480,7 @@ export const TrialDashboard: React.FC = () => {
                     setEditingCropInstance(null);
                     setEditingKcValues({});
                   }}
-                  className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+                  className="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>

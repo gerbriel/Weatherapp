@@ -200,19 +200,19 @@ export const OrganizationSwitcher: React.FC = () => {
       <div className="relative">
         <button
           onClick={() => setShowDropdown(!showDropdown)}
-          className="flex items-center space-x-2 lg:space-x-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg px-2 lg:px-4 py-2 transition-colors min-w-0"
+          className="flex items-center space-x-2 lg:space-x-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-2 lg:px-4 py-2 transition-colors min-w-0"
         >
-          <Building2 className="h-4 w-4 lg:h-5 lg:w-5 text-blue-400 flex-shrink-0" />
+          <Building2 className="h-4 w-4 lg:h-5 lg:w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
           <div className="text-left min-w-0 flex-1">
-            <div className="font-medium text-white truncate text-sm lg:text-base">{currentOrg.name}</div>
-            <div className="text-xs text-gray-400 hidden sm:block">{currentOrg.total_acres} acres • {currentOrg.active_users} users</div>
+            <div className="font-medium text-gray-900 dark:text-white truncate text-sm lg:text-base">{currentOrg.name}</div>
+            <div className="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">{currentOrg.total_acres} acres • {currentOrg.active_users} users</div>
           </div>
-          <ChevronDown className="h-3 w-3 lg:h-4 lg:w-4 text-gray-400 flex-shrink-0" />
+          <ChevronDown className="h-3 w-3 lg:h-4 lg:w-4 text-gray-600 dark:text-gray-400 flex-shrink-0" />
         </button>
 
         {/* Dropdown Menu */}
         {showDropdown && (
-          <div className="absolute top-full left-0 mt-2 w-72 lg:w-80 bg-gray-800 border border-gray-600 rounded-lg shadow-xl z-50">
+          <div className="absolute top-full left-0 mt-2 w-72 lg:w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-50">
             <div className="p-3 border-b border-gray-600">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-white text-sm lg:text-base">Organizations</h3>
@@ -278,7 +278,7 @@ export const OrganizationSwitcher: React.FC = () => {
       {/* Organization Management Modal */}
       {showOrgModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white">Organization Management</h2>
               <button

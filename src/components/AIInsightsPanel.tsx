@@ -224,7 +224,7 @@ const AIInsightsPanel: React.FC<AIInsightsPanelProps> = ({
   }
 
   return (
-    <div className="border border-gray-600 dark:border-gray-500 rounded-lg bg-gray-800 dark:bg-gray-900 shadow-lg" style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>
+    <div className="border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 shadow-lg text-gray-900 dark:text-gray-100">
       {/* Header */}
       <div 
         className="flex items-center justify-between p-4 cursor-pointer border-b border-gray-600 dark:border-gray-600 bg-gradient-to-r from-blue-800/30 to-emerald-800/30 dark:from-gray-800 dark:to-gray-750 rounded-t-lg"

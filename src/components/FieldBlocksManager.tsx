@@ -409,9 +409,9 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
 
       {/* Quick Assignment from Dashboard/Calculator */}
       {(selectedCrops.length > 0 || calculatorResult) && (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-            <Plus className="h-5 w-5 text-green-400" />
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+            <Plus className="h-5 w-5 text-green-600 dark:text-green-400" />
             <span>Quick Assignment from Dashboard</span>
           </h3>
           
@@ -419,13 +419,13 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             {/* Available Crops for Assignment */}
             {selectedCrops.length > 0 && (
               <div>
-                <h4 className="font-medium text-white mb-3">Selected Crops ({selectedCrops.length})</h4>
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">Selected Crops ({selectedCrops.length})</h4>
                 <div className="space-y-2">
                   {selectedCrops.slice(0, 4).map((crop, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-700 rounded p-3">
+                    <div key={index} className="flex items-center justify-between bg-gray-100 dark:bg-gray-700 rounded p-3">
                       <div className="flex items-center space-x-2">
-                        <Sprout className="h-4 w-4 text-green-400" />
-                        <span className="text-white text-sm">{crop}</span>
+                        <Sprout className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        <span className="text-gray-900 dark:text-white text-sm">{crop}</span>
                       </div>
                       <button
                         onClick={() => {
@@ -452,15 +452,15 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             {/* Calculator Results for Assignment */}
             {calculatorResult && calculatorInputs?.crop && (
               <div>
-                <h4 className="font-medium text-white mb-3 flex items-center space-x-2">
-                  <Calculator className="h-4 w-4 text-blue-400" />
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+                  <Calculator className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   <span>Calculator Results</span>
                 </h4>
-                <div className="bg-gray-700 rounded p-4">
+                <div className="bg-gray-100 dark:bg-gray-700 rounded p-4 border border-gray-200 dark:border-gray-600">
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-300">Crop:</span>
-                      <span className="text-white font-medium">{calculatorInputs.crop}</span>
+                      <span className="text-gray-600 dark:text-gray-300">Crop:</span>
+                      <span className="text-gray-900 dark:text-white font-medium">{calculatorInputs.crop}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-300">Daily Need:</span>
@@ -500,7 +500,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm"
+            className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
@@ -514,44 +514,44 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
           placeholder="Search blocks, crops, or locations..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm flex-1 max-w-md"
+          className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white text-sm flex-1 max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-          <div className="text-2xl font-bold text-white">{fieldBlocks.length}</div>
-          <div className="text-sm text-gray-400">Total Blocks</div>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{fieldBlocks.length}</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Blocks</div>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-          <div className="text-2xl font-bold text-white">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {fieldBlocks.reduce((sum, block) => sum + block.acres, 0)}
           </div>
-          <div className="text-sm text-gray-400">Total Acres</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Acres</div>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-          <div className="text-2xl font-bold text-white">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {fieldBlocks.filter(block => block.status === 'active').length}
           </div>
-          <div className="text-sm text-gray-400">Active Blocks</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Active Blocks</div>
         </div>
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
-          <div className="text-2xl font-bold text-white">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {fieldBlocks.reduce((sum, block) => sum + block.water_allocation, 0).toFixed(1)}
           </div>
-          <div className="text-sm text-gray-400">Total Water (AF)</div>
+          <div className="text-sm text-gray-600 dark:text-gray-400">Total Water (AF)</div>
         </div>
       </div>
 
       {/* Field Blocks Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredBlocks.map((block) => (
-          <div key={block.id} className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+          <div key={block.id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <h3 className="font-semibold text-white">{block.name}</h3>
-                <p className="text-sm text-gray-400">{block.description}</p>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{block.name}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{block.description}</p>
               </div>
               <div className="flex items-center space-x-1">
                 <button
@@ -636,8 +636,8 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
       {/* Field Block Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-white mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               {editingBlock ? 'Edit Field Block' : 'Create New Field Block'}
             </h3>
             {!editingBlock && selectedLocation && (
@@ -681,21 +681,21 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
             }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Block Name *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Block Name *</label>
                   <input
                     name="name"
                     type="text"
                     defaultValue={editingBlock?.name || ''}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Location</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location</label>
                   <select
                     name="location_name"
                     defaultValue={editingBlock?.location_name || selectedLocation?.name || ''}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {availableLocations && availableLocations.length > 0 ? (
                       availableLocations.map((location: any) => (
@@ -712,21 +712,21 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                   </select>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Field Address (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Field Address (Optional)</label>
                   <input
                     name="address"
                     type="text"
                     defaultValue={editingBlock?.address || ''}
                     placeholder="Street address, coordinates, or field identifier"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Crop</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Crop</label>
                   <select
                     name="crop_name"
                     defaultValue={editingBlock?.crop_name || ''}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Crop (Optional)</option>
                     {COMPREHENSIVE_CROP_DATABASE.map(crop => (
@@ -735,20 +735,20 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Acres</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Acres</label>
                   <input
                     name="acres"
                     type="number"
                     step="0.1"
                     defaultValue={editingBlock?.acres || ''}
                     placeholder="Enter acreage (optional)"
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Irrigation Methods</label>
-                  <div className="bg-gray-700 border border-gray-600 rounded-lg p-3">
-                    <p className="text-sm text-gray-400 mb-3">Select irrigation methods used in this field block:</p>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Irrigation Methods</label>
+                  <div className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg p-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Select irrigation methods used in this field block:</p>
                     <div className="grid grid-cols-2 gap-3">
                       <label className="flex items-center space-x-2">
                         <input
@@ -758,7 +758,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                           defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'drip') || false}
                           className="text-blue-600 bg-gray-700 border-gray-600 rounded"
                         />
-                        <span className="text-white">Drip</span>
+                        <span className="text-gray-900 dark:text-white">Drip</span>
                       </label>
                       <label className="flex items-center space-x-2">
                         <input
@@ -768,7 +768,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                           defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'micro-spray') || false}
                           className="text-blue-600 bg-gray-700 border-gray-600 rounded"
                         />
-                        <span className="text-white">Micro-spray</span>
+                        <span className="text-gray-900 dark:text-white">Micro-spray</span>
                       </label>
                       <label className="flex items-center space-x-2">
                         <input
@@ -778,7 +778,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                           defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'sprinkler') || false}
                           className="text-blue-600 bg-gray-700 border-gray-600 rounded"
                         />
-                        <span className="text-white">Sprinkler</span>
+                        <span className="text-gray-900 dark:text-white">Sprinkler</span>
                       </label>
                       <label className="flex items-center space-x-2">
                         <input
@@ -788,20 +788,20 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                           defaultChecked={editingBlock?.irrigation_methods?.some(m => m.method === 'surface') || false}
                           className="text-blue-600 bg-gray-700 border-gray-600 rounded"
                         />
-                        <span className="text-white">Surface/Flood</span>
+                        <span className="text-gray-900 dark:text-white">Surface/Flood</span>
                       </label>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-500 mt-2">
                       Select multiple methods if the field uses different irrigation at different growth stages
                     </p>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Soil Type</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Soil Type</label>
                   <select
                     name="soil_type"
                     defaultValue={editingBlock?.soil_type || ''}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select Soil Type</option>
                     {SOIL_DATABASE.map(soil => (
@@ -810,12 +810,12 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Date Planted</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Planted</label>
                   <input
                     name="date_planted"
                     type="date"
                     defaultValue={editingBlock?.date_planted || ''}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>

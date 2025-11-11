@@ -30,10 +30,10 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-github-canvas-subtle dark:bg-github-dark-canvas-subtle rounded-gh text-github-accent-emphasis dark:text-github-dark-accent-emphasis">
+          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-blue-600 dark:text-blue-400">
             {icon}
           </div>
-          <h3 className="text-base font-semibold text-github-fg-default dark:text-github-dark-fg-default">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white">
             {title}
           </h3>
         </div>
@@ -43,16 +43,16 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
       </div>
       
       <div className="flex items-baseline space-x-2 mb-2">
-        <span className="text-2xl font-bold text-github-fg-default dark:text-github-dark-fg-default">
+        <span className="text-2xl font-bold text-gray-900 dark:text-white">
           {value.toFixed(2)}
         </span>
-        <span className="text-sm text-github-fg-muted dark:text-github-dark-fg-muted font-mono">
+        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">
           {unit}
         </span>
       </div>
       
       {description && (
-        <p className="text-sm text-github-fg-subtle dark:text-github-dark-fg-subtle">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
           {description}
         </p>
       )}

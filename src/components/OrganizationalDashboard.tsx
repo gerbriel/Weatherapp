@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart, Line } from 'recharts';
 import { TrendingUp, TrendingDown, Droplets, Users, MapPin, DollarSign, AlertTriangle, Sprout, Calculator } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface CropInstance {
   id: string;
@@ -59,6 +60,7 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
   fieldBlocks = []
 }) => {
   const { organization } = useAuth();
+  const { isDarkMode } = useTheme();
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
 
   // Organization-specific data calculated from field blocks
@@ -237,17 +239,17 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             {organization?.name || 'Organization'} Dashboard
           </h1>
-          <p className="text-gray-400">
+          <p className="text-gray-600 dark:text-gray-400">
             {organization?.description || 'Comprehensive insights across all locations and operations'}
           </p>
         </div>
         <select
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value as any)}
-          className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white"
+          className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="week">Last Week</option>
           <option value="month">Last Month</option>
@@ -258,76 +260,76 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Total Acres</p>
-              <p className="text-3xl font-bold text-white">{insights.totalAcres.toLocaleString()}</p>
-              <p className="text-green-400 text-sm flex items-center mt-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Total Acres</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{insights.totalAcres.toLocaleString()}</p>
+              <p className="text-green-500 dark:text-green-400 text-sm flex items-center mt-1">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 +5.2% vs last month
               </p>
             </div>
-            <MapPin className="h-12 w-12 text-blue-400" />
+            <MapPin className="h-12 w-12 text-blue-500 dark:text-blue-400" />
           </div>
         </div>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Water Efficiency</p>
-              <p className="text-3xl font-bold text-white">{insights.avgEfficiency}%</p>
-              <p className="text-green-400 text-sm flex items-center mt-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Water Efficiency</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{insights.avgEfficiency}%</p>
+              <p className="text-green-500 dark:text-green-400 text-sm flex items-center mt-1">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 +2.1% vs last month
               </p>
             </div>
-            <Droplets className="h-12 w-12 text-blue-400" />
+            <Droplets className="h-12 w-12 text-blue-500 dark:text-blue-400" />
           </div>
         </div>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Active Users</p>
-              <p className="text-3xl font-bold text-white">{insights.activeUsers}</p>
-              <p className="text-yellow-400 text-sm flex items-center mt-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Active Users</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{insights.activeUsers}</p>
+              <p className="text-yellow-500 dark:text-yellow-400 text-sm flex items-center mt-1">
                 <TrendingDown className="h-4 w-4 mr-1" />
                 -1 vs last month
               </p>
             </div>
-            <Users className="h-12 w-12 text-purple-400" />
+            <Users className="h-12 w-12 text-purple-500 dark:text-purple-400" />
           </div>
         </div>
 
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Monthly Cost</p>
-              <p className="text-3xl font-bold text-white">{formatCurrency(insights.totalCost)}</p>
-              <p className="text-red-400 text-sm flex items-center mt-1">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Monthly Cost</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{formatCurrency(insights.totalCost)}</p>
+              <p className="text-red-500 dark:text-red-400 text-sm flex items-center mt-1">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 +8.5% vs last month
               </p>
             </div>
-            <DollarSign className="h-12 w-12 text-green-400" />
+            <DollarSign className="h-12 w-12 text-green-500 dark:text-green-400" />
           </div>
         </div>
       </div>
 
       {/* Current Crop Performance */}
       {(selectedCrops.length > 0 || cropInstances.length > 0 || calculatorResult) && (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center space-x-2">
-            <Sprout className="h-5 w-5 text-green-400" />
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+            <Sprout className="h-5 w-5 text-green-500 dark:text-green-400" />
             <span>Current Crop Performance</span>
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Active Crops Summary */}
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h3 className="font-medium text-white mb-3 flex items-center space-x-2">
-                <Sprout className="h-4 w-4 text-green-400" />
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+                <Sprout className="h-4 w-4 text-green-500 dark:text-green-400" />
                 <span>Active Crops ({selectedCrops.length})</span>
               </h3>
               {selectedCrops.length > 0 ? (
@@ -350,8 +352,8 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
             </div>
 
             {/* Active Plantings */}
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h3 className="font-medium text-white mb-3">Active Plantings ({cropInstances.length})</h3>
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 dark:text-white mb-3">Active Plantings ({cropInstances.length})</h3>
               {cropInstances.length > 0 ? (
                 <div className="space-y-2">
                   {cropInstances.slice(0, 3).map((instance) => (
@@ -377,9 +379,9 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
             </div>
 
             {/* Calculator Results */}
-            <div className="bg-gray-700 rounded-lg p-4">
-              <h3 className="font-medium text-white mb-3 flex items-center space-x-2">
-                <Calculator className="h-4 w-4 text-blue-400" />
+            <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+                <Calculator className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                 <span>Current Calculation</span>
               </h3>
               {calculatorResult ? (
@@ -410,16 +412,16 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
       )}
 
       {/* Water Usage Overview */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-white">Water Usage vs Budget</h2>
-          <div className="text-sm text-gray-400">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Water Usage vs Budget</h2>
+          <div className="text-sm text-gray-600 dark:text-gray-400">
             Used: {insights.waterUsage} AF / Budget: {insights.waterBudget} AF 
             ({((insights.waterUsage / insights.waterBudget) * 100).toFixed(1)}%)
           </div>
         </div>
         <div className="mb-4">
-          <div className="w-full bg-gray-700 rounded-full h-4">
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-4">
             <div 
               className={`h-4 rounded-full ${
                 (insights.waterUsage / insights.waterBudget) > 0.9 ? 'bg-red-400' :
@@ -434,18 +436,19 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Water Usage by Location */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Water Usage by Location</h3>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Water Usage by Location</h3>
           <ResponsiveContainer width="100%" height={300} minWidth={300} minHeight={250}>
             <BarChart data={waterUsageByLocation}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="name" stroke="#9CA3AF" />
-              <YAxis stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#e5e7eb"} />
+              <XAxis dataKey="name" stroke={isDarkMode ? "#9CA3AF" : "#6b7280"} />
+              <YAxis stroke={isDarkMode ? "#9CA3AF" : "#6b7280"} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px'
+                  backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', 
+                  border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  color: isDarkMode ? '#ffffff' : '#1f2937'
                 }}
               />
               <Bar dataKey="usage" fill="#3B82F6" />
@@ -454,8 +457,8 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
         </div>
 
         {/* Crop Distribution */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Crop Distribution</h3>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Crop Distribution</h3>
           <ResponsiveContainer width="100%" height={300} minWidth={300} minHeight={250}>
             <PieChart>
               <Pie
@@ -474,9 +477,10 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
               </Pie>
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px'
+                  backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', 
+                  border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  color: isDarkMode ? '#ffffff' : '#1f2937'
                 }}
               />
             </PieChart>
@@ -484,19 +488,20 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
         </div>
 
         {/* Monthly Trends */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 lg:col-span-2">
-          <h3 className="text-lg font-semibold text-white mb-4">Monthly Water Usage & Efficiency Trends</h3>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 lg:col-span-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Monthly Water Usage & Efficiency Trends</h3>
           <ResponsiveContainer width="100%" height={300} minWidth={300} minHeight={250}>
             <AreaChart data={monthlyTrends}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="month" stroke="#9CA3AF" />
-              <YAxis yAxisId="left" stroke="#9CA3AF" />
-              <YAxis yAxisId="right" orientation="right" stroke="#9CA3AF" />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#e5e7eb"} />
+              <XAxis dataKey="month" stroke={isDarkMode ? "#9CA3AF" : "#6b7280"} />
+              <YAxis yAxisId="left" stroke={isDarkMode ? "#9CA3AF" : "#6b7280"} />
+              <YAxis yAxisId="right" orientation="right" stroke={isDarkMode ? "#9CA3AF" : "#6b7280"} />
               <Tooltip 
                 contentStyle={{ 
-                  backgroundColor: '#1F2937', 
-                  border: '1px solid #374151',
-                  borderRadius: '8px'
+                  backgroundColor: isDarkMode ? '#1F2937' : '#ffffff', 
+                  border: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  color: isDarkMode ? '#ffffff' : '#1f2937'
                 }}
               />
               <Area yAxisId="left" type="monotone" dataKey="waterUsage" stroke="#3B82F6" fill="#3B82F6" fillOpacity={0.3} />
@@ -509,13 +514,13 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
       {/* Location Performance and Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Location Performance */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Location Performance</h3>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Location Performance</h3>
           <div className="space-y-4">
             {waterUsageByLocation.map((location, index) => (
-              <div key={index} className="bg-gray-700 rounded-lg p-4">
+              <div key={index} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium text-white">{location.name}</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-white">{location.name}</h4>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${
                     location.efficiency >= 90 ? 'bg-green-100 text-green-800' :
                     location.efficiency >= 85 ? 'bg-yellow-100 text-yellow-800' :
@@ -540,50 +545,50 @@ export const OrganizationalDashboard: React.FC<OrganizationalDashboardProps> = (
         </div>
 
         {/* Alerts and Notifications */}
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Recent Alerts</h3>
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Alerts</h3>
           <div className="space-y-3">
             {alerts.map((alert) => (
-              <div key={alert.id} className="bg-gray-700 rounded-lg p-4">
+              <div key={alert.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
                   {getAlertIcon(alert.severity)}
                   <div className="flex-1">
-                    <p className="text-white text-sm">{alert.message}</p>
-                    <p className="text-gray-400 text-xs mt-1">{alert.location}</p>
+                    <p className="text-gray-900 dark:text-white text-sm">{alert.message}</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">{alert.location}</p>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          <button className="w-full mt-4 text-blue-400 hover:text-blue-300 text-sm">
+          <button className="w-full mt-4 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-sm">
             View All Alerts
           </button>
         </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Quick Stats</h3>
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Stats</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-400">{insights.totalBlocks}</div>
-            <div className="text-sm text-gray-400">Active Blocks</div>
+            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{insights.totalBlocks}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Active Blocks</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-400">{insights.cropdiversityIndex}</div>
-            <div className="text-sm text-gray-400">Crop Diversity Index</div>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{insights.cropdiversityIndex}</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Crop Diversity Index</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-400">
+            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
               {(insights.waterUsage / insights.totalAcres).toFixed(2)}
             </div>
-            <div className="text-sm text-gray-400">AF per Acre</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">AF per Acre</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-400">
+            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
               ${(insights.totalCost / insights.totalAcres).toFixed(0)}
             </div>
-            <div className="text-sm text-gray-400">Cost per Acre</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Cost per Acre</div>
           </div>
         </div>
       </div>

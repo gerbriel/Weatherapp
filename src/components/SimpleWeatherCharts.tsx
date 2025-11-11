@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts';
 import ChartAIInsights from './ChartAIInsights';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface SimpleWeatherChartsProps {
   location: {
@@ -14,6 +15,7 @@ interface SimpleWeatherChartsProps {
 
 export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ location }) => {
   const [isReady, setIsReady] = useState(false);
+  const { isDarkMode } = useTheme();
 
   // Delay rendering to ensure parent container has proper dimensions
   useEffect(() => {
@@ -82,20 +84,25 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
 
   return (
     <div className="space-y-6" style={{ width: '100%', minWidth: '400px' }}>
-      <div style={{ width: '100%', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
-        <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
+      <div className="w-full bg-white dark:bg-slate-800 p-5 rounded-lg relative border border-gray-200 dark:border-gray-700">
+        <h3 className="text-gray-900 dark:text-white text-center mb-3 text-base font-semibold">
           Precipitation Data {location?.name ? `- ${location.name}` : ''}
         </h3>
-        <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
+        <div className="text-gray-600 dark:text-gray-400 text-center mb-4 text-xs">
           📡 Data Source: NOAA GFS Global & NAM CONUS models via Open-Meteo API • Precipitation, temperature, and wind data
         </div>
         <div style={{ width: '100%', height: '320px', minWidth: '360px', minHeight: '300px' }}>
           <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="date" tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} />
-              <YAxis tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} />
-              <Tooltip contentStyle={{ backgroundColor: '#374151', border: 'none', borderRadius: '4px', color: 'white' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#e5e7eb"} />
+              <XAxis dataKey="date" tick={{ fill: isDarkMode ? 'white' : '#374151', fontSize: 12 }} axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }} />
+              <YAxis tick={{ fill: isDarkMode ? 'white' : '#374151', fontSize: 12 }} axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }} />
+              <Tooltip contentStyle={{ 
+                backgroundColor: isDarkMode ? '#374151' : '#ffffff', 
+                border: isDarkMode ? 'none' : '1px solid #e5e7eb', 
+                borderRadius: '4px', 
+                color: isDarkMode ? 'white' : '#374151'
+              }} />
               <Legend />
               <Bar dataKey="precipitation" fill="#3b82f6" name="Total Precipitation" />
             </BarChart>
@@ -113,20 +120,25 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
 
       </div>
 
-      <div style={{ width: '100%', backgroundColor: '#1e293b', padding: '20px', borderRadius: '8px', position: 'relative' }}>
-        <h3 style={{ color: 'white', textAlign: 'center', marginBottom: '10px', fontSize: '16px' }}>
+      <div className="w-full bg-white dark:bg-slate-800 p-5 rounded-lg relative border border-gray-200 dark:border-gray-700">
+        <h3 className="text-gray-900 dark:text-white text-center mb-3 text-base font-semibold">
           Evapotranspiration (ET₀) {location?.name ? `- ${location.name}` : ''}
         </h3>
-        <div style={{ color: '#9CA3AF', textAlign: 'center', marginBottom: '15px', fontSize: '12px' }}>
+        <div className="text-gray-600 dark:text-gray-400 text-center mb-4 text-xs">
           📡 Data Source: NOAA GFS Global & NAM CONUS models via Open-Meteo API • FAO-56 reference evapotranspiration
         </div>
         <div style={{ width: '100%', height: '320px', minWidth: '360px', minHeight: '300px' }}>
           <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-              <XAxis dataKey="date" tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} />
-              <YAxis tick={{ fill: 'white', fontSize: 12 }} axisLine={{ stroke: '#6b7280' }} domain={[0, 0.01]} />
-              <Tooltip contentStyle={{ backgroundColor: '#374151', border: 'none', borderRadius: '4px', color: 'white' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#e5e7eb"} />
+              <XAxis dataKey="date" tick={{ fill: isDarkMode ? 'white' : '#374151', fontSize: 12 }} axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }} />
+              <YAxis tick={{ fill: isDarkMode ? 'white' : '#374151', fontSize: 12 }} axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }} domain={[0, 0.01]} />
+              <Tooltip contentStyle={{ 
+                backgroundColor: isDarkMode ? '#374151' : '#ffffff', 
+                border: isDarkMode ? 'none' : '1px solid #e5e7eb', 
+                borderRadius: '4px', 
+                color: isDarkMode ? 'white' : '#374151'
+              }} />
               <Legend />
               <Line type="monotone" dataKey="et0" stroke="#f97316" strokeWidth={2} name="Daily ET₀" dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: '#f97316' }} />
             </LineChart>

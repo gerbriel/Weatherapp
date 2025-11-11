@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface RechartsWeatherChartsProps {
   location: {
@@ -12,6 +13,7 @@ interface RechartsWeatherChartsProps {
 }
 
 export const RechartsWeatherCharts: React.FC<RechartsWeatherChartsProps> = ({ location }) => {
+  const { isDarkMode } = useTheme();
   // State for chart rendering readiness
   const [isChartsReady, setIsChartsReady] = useState(false);
 
@@ -91,21 +93,29 @@ export const RechartsWeatherCharts: React.FC<RechartsWeatherChartsProps> = ({ lo
           ) : (
           <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={250}>
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#e5e7eb"} />
               <XAxis 
                 dataKey="date" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: isDarkMode ? '#9CA3AF' : '#6b7280' }}
                 angle={-45}
                 textAnchor="end"
                 height={80}
+                axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }}
               />
               <YAxis 
                 label={{ value: 'Inches', angle: -90, position: 'insideLeft' }}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: isDarkMode ? '#9CA3AF' : '#6b7280' }}
+                axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }}
               />
               <Tooltip 
                 labelFormatter={(value) => `Date: ${value}`}
                 formatter={(value: any) => [`${value}"`, 'Precipitation']}
+                contentStyle={{
+                  backgroundColor: isDarkMode ? '#374151' : '#ffffff',
+                  border: isDarkMode ? 'none' : '1px solid #e5e7eb',
+                  borderRadius: '4px',
+                  color: isDarkMode ? 'white' : '#374151'
+                }}
               />
               <Legend />
               <Bar 
@@ -142,21 +152,29 @@ export const RechartsWeatherCharts: React.FC<RechartsWeatherChartsProps> = ({ lo
           ) : (
           <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={250}>
             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#e5e7eb"} />
               <XAxis 
                 dataKey="date" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: isDarkMode ? '#9CA3AF' : '#6b7280' }}
                 angle={-45}
                 textAnchor="end"
                 height={80}
+                axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }}
               />
               <YAxis 
                 label={{ value: 'Daily ET₀ (inches)', angle: -90, position: 'insideLeft' }}
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: isDarkMode ? '#9CA3AF' : '#6b7280' }}
+                axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }}
               />
               <Tooltip 
                 labelFormatter={(value) => `Date: ${value}`}
                 formatter={(value: any) => [`${value}"`, 'Daily ET₀']}
+                contentStyle={{
+                  backgroundColor: isDarkMode ? '#374151' : '#ffffff',
+                  border: isDarkMode ? 'none' : '1px solid #e5e7eb',
+                  borderRadius: '4px',
+                  color: isDarkMode ? 'white' : '#374151'
+                }}
               />
               <Legend />
               <Line 
@@ -189,10 +207,26 @@ export const RechartsWeatherCharts: React.FC<RechartsWeatherChartsProps> = ({ lo
           ) : (
           <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis label={{ value: 'Inches', angle: -90, position: 'insideLeft' }} />
-              <Tooltip formatter={(value) => [`${Number(value).toFixed(3)} inches`, 'Daily ET₀']} />
+              <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? "#374151" : "#e5e7eb"} />
+              <XAxis 
+                dataKey="date" 
+                tick={{ fill: isDarkMode ? '#9CA3AF' : '#6b7280' }}
+                axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }}
+              />
+              <YAxis 
+                label={{ value: 'Inches', angle: -90, position: 'insideLeft' }} 
+                tick={{ fill: isDarkMode ? '#9CA3AF' : '#6b7280' }}
+                axisLine={{ stroke: isDarkMode ? '#6b7280' : '#9ca3af' }}
+              />
+              <Tooltip 
+                formatter={(value) => [`${Number(value).toFixed(3)} inches`, 'Daily ET₀']}
+                contentStyle={{
+                  backgroundColor: isDarkMode ? '#374151' : '#ffffff',
+                  border: isDarkMode ? 'none' : '1px solid #e5e7eb',
+                  borderRadius: '4px',
+                  color: isDarkMode ? 'white' : '#374151'
+                }}
+              />
               <Legend />
               <Line type="monotone" dataKey="et0" stroke="#F59E0B" strokeWidth={2} name="Daily ET₀" />
             </LineChart>

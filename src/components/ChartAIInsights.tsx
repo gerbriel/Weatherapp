@@ -1218,7 +1218,7 @@ export const ChartAIInsights: React.FC<ChartAIInsightsProps> = ({
   }
 
   return (
-    <div className={`border border-gray-600 dark:border-gray-500 rounded-lg bg-gray-800 dark:bg-gray-900 shadow-lg ${className}`} style={{ backgroundColor: '#1e293b', color: '#e2e8f0' }}>
+    <div className={`border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 shadow-lg text-gray-900 dark:text-gray-100 ${className}`}>
       {/* Header */}
       <div 
         className="flex items-center justify-between p-4 cursor-pointer border-b border-gray-600 dark:border-gray-600 bg-gradient-to-r from-blue-800/30 to-emerald-800/30 dark:from-gray-800 dark:to-gray-750 rounded-t-lg"
@@ -1327,7 +1327,7 @@ export const ChartAIInsights: React.FC<ChartAIInsightsProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="text-xs text-gray-300 pt-3 border-t border-gray-600 text-center bg-gray-800 rounded-lg p-3">
+              <div className="text-xs text-gray-600 dark:text-gray-300 pt-3 border-t border-gray-200 dark:border-gray-600 text-center bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
                 <div className="flex items-center justify-center gap-4 flex-wrap">
                   <span className="flex items-center gap-1">
                     📊 <strong>{chartData?.length || 0}</strong> data points analyzed
