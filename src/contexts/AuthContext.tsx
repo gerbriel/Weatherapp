@@ -270,6 +270,7 @@ interface AuthContextType {
   updateLocation: (id: string, updates: Partial<UserLocation>) => Promise<{ data: any; error: any }>;
   deleteLocation: (id: string) => Promise<{ error: any }>;
   setDefaultLocation: (id: string) => Promise<{ error: any }>;
+  resetToTrialLocations: () => Promise<{ data: any; error: any }>;
   switchOrganization: (organizationId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshLocations: () => Promise<void>;
@@ -417,6 +418,90 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Convert trial locations to user locations format
+  const createDefaultUserLocations = (userId: string): UserLocation[] => {
+    const trialLocations = [
+      {
+        id: 'trial-cimis-125',
+        name: 'Castroville',
+        latitude: 36.7650,
+        longitude: -121.7569,
+        state: 'California',
+        region: 'Monterey County',
+        cimisStationId: '125'
+      },
+      {
+        id: 'trial-cimis-80',
+        name: 'Fresno State',
+        latitude: 36.8175,
+        longitude: -119.7417,
+        state: 'California',
+        region: 'Fresno County',
+        cimisStationId: '80'
+      },
+      {
+        id: 'trial-cimis-71',
+        name: 'Manteca',
+        latitude: 37.7633,
+        longitude: -121.2158,
+        state: 'California',
+        region: 'San Joaquin County',
+        cimisStationId: '71'
+      },
+      {
+        id: 'trial-cimis-250',
+        name: 'Buttonwillow',
+        latitude: 35.3986,
+        longitude: -119.4692,
+        state: 'California',
+        region: 'Kern County',
+        cimisStationId: '250'
+      },
+      {
+        id: 'trial-cimis-77',
+        name: 'Oakville',
+        latitude: 38.4321,
+        longitude: -122.4106,
+        state: 'California',
+        region: 'Napa County',
+        cimisStationId: '77'
+      },
+      {
+        id: 'trial-cimis-214',
+        name: 'Torrey Pines',
+        latitude: 32.8831,
+        longitude: -117.2419,
+        state: 'California',
+        region: 'San Diego County',
+        cimisStationId: '214'
+      }
+    ];
+
+    return trialLocations.map((loc, index) => ({
+      id: `user-${loc.id}`,
+      user_id: userId,
+      organization_id: 'local-org',
+      name: `${loc.name}, ${loc.state}`,
+      description: `${loc.region} agricultural location`,
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      elevation: 100, // Default elevation
+      address: `${loc.name}, ${loc.state}`,
+      city: loc.name,
+      state: 'CA',
+      country: 'United States',
+      postal_code: '00000',
+      timezone: 'America/Los_Angeles',
+      is_default: index === 0, // First location is default
+      is_active: true,
+      metadata: {
+        cimisStationId: loc.cimisStationId,
+        region: loc.region,
+        source: 'trial_locations'
+      }
+    }));
+  };
+
   // Fetch user locations (simplified - no database dependency)
   const fetchLocations = async (userId: string) => {
     try {
@@ -426,50 +511,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const parsedLocations = JSON.parse(savedLocations);
         setLocations(parsedLocations);
       } else {
-        // Start with demo locations for new users to give them the trial experience
-        const demoLocations: UserLocation[] = [
-          {
-            id: 'demo-1',
-            user_id: userId,
-            organization_id: 'local-org',
-            name: 'Salinas Valley Farm',
-            description: 'Central Valley operations',
-            latitude: 36.6777,
-            longitude: -121.6555,
-            elevation: 56,
-            address: 'Salinas, CA',
-            city: 'Salinas',
-            state: 'CA',
-            country: 'United States',
-            postal_code: '93901',
-            timezone: 'America/Los_Angeles',
-            is_default: true,
-            is_active: true,
-            metadata: {}
-          },
-          {
-            id: 'demo-2',
-            user_id: userId,
-            organization_id: 'local-org',
-            name: 'Fresno County Field',
-            description: 'Secondary growing location',
-            latitude: 36.7378,
-            longitude: -119.7871,
-            elevation: 94,
-            address: 'Fresno, CA',
-            city: 'Fresno',
-            state: 'CA',
-            country: 'United States',
-            postal_code: '93721',
-            timezone: 'America/Los_Angeles',
-            is_default: false,
-            is_active: true,
-            metadata: {}
-          }
-        ];
+        // Start with trial locations for new users to give them the full trial experience
+        const defaultLocations = createDefaultUserLocations(userId);
         
-        setLocations(demoLocations);
-        localStorage.setItem(`userLocations_${userId}`, JSON.stringify(demoLocations));
+        setLocations(defaultLocations);
+        localStorage.setItem(`userLocations_${userId}`, JSON.stringify(defaultLocations));
       }
     } catch (error) {
       console.error('Error in fetchLocations:', error);
@@ -594,6 +640,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
 
     return { error: null };
+  };
+
+  const resetToTrialLocations = async () => {
+    if (!user) return { data: null, error: { message: 'No user logged in' } };
+
+    const trialLocations = createDefaultUserLocations(user.id);
+    setLocations(trialLocations);
+    localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(trialLocations));
+
+    return { data: trialLocations, error: null };
   };
 
   const refreshProfile = async () => {
@@ -759,6 +815,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateLocation,
     deleteLocation,
     setDefaultLocation,
+    resetToTrialLocations,
     switchOrganization,
     refreshProfile,
     refreshLocations,

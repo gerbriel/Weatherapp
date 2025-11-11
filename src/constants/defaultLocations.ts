@@ -8,75 +8,57 @@ export interface DefaultLocation {
 
 export const DEFAULT_CALIFORNIA_LOCATIONS: DefaultLocation[] = [
   {
-    id: 'los-angeles-ca',
-    name: 'Los Angeles, CA',
-    latitude: 34.0522,
-    longitude: -118.2437
+    id: 'trial-cimis-125',
+    name: 'Castroville, CA (CIMIS #125)',
+    latitude: 36.7650,
+    longitude: -121.7569
   },
   {
-    id: 'san-francisco-ca',
-    name: 'San Francisco, CA',
-    latitude: 37.7749,
-    longitude: -122.4194
+    id: 'trial-cimis-80',
+    name: 'Fresno State, CA (CIMIS #80)',
+    latitude: 36.8175,
+    longitude: -119.7417
   },
   {
-    id: 'san-diego-ca',
-    name: 'San Diego, CA',
-    latitude: 32.7157,
-    longitude: -117.1611
+    id: 'trial-cimis-71',
+    name: 'Manteca, CA (CIMIS #71)',
+    latitude: 37.7633,
+    longitude: -121.2158
   },
   {
-    id: 'sacramento-ca',
-    name: 'Sacramento, CA',
-    latitude: 38.5816,
-    longitude: -121.4944
+    id: 'trial-cimis-250',
+    name: 'Buttonwillow, CA (CIMIS #250)',
+    latitude: 35.3986,
+    longitude: -119.4692
   },
   {
-    id: 'fresno-ca',
-    name: 'Fresno, CA',
-    latitude: 36.7378,
-    longitude: -119.7871
+    id: 'trial-cimis-77',
+    name: 'Oakville, CA (CIMIS #77)',
+    latitude: 38.4321,
+    longitude: -122.4106
   },
   {
-    id: 'bakersfield-ca',
-    name: 'Bakersfield, CA',
-    latitude: 35.3733,
-    longitude: -119.0187
+    id: 'trial-cimis-214',
+    name: 'Torrey Pines, CA (CIMIS #214)',
+    latitude: 32.8831,
+    longitude: -117.2419
   },
   {
-    id: 'modesto-ca',
-    name: 'Modesto, CA',
-    latitude: 37.6391,
-    longitude: -120.9969
+    id: 'trial-cimis-202',
+    name: 'Atwater, CA (CIMIS #202)',
+    latitude: 37.3472,
+    longitude: -120.5878
   },
   {
-    id: 'stockton-ca',
-    name: 'Stockton, CA',
-    latitude: 37.9577,
-    longitude: -121.2908
+    id: 'trial-cimis-258',
+    name: 'Temecula, CA (CIMIS #258)',
+    latitude: 33.4833,
+    longitude: -117.1400
   },
   {
-    id: 'salinas-ca',
-    name: 'Salinas, CA',
-    latitude: 36.6777,
-    longitude: -121.6555
-  },
-  {
-    id: 'riverside-ca',
-    name: 'Riverside, CA',
-    latitude: 33.9533,
-    longitude: -117.3962
-  },
-  {
-    id: 'anaheim-ca',
-    name: 'Anaheim, CA',
-    latitude: 33.8366,
-    longitude: -117.9143
-  },
-  {
-    id: 'oakland-ca',
-    name: 'Oakland, CA',
-    latitude: 37.8044,
-    longitude: -122.2712
+    id: 'trial-cimis-2',
+    name: 'Five Points, CA (CIMIS #2)',
+    latitude: 36.3350,
+    longitude: -120.1058
   }
 ];

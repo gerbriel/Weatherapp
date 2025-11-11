@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Star, Trash2, RefreshCw, MapPin, Plus, X, CheckSquare, Square } from 'lucide-react';
+import { Star, Trash2, RefreshCw, MapPin, Plus, X, CheckSquare, Square, RotateCcw } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
+import { useAuth } from '../contexts/AuthContext';
 import { DEFAULT_CALIFORNIA_LOCATIONS } from '../constants/defaultLocations';
 import type { LocationWithWeather } from '../types/weather';
 
@@ -23,6 +24,8 @@ export const LocationsList: React.FC<LocationsListProps> = ({
     refreshAllLocations,
     loading: globalLoading
   } = useLocations();
+
+  const { resetToTrialLocations, user } = useAuth();
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDefaultLocations, setShowDefaultLocations] = useState(false);
@@ -125,6 +128,27 @@ export const LocationsList: React.FC<LocationsListProps> = ({
     setShowDefaultLocations(false);
 
     alert(`Added ${newLocations.length} new location${newLocations.length !== 1 ? 's' : ''}!`);
+  };
+
+  const handleResetToTrialLocations = async () => {
+    if (!user) return;
+    
+    const confirmMessage = 'This will replace all your current locations with the agricultural trial locations. Are you sure?';
+    if (window.confirm(confirmMessage)) {
+      try {
+        const result = await resetToTrialLocations();
+        if (result.error) {
+          alert('Failed to reset locations: ' + result.error.message);
+        } else {
+          alert('Successfully reset to trial locations! These include CIMIS agricultural weather stations for accurate crop data.');
+          // Refresh the page to update the locations in the UI
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Error resetting locations:', error);
+        alert('Failed to reset locations. Please try again.');
+      }
+    }
   };
 
   const LocationCard: React.FC<{ location: LocationWithWeather }> = ({ location }) => {
@@ -241,7 +265,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 Refresh All
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="gh-btn gh-btn-primary text-sm w-full"
@@ -255,6 +279,13 @@ export const LocationsList: React.FC<LocationsListProps> = ({
               >
                 <CheckSquare className="h-4 w-4 mr-1" />
                 CA Defaults
+              </button>
+              <button
+                onClick={handleResetToTrialLocations}
+                className="gh-btn gh-btn-warning text-sm w-full"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Reset Trial
               </button>
             </div>
           </div>
