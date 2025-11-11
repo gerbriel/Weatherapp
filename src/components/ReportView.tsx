@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
-import { exportToCSV, exportToExcel, exportComprehensiveData, type ComprehensiveExportOptions } from '../utils/exportUtils';
+import { exportComprehensiveData, type ComprehensiveExportOptions } from '../utils/exportUtils';
 import { SimpleWeatherCharts } from './SimpleWeatherCharts';
 import { ChartErrorBoundary } from './ChartErrorBoundary';
 import { CropETCCharts } from './CropETCCharts';
@@ -386,6 +386,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       includeCalculatorResults: false,
       includeFieldBlocks: false,
       includeHistoricalData: false,
+      includeCharts: false,
       fileFormat: 'csv',
       separateSheets: false
     };
@@ -410,6 +411,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       includeCalculatorResults: false,
       includeFieldBlocks: false,
       includeHistoricalData: false,
+      includeCharts: false,
       fileFormat: 'excel',
       separateSheets: true
     };

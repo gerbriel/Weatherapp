@@ -268,7 +268,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
 
   // Prepare data for individual crop comparison chart (fallback bar chart view)
   const cropComparisonData = useMemo(() => {
-    return etcData.map((item, index) => ({
+    return etcData.map((item) => ({
       name: `${item.cropName}`,
       fullName: `${item.cropName} (${item.location})`,
       ETC: item.etc,
