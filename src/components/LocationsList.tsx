@@ -15,11 +15,11 @@ export const LocationsList: React.FC<LocationsListProps> = ({
   selectedLocationId 
 }) => {
   const { 
-    resetToTrialLocations, 
     user, 
     locations: authLocations, 
     addLocation: authAddLocation,
-    deleteLocation: authDeleteLocation
+    deleteLocation: authDeleteLocation,
+    resetToTrialLocations
   } = useAuth();
   
   const {
@@ -33,13 +33,14 @@ export const LocationsList: React.FC<LocationsListProps> = ({
     loading: globalLoading
   } = useLocations();
 
-  // Use appropriate locations and functions based on authentication
+  // Use auth locations for authenticated users, trial locations for trial users
+  // Both get the same starter locations, but authenticated users' changes persist
   const locations = user ? authLocations : trialLocations;
   
-  // Wrapper functions to handle different location types
+  // Wrapper functions to handle both user types
   const addLocationWrapper = (locationData: { name: string; latitude: number; longitude: number }) => {
     if (user) {
-      // For authenticated users, add required fields for UserLocation
+      // Authenticated users: add with full UserLocation fields and save to account
       return authAddLocation({
         ...locationData,
         description: '',
@@ -55,7 +56,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
         metadata: {}
       });
     } else {
-      // For trial users, use the trial format
+      // Trial users: add with simple format (no persistence)
       return trialAddLocation(locationData);
     }
   };
@@ -174,14 +175,14 @@ export const LocationsList: React.FC<LocationsListProps> = ({
   const handleResetToTrialLocations = async () => {
     if (!user) return;
     
-    const confirmMessage = 'This will replace all your current locations with the agricultural trial locations. Are you sure?';
+    const confirmMessage = 'This will replace all your current locations with the standard CIMIS agricultural weather stations. This gives you the same professional starter locations as new accounts. Are you sure?';
     if (window.confirm(confirmMessage)) {
       try {
         const result = await resetToTrialLocations();
         if (result.error) {
           alert('Failed to reset locations: ' + result.error.message);
         } else {
-          alert('Successfully reset to trial locations! These include CIMIS agricultural weather stations for accurate crop data.');
+          alert('✅ Successfully reset to CIMIS agricultural weather stations! You now have 6 professional farming locations across California.');
           // Refresh the page to update the locations in the UI
           window.location.reload();
         }
@@ -306,7 +307,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 Refresh All
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className={`grid gap-2 ${user ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="gh-btn gh-btn-primary text-sm w-full"
@@ -321,13 +322,15 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 <CheckSquare className="h-4 w-4 mr-1" />
                 CA Defaults
               </button>
-              <button
-                onClick={handleResetToTrialLocations}
-                className="gh-btn gh-btn-warning text-sm w-full"
-              >
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Reset Trial
-              </button>
+              {user && (
+                <button
+                  onClick={handleResetToTrialLocations}
+                  className="gh-btn gh-btn-warning text-sm w-full"
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Reset to CIMIS
+                </button>
+              )}
             </div>
           </div>
 
