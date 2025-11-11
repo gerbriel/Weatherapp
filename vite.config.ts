@@ -23,7 +23,7 @@ export default defineConfig(({ command }) => ({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    sourcemap: true,
+    sourcemap: false, // Disable sourcemaps to prevent base64 issues
     rollupOptions: {
       output: {
         manualChunks: undefined,
@@ -31,11 +31,15 @@ export default defineConfig(({ command }) => ({
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash][extname]',
+        // Prevent dynamic imports that could cause base64 issues
+        format: 'es',
       },
     },
-    // Fix MIME type issues
+    // Fix MIME type issues and prevent base64 generation
     target: 'es2020',
     minify: 'esbuild',
+    // Prevent problematic dynamic imports
+    modulePreload: false,
   },
   // Ensure proper module resolution
   resolve: {
