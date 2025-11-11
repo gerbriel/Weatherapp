@@ -42,12 +42,20 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         console.error('Error parsing saved locations:', error);
       }
     } else {
-      // Add default location if none saved - matching the user's previous setup
-      addLocation({
-        latitude: 35.1975,
-        longitude: -118.7906,
-        name: 'Arvin, California'
-      });
+      // Add all default CIMIS stations for trial users
+      const defaultLocations = [
+        { latitude: 35.205583, longitude: -118.77841, name: 'Bakersfield - Arvin-Edison (CIMIS #125)' },
+        { latitude: 36.820833, longitude: -119.74231, name: 'Fresno - Fresno State (CIMIS #80)' },
+        { latitude: 37.645222, longitude: -121.18776, name: 'Modesto - Modesto (CIMIS #71)' },
+        { latitude: 39.210667, longitude: -122.16889, name: 'Colusa - Williams (CIMIS #250)' },
+        { latitude: 38.428475, longitude: -122.41021, name: 'Napa - Oakville (CIMIS #77)' },
+        { latitude: 36.625619, longitude: -121.537889, name: 'Salinas - Salinas South II (CIMIS #214)' },
+        { latitude: 35.028281, longitude: -120.56003, name: 'Santa Maria - Nipomo (CIMIS #202)' },
+        { latitude: 36.376917, longitude: -119.037972, name: 'Exeter - Lemon Cove (CIMIS #258)' },
+        { latitude: 36.336222, longitude: -120.11291, name: 'Five Points - Five Points (CIMIS #2)' }
+      ];
+      
+      defaultLocations.forEach(loc => addLocation(loc));
     }
   }, []);
 

@@ -422,58 +422,85 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const createDefaultUserLocations = (userId: string): UserLocation[] => {
     const trialLocations = [
       {
-        id: 'trial-cimis-125',
-        name: 'Castroville Agricultural Station',
-        latitude: 36.7650,
-        longitude: -121.7569,
+        id: 'cimis-125',
+        name: 'Arvin-Edison',
+        latitude: 35.205583,
+        longitude: -118.77841,
         state: 'California',
-        region: 'Monterey County',
+        region: 'Bakersfield Area',
         cimisStationId: '125'
       },
       {
-        id: 'trial-cimis-80',
-        name: 'Fresno State University',
-        latitude: 36.8175,
-        longitude: -119.7417,
+        id: 'cimis-80',
+        name: 'Fresno State',
+        latitude: 36.820833,
+        longitude: -119.74231,
         state: 'California',
-        region: 'Fresno County',
+        region: 'Fresno Area',
         cimisStationId: '80'
       },
       {
-        id: 'trial-cimis-71',
-        name: 'Manteca Farm Station',
-        latitude: 37.7633,
-        longitude: -121.2158,
+        id: 'cimis-71',
+        name: 'Modesto',
+        latitude: 37.645222,
+        longitude: -121.18776,
         state: 'California',
-        region: 'San Joaquin County',
+        region: 'Modesto Area',
         cimisStationId: '71'
       },
       {
-        id: 'trial-cimis-250',
-        name: 'Buttonwillow Agricultural Station',
-        latitude: 35.3986,
-        longitude: -119.4692,
+        id: 'cimis-250',
+        name: 'Williams',
+        latitude: 39.210667,
+        longitude: -122.16889,
         state: 'California',
-        region: 'Kern County',
+        region: 'Colusa Area',
         cimisStationId: '250'
       },
       {
-        id: 'trial-cimis-77',
-        name: 'Oakville Vineyard Station',
-        latitude: 38.4321,
-        longitude: -122.4106,
+        id: 'cimis-77',
+        name: 'Oakville',
+        latitude: 38.428475,
+        longitude: -122.41021,
         state: 'California',
-        region: 'Napa County',
+        region: 'Napa Valley',
         cimisStationId: '77'
       },
       {
-        id: 'trial-cimis-214',
-        name: 'Torrey Pines Coastal Station',
-        latitude: 32.8831,
-        longitude: -117.2419,
+        id: 'cimis-214',
+        name: 'Salinas South II',
+        latitude: 36.625619,
+        longitude: -121.537889,
         state: 'California',
-        region: 'San Diego County',
+        region: 'Salinas Area',
         cimisStationId: '214'
+      },
+      {
+        id: 'cimis-202',
+        name: 'Nipomo',
+        latitude: 35.028281,
+        longitude: -120.56003,
+        state: 'California',
+        region: 'Santa Maria Area',
+        cimisStationId: '202'
+      },
+      {
+        id: 'cimis-258',
+        name: 'Lemon Cove',
+        latitude: 36.376917,
+        longitude: -119.037972,
+        state: 'California',
+        region: 'Exeter Area',
+        cimisStationId: '258'
+      },
+      {
+        id: 'cimis-2',
+        name: 'Five Points',
+        latitude: 36.336222,
+        longitude: -120.11291,
+        state: 'California',
+        region: 'Five Points Area',
+        cimisStationId: '2'
       }
     ];
 
