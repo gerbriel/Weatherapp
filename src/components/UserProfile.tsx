@@ -59,6 +59,8 @@ export const UserProfile: React.FC = () => {
         ...newLocation,
         is_default: locations.length === 0, // First location becomes default
         is_active: true,
+        is_favorite: false,
+        sort_order: locations.length,
         metadata: {}
       });
       setNewLocation({

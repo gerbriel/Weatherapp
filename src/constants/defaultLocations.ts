@@ -4,6 +4,9 @@ export interface DefaultLocation {
   name: string;
   weatherstation?: string;
   weatherstationID?: string;
+  cimisStationId?: string;
+  region?: string;
+  state?: string;
   latitude: number;
   longitude: number;
 }
@@ -14,6 +17,9 @@ export const DEFAULT_CALIFORNIA_LOCATIONS: DefaultLocation[] = [
     name: 'Bakersfield',
     weatherstation: 'Arvin-Edison',
     weatherstationID: '125',
+    cimisStationId: '125',
+    region: 'Bakersfield Area',
+    state: 'CA',
     latitude: 35.205583,
     longitude: -118.77841
   },
@@ -22,6 +28,9 @@ export const DEFAULT_CALIFORNIA_LOCATIONS: DefaultLocation[] = [
     name: 'Fresno',
     weatherstation: 'Fresno State',
     weatherstationID: '80',
+    cimisStationId: '80',
+    region: 'Fresno Area',
+    state: 'CA',
     latitude: 36.820833,
     longitude: -119.74231
   },
@@ -30,6 +39,9 @@ export const DEFAULT_CALIFORNIA_LOCATIONS: DefaultLocation[] = [
     name: 'Modesto',
     weatherstation: 'Modesto',
     weatherstationID: '71',
+    cimisStationId: '71',
+    region: 'Modesto Area',
+    state: 'CA',
     latitude: 37.645222,
     longitude: -121.18776
   },
@@ -38,6 +50,9 @@ export const DEFAULT_CALIFORNIA_LOCATIONS: DefaultLocation[] = [
     name: 'Colusa',
     weatherstation: 'Williams',
     weatherstationID: '250',
+    cimisStationId: '250',
+    region: 'Colusa Area',
+    state: 'CA',
     latitude: 39.210667,
     longitude: -122.16889
   },
@@ -46,6 +61,9 @@ export const DEFAULT_CALIFORNIA_LOCATIONS: DefaultLocation[] = [
     name: 'Napa',
     weatherstation: 'Oakville',
     weatherstationID: '77',
+    cimisStationId: '77',
+    region: 'Napa Area',
+    state: 'CA',
     latitude: 38.428475,
     longitude: -122.41021
   },

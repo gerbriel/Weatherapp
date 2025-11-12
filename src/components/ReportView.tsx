@@ -107,7 +107,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
     return reportInsights.get(locationId) || { weather: '', crop: '', cropComparison: '', general: '' };
   };
 
-  const updateLocationInsights = (locationId: string, newInsights: { weather: string; crop: string; general: string }) => {
+  const updateLocationInsights = (locationId: string, newInsights: { weather: string; crop: string; cropComparison: string; general: string }) => {
     const updatedMap = new Map(reportInsights);
     updatedMap.set(locationId, newInsights);
     onReportInsightsChange(updatedMap);
@@ -119,6 +119,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
     return {
       weather: allInsights.map(insight => insight.weather).filter(w => w).join('\n\n'),
       crop: allInsights.map(insight => insight.crop).filter(c => c).join('\n\n'),
+      cropComparison: allInsights.map(insight => insight.cropComparison).filter(c => c).join('\n\n'),
       general: allInsights.map(insight => insight.general).filter(g => g).join('\n\n')
     };
   };

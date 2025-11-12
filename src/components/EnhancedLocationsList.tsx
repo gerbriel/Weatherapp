@@ -263,7 +263,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
   // Handle bulk adding default locations
   const handleAddSelectedDefaults = () => {
     const locationsToAdd = DEFAULT_CALIFORNIA_LOCATIONS.filter(loc => 
-      selectedDefaultLocations.has(loc.cimisStationId)
+      loc.cimisStationId && selectedDefaultLocations.has(loc.cimisStationId)
     );
 
     if (locationsToAdd.length === 0) {
@@ -273,7 +273,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
 
     const existingNames = locations.map(loc => loc.name.toLowerCase());
     const newLocations = locationsToAdd.filter(loc => 
-      !existingNames.includes(loc.region.replace(' Area', '').toLowerCase())
+      loc.region && !existingNames.includes(loc.region.replace(' Area', '').toLowerCase())
     );
 
     if (newLocations.length === 0) {
@@ -283,7 +283,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
 
     newLocations.forEach(loc => {
       const locationData = {
-        name: loc.region.replace(' Area', ''),
+        name: loc.region ? loc.region.replace(' Area', '') : loc.name,
         latitude: loc.latitude,
         longitude: loc.longitude,
         weatherstation: loc.name,
@@ -369,8 +369,8 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location Name</label>
               <input
                 type="text"
-                value={editingLocation.name}
-                onChange={(e) => setEditingLocation({ ...editingLocation, name: e.target.value })}
+                value={editingLocation?.name || ''}
+                onChange={(e) => editingLocation && setEditingLocation({ ...editingLocation, name: e.target.value })}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               />
             </div>
@@ -380,8 +380,8 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
                 <input
                   type="number"
                   step="0.000001"
-                  value={editingLocation.latitude}
-                  onChange={(e) => setEditingLocation({ ...editingLocation, latitude: e.target.value })}
+                  value={editingLocation?.latitude || ''}
+                  onChange={(e) => editingLocation && setEditingLocation({ ...editingLocation, latitude: e.target.value })}
                   className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
               </div>
@@ -390,8 +390,8 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
                 <input
                   type="number"
                   step="0.000001"
-                  value={editingLocation.longitude}
-                  onChange={(e) => setEditingLocation({ ...editingLocation, longitude: e.target.value })}
+                  value={editingLocation?.longitude || ''}
+                  onChange={(e) => editingLocation && setEditingLocation({ ...editingLocation, longitude: e.target.value })}
                   className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
               </div>
@@ -400,8 +400,8 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Weather Station</label>
               <input
                 type="text"
-                value={editingLocation.weatherstation}
-                onChange={(e) => setEditingLocation({ ...editingLocation, weatherstation: e.target.value })}
+                value={editingLocation?.weatherstation || ''}
+                onChange={(e) => editingLocation && setEditingLocation({ ...editingLocation, weatherstation: e.target.value })}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 placeholder="e.g., Arvin-Edison"
               />
@@ -410,8 +410,8 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Weather Station ID</label>
               <input
                 type="text"
-                value={editingLocation.weatherstation_id}
-                onChange={(e) => setEditingLocation({ ...editingLocation, weatherstation_id: e.target.value })}
+                value={editingLocation?.weatherstation_id || ''}
+                onChange={(e) => editingLocation && setEditingLocation({ ...editingLocation, weatherstation_id: e.target.value })}
                 className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 placeholder="e.g., 125"
               />
@@ -770,13 +770,14 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
             <div className="overflow-y-auto max-h-96 border border-gray-200 dark:border-gray-600 rounded-md">
               {DEFAULT_CALIFORNIA_LOCATIONS.map((loc) => (
                 <label 
-                  key={loc.cimisStationId}
+                  key={loc.cimisStationId || loc.id}
                   className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-600 last:border-b-0"
                 >
                   <input
                     type="checkbox"
-                    checked={selectedDefaultLocations.has(loc.cimisStationId)}
+                    checked={loc.cimisStationId ? selectedDefaultLocations.has(loc.cimisStationId) : false}
                     onChange={(e) => {
+                      if (!loc.cimisStationId) return;
                       const newSelected = new Set(selectedDefaultLocations);
                       if (e.target.checked) {
                         newSelected.add(loc.cimisStationId);
@@ -789,10 +790,10 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
                   />
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 dark:text-white">
-                      {loc.region.replace(' Area', '')}
+                      {loc.region ? loc.region.replace(' Area', '') : loc.name}
                     </div>
                     <div className="text-sm text-blue-700 dark:text-blue-300">
-                      {loc.name} - CIMIS #{loc.cimisStationId}
+                      {loc.name} - CIMIS #{loc.cimisStationId || 'N/A'}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}
