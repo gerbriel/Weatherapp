@@ -18,14 +18,24 @@ class WeatherService {
   private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache (increased to reduce API calls)
   private requestQueue: Promise<any> = Promise.resolve();
-  private readonly REQUEST_DELAY = 3000; // 3 second delay between requests to avoid rate limits
+  private readonly REQUEST_DELAY = 5000; // 5 second delay between requests to avoid rate limits (increased from 3s)
   private lastRequestTime = 0;
-  private readonly MAX_RETRIES = 2;
-  private readonly RETRY_DELAY = 5000; // 5 second delay before retry
+  private readonly MAX_RETRIES = 1; // Reduced to 1 retry to avoid overwhelming API
+  private readonly RETRY_DELAY = 10000; // 10 second delay before retry (increased from 5s)
   
   constructor() {
     // Load cache from localStorage on initialization
     this.loadCacheFromStorage();
+  }
+  
+  // Public method to clear cache
+  clearCache() {
+    this.cache.clear();
+    try {
+      localStorage.removeItem('weather_cache');
+    } catch (error) {
+      console.error('Failed to clear weather cache from storage:', error);
+    }
   }
   
   private loadCacheFromStorage() {
