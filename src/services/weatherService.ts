@@ -16,12 +16,45 @@ interface DateRange {
 
 class WeatherService {
   private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+  private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache (increased to reduce API calls)
   private requestQueue: Promise<any> = Promise.resolve();
   private readonly REQUEST_DELAY = 3000; // 3 second delay between requests to avoid rate limits
   private lastRequestTime = 0;
   private readonly MAX_RETRIES = 2;
   private readonly RETRY_DELAY = 5000; // 5 second delay before retry
+  
+  constructor() {
+    // Load cache from localStorage on initialization
+    this.loadCacheFromStorage();
+  }
+  
+  private loadCacheFromStorage() {
+    try {
+      const stored = localStorage.getItem('weather_cache');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        Object.entries(parsed).forEach(([key, value]: [string, any]) => {
+          if (value && value.data && value.timestamp) {
+            this.cache.set(key, value);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load weather cache from storage:', error);
+    }
+  }
+  
+  private saveCacheToStorage() {
+    try {
+      const cacheObj: Record<string, any> = {};
+      this.cache.forEach((value, key) => {
+        cacheObj[key] = value;
+      });
+      localStorage.setItem('weather_cache', JSON.stringify(cacheObj));
+    } catch (error) {
+      console.error('Failed to save weather cache to storage:', error);
+    }
+  }
   
   async getWeatherData(location: LocationData): Promise<WeatherApiResponse> {
     const cacheKey = `${location.latitude},${location.longitude}`;
@@ -90,6 +123,9 @@ class WeatherService {
         data: response.data,
         timestamp: Date.now()
       });
+      
+      // Persist to localStorage
+      this.saveCacheToStorage();
       
       return response.data;
     } catch (error) {

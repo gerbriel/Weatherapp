@@ -23,6 +23,7 @@ interface TrialContextType {
 const TrialContext = createContext<TrialContextType | undefined>(undefined);
 
 // Default California locations for trial - Specific CIMIS Stations
+// Reduced to 3 locations to avoid API rate limiting
 const DEFAULT_CA_LOCATIONS: TrialLocation[] = [
   {
     id: 'trial-cimis-125',
@@ -50,60 +51,6 @@ const DEFAULT_CA_LOCATIONS: TrialLocation[] = [
     state: 'California',
     region: 'San Joaquin County',
     cimisStationId: '71'
-  },
-  {
-    id: 'trial-cimis-250',
-    name: 'Buttonwillow',
-    latitude: 35.3986,
-    longitude: -119.4692,
-    state: 'California',
-    region: 'Kern County',
-    cimisStationId: '250'
-  },
-  {
-    id: 'trial-cimis-77',
-    name: 'Oakville',
-    latitude: 38.4321,
-    longitude: -122.4106,
-    state: 'California',
-    region: 'Napa County',
-    cimisStationId: '77'
-  },
-  {
-    id: 'trial-cimis-214',
-    name: 'Torrey Pines',
-    latitude: 32.8831,
-    longitude: -117.2419,
-    state: 'California',
-    region: 'San Diego County',
-    cimisStationId: '214'
-  },
-  {
-    id: 'trial-cimis-202',
-    name: 'Atwater',
-    latitude: 37.3472,
-    longitude: -120.5878,
-    state: 'California',
-    region: 'Merced County',
-    cimisStationId: '202'
-  },
-  {
-    id: 'trial-cimis-258',
-    name: 'Temecula',
-    latitude: 33.4833,
-    longitude: -117.1400,
-    state: 'California',
-    region: 'Riverside County',
-    cimisStationId: '258'
-  },
-  {
-    id: 'trial-cimis-2',
-    name: 'Five Points',
-    latitude: 36.3350,
-    longitude: -120.1058,
-    state: 'California',
-    region: 'Fresno County',
-    cimisStationId: '2'
   }
 ];
 
