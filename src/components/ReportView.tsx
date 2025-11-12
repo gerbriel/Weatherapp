@@ -1448,25 +1448,22 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </div>
         
         {displayLocations.length > 0 && (
-          <div className="text-xs text-blue-600 dark:text-blue-400 mb-1">
-            <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              <strong>Locations:</strong> {displayLocations.map(loc => loc.name).join(', ')}
-            </div>
+          <div className="text-xs text-blue-600 dark:text-blue-400 mb-1 flex items-center gap-1 justify-center">
+            <MapPin className="h-4 w-4" />
+            <strong>Locations:</strong> {displayLocations.map(loc => loc.name).join(', ')}
           </div>
         )}
         
         {(selectedCrops.length > 0 || cropInstances.length > 0) && (
-          <div className="text-xs text-blue-600 dark:text-blue-400 mb-2">
-            <div className="flex items-center gap-1">
-              <Sprout className="h-4 w-4" />
-              <strong>Active Crops:</strong>
-            </div> {(() => {
+          <div className="text-xs text-blue-600 dark:text-blue-400 mb-2 flex items-center gap-1 justify-center">
+            <Sprout className="h-4 w-4" />
+            <strong>Active Crops:</strong>
+            <span>{(() => {
               const allCrops = new Set();
               selectedCrops.forEach(crop => allCrops.add(crop));
               cropInstances.forEach(instance => allCrops.add(instance.cropId));
               return Array.from(allCrops).join(', ');
-            })()}
+            })()}</span>
           </div>
         )}
         
