@@ -28,6 +28,11 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
   onApplyToLocation,
   onApplyToAllLocations
 }) => {
+  // Deduplicate locations to fix count issue
+  const uniqueLocations = locations.filter((location, index, self) => 
+    index === self.findIndex((loc) => loc.id === location.id)
+  );
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showNewCropModal, setShowNewCropModal] = useState(false);
@@ -318,7 +323,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
         <div className="p-6 border-t border-gray-700 bg-gray-800 flex-shrink-0">
           <div className="space-y-4">
             {/* Apply to Locations Section */}
-            {selectedCrops.length > 0 && locations.length > 1 && (
+            {selectedCrops.length > 0 && uniqueLocations.length > 1 && (
               <div className="p-4 bg-blue-900/20 border border-blue-700 rounded-lg">
                 <h4 className="text-sm font-medium text-blue-300 mb-3">
                   Apply {selectedCrops.length} selected crop{selectedCrops.length !== 1 ? 's' : ''} to:
@@ -331,7 +336,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
                       onClick={() => onApplyToAllLocations(selectedCrops)}
                       className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors font-medium"
                     >
-                      Apply to All Locations ({locations.length})
+                      Apply to All Locations ({uniqueLocations.length})
                     </button>
                   </div>
                 )}
@@ -340,7 +345,7 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
                 <div className="space-y-2">
                   <div className="text-xs text-blue-300 font-medium">Or select specific locations:</div>
                   <div className="max-h-32 overflow-y-auto border border-blue-600 rounded-md">
-                    {locations.map(location => (
+                    {uniqueLocations.map(location => (
                       <button
                         key={location.id}
                         onClick={() => onApplyToLocation && onApplyToLocation(location.id, selectedCrops)}
