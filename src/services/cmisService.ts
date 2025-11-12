@@ -133,8 +133,6 @@ class CMISService {
           // CIMIS API format: unitOfMeasure should be 'E' for English units
           const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
           
-          console.log('🌐 Fetching CMIS data from:', apiUrl.replace(this.apiKey, '***'));
-          
           const response = await fetch(apiUrl);
           
           if (!response.ok) {

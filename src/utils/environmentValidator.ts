@@ -85,17 +85,7 @@ class EnvironmentValidator {
    * Log environment status for debugging
    */
   logStatus(): void {
-    if (this.config.isDevelopment) {
-      const cmisValidation = this.validateCMIS();
-      
-      console.group('🔧 Environment Configuration Status');
-      console.log('Environment:', this.config.isDevelopment ? 'Development' : 'Production');
-      console.log('Secure Context:', this.isSecureEnvironment() ? '✅' : '❌');
-      console.log('CMIS API Key:', this.config.cmisApiKey ? '✅ Configured' : '❌ Missing');
-      console.log('CMIS Status:', cmisValidation.message);
-      console.log('Supabase URL:', this.config.supabaseUrl ? '✅ Configured' : '❌ Missing');
-      console.groupEnd();
-    }
+    // Silenced in production - check environment config directly if needed
   }
 
   /**

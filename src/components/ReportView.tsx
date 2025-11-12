@@ -167,15 +167,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Initialize default date range (last 14 days)
+  // Initialize default date range (last 14 days, ending yesterday to avoid CMIS API future date errors)
   useEffect(() => {
-    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1); // Use yesterday to avoid timezone issues
     const twoWeeksAgo = new Date();
-    twoWeeksAgo.setDate(today.getDate() - 14);
+    twoWeeksAgo.setDate(yesterday.getDate() - 14);
     
     setDateRange({
       startDate: twoWeeksAgo.toISOString().split('T')[0],
-      endDate: today.toISOString().split('T')[0]
+      endDate: yesterday.toISOString().split('T')[0]
     });
   }, []);
 
@@ -370,7 +371,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 );
                 
                 if (station) {
+                  // Use yesterday's date to avoid timezone issues with CMIS API
                   const endDate = new Date();
+                  endDate.setDate(endDate.getDate() - 1); // Use yesterday to avoid "future date" errors
                   const startDate = new Date();
                   startDate.setDate(endDate.getDate() - 14);
                   
@@ -931,12 +934,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       <MapPin className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                       {location.name || 'Unknown Location'}
                     </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
                         NOAA Weather Data (GFS Global & NAM CONUS via Open-Meteo API)
                       </div>
-                    </p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -1185,12 +1188,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     <MapPin className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                     {location.name}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     <div className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
                       {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                     </div>
-                  </p>
+                  </div>
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-medium text-gray-900 dark:text-white">

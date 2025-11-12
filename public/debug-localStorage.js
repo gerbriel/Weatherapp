@@ -61,4 +61,4 @@ function debugLocalStorage() {
 // Add to window for easy access
 window.debugLocalStorage = debugLocalStorage;
 
-console.log('🛠️ Debug tools loaded! Run debugLocalStorage() in console for details');
+// Debug tools loaded silently - call debugLocalStorage() in console when needed

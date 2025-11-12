@@ -206,7 +206,7 @@ export const TrialDashboard: React.FC = () => {
                 error: undefined
               };
             } catch (error) {
-              console.error(`❌ Failed to fetch weather for ${location.name}:`, error);
+              console.error(`Failed to fetch weather for ${location.name}:`, error);
               return {
                 ...location,
                 loading: false,
@@ -299,7 +299,7 @@ export const TrialDashboard: React.FC = () => {
             const crop = availableCrops.find(c => c.id === cropId);
             if (crop) {
               const newInstance: CropInstance = {
-                id: `quick-${Date.now()}`,
+                id: `quick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 cropId: crop.id,
                 plantingDate: new Date().toISOString().split('T')[0], // Today's date
                 currentStage: 0, // Start at first stage
