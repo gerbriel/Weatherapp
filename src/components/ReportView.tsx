@@ -46,8 +46,22 @@ interface ReportViewProps {
   // Persistent state props
   reportSelectedLocationIds?: Set<string>;
   onReportSelectedLocationIdsChange?: (ids: Set<string>) => void;
-  reportInsights?: Map<string, { weather: string; crop: string; general: string }>;
-  onReportInsightsChange?: (insights: Map<string, { weather: string; crop: string; cropComparison: string; general: string }>) => void;
+  reportInsights?: Map<string, { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  }>;
+  onReportInsightsChange?: (insights: Map<string, { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  }>) => void;
 }
 
 export const ReportView: React.FC<ReportViewProps> = ({ 
@@ -104,10 +118,24 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
   // Helper functions for location-specific insights
   const getLocationInsights = (locationId: string) => {
-    return reportInsights.get(locationId) || { weather: '', crop: '', cropComparison: '', general: '' };
+    return reportInsights.get(locationId) || { 
+      precipitationChart: '', 
+      temperatureChart: '', 
+      cropCoefficientsChart: '', 
+      etcEtoComparisonChart: '', 
+      dataTable: '', 
+      general: '' 
+    };
   };
 
-  const updateLocationInsights = (locationId: string, newInsights: { weather: string; crop: string; cropComparison: string; general: string }) => {
+  const updateLocationInsights = (locationId: string, newInsights: { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  }) => {
     const updatedMap = new Map(reportInsights);
     updatedMap.set(locationId, newInsights);
     onReportInsightsChange(updatedMap);
@@ -117,9 +145,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const getCombinedInsights = () => {
     const allInsights = Array.from(reportInsights.values());
     return {
-      weather: allInsights.map(insight => insight.weather).filter(w => w).join('\n\n'),
-      crop: allInsights.map(insight => insight.crop).filter(c => c).join('\n\n'),
-      cropComparison: allInsights.map(insight => insight.cropComparison).filter(c => c).join('\n\n'),
+      precipitationChart: allInsights.map(insight => insight.precipitationChart).filter(w => w).join('\n\n'),
+      temperatureChart: allInsights.map(insight => insight.temperatureChart).filter(c => c).join('\n\n'),
+      cropCoefficientsChart: allInsights.map(insight => insight.cropCoefficientsChart).filter(c => c).join('\n\n'),
+      etcEtoComparisonChart: allInsights.map(insight => insight.etcEtoComparisonChart).filter(c => c).join('\n\n'),
+      dataTable: allInsights.map(insight => insight.dataTable).filter(d => d).join('\n\n'),
       general: allInsights.map(insight => insight.general).filter(g => g).join('\n\n')
     };
   };

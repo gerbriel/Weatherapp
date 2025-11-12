@@ -440,49 +440,24 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     // Normal display mode
     return (
       <div 
-        className={`p-4 border rounded-lg transition-all ${isDragging ? 'shadow-lg' : ''} ${
+        className={`p-5 border rounded-lg transition-all ${isDragging ? 'shadow-lg' : ''} ${
           isSelected 
             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
             : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
         } bg-white dark:bg-gray-800`}
         onClick={() => onLocationSelect?.(location)}
       >
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-start gap-2 flex-1 min-w-0">
+        {/* Icons Row - Above Content */}
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
+          <div className="flex items-center gap-2">
             {/* Drag Handle */}
-            <GripVertical className="h-4 w-4 text-gray-400 mt-1 cursor-grab active:cursor-grabbing" />
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                <h3 className="font-semibold text-gray-900 dark:text-white truncate" title={location.name}>
-                  {location.name}
-                  {isFavorite && <Heart className="inline h-4 w-4 text-red-500 ml-1 fill-current" />}
-                </h3>
-              </div>
-              
-              {/* Weather Station Information - Prominent Display */}
-              {weatherStationName && weatherStationId && (
-                <div className="text-sm font-medium text-blue-700 dark:text-blue-300 truncate mt-1 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
-                  <span>{weatherStationName}</span>
-                  <span className="text-blue-600 dark:text-blue-400 ml-2 font-semibold">CMIS #{weatherStationId}</span>
-                </div>
-              )}
-              {/* If weatherstation_id exists but weatherstation doesn't, still show CMIS ID */}
-              {weatherStationId && !weatherStationName && (
-                <div className="text-sm font-medium text-blue-700 dark:text-blue-300 truncate mt-1 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">CMIS #{weatherStationId}</span>
-                </div>
-              )}
-              
-              <p className="text-sm text-gray-500 dark:text-gray-400 font-mono truncate">
-                {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-              </p>
-            </div>
+            <GripVertical className="h-4 w-4 text-gray-400 cursor-grab active:cursor-grabbing" />
+            {/* Map Pin */}
+            <MapPin className="h-4 w-4 text-gray-500" />
           </div>
           
           {/* Action Buttons */}
-          <div className="flex items-center space-x-1 flex-shrink-0">
+          <div className="flex items-center space-x-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -534,6 +509,36 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
           </div>
         </div>
 
+        {/* Content Area - Below Icons */}
+        <div>
+          <div className="mb-2">
+            <h3 className="font-semibold text-gray-900 dark:text-white" title={location.name}>
+              {location.name}
+              {isFavorite && <Heart className="inline h-4 w-4 text-red-500 ml-1 fill-current" />}
+            </h3>
+          </div>
+          
+          {/* Weather Station Information - Prominent Display */}
+          {weatherStationName && weatherStationId && (
+            <div className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-1 min-w-0">
+                <span className="truncate flex-1 min-w-0">{weatherStationName}</span>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold whitespace-nowrap">CMIS #{weatherStationId}</span>
+              </div>
+            </div>
+          )}
+          {/* If weatherstation_id exists but weatherstation doesn't, still show CMIS ID */}
+          {weatherStationId && !weatherStationName && (
+            <div className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
+              <span className="text-blue-600 dark:text-blue-400 font-semibold">CMIS #{weatherStationId}</span>
+            </div>
+          )}
+          
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+            {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+          </p>
+        </div>
+
         {location.error && (
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle className="h-4 w-4 text-red-500" />
@@ -542,15 +547,15 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
         )}
 
         {todayData && (
-          <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Precipitation</p>
+          <div className="grid grid-cols-2 gap-4 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
+            <div className="flex flex-col">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Precipitation</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
                 {todayData.precipitation.toFixed(2)} in
               </p>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">ET₀</p>
+            <div className="flex flex-col">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ET₀</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
                 {(todayData.et0 * 0.0393701).toFixed(3)} inches
               </p>
@@ -559,7 +564,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
         )}
 
         {location.lastUpdated && (
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-400 mt-3">
             Updated: {new Date(location.lastUpdated).toLocaleTimeString()}
           </p>
         )}
@@ -600,7 +605,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
               <div
                 {...provided.droppableProps}
                 ref={provided.innerRef}
-                className={`p-4 space-y-3 ${snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
+                className={`p-4 space-y-4 ${snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/10' : ''}`}
               >
                 {sortedLocations.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">

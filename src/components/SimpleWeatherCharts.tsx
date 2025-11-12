@@ -7,14 +7,35 @@ import type { LocationWithWeather } from '../types/weather';
 interface SimpleWeatherChartsProps {
   location: LocationWithWeather;
   showAIInsights?: boolean;
-  insights?: { weather: string; crop: string; cropComparison: string; general: string };
-  onInsightsChange?: (insights: { weather: string; crop: string; cropComparison: string; general: string }) => void;
+  insights?: { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  };
+  onInsightsChange?: (insights: { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  }) => void;
 }
 
 export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ 
   location, 
   showAIInsights = false,
-  insights = { weather: '', crop: '', cropComparison: '', general: '' },
+  insights = { 
+    precipitationChart: '', 
+    temperatureChart: '', 
+    cropCoefficientsChart: '', 
+    etcEtoComparisonChart: '', 
+    dataTable: '', 
+    general: '' 
+  },
   onInsightsChange 
 }) => {
   const [isReady, setIsReady] = useState(false);
@@ -113,15 +134,16 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({
         </div>
         
         {/* Manual Weather Insights */}
+                {/* Manual Weather Insights */}
         <div className="mt-4 p-4 bg-blue-50 dark:bg-gray-700/30 rounded-lg border border-blue-200 dark:border-gray-600">
           <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-            Weather Analysis Notes
+            Precipitation Chart Analysis
           </label>
           <textarea
-            value={insights.weather}
-            onChange={(e) => onInsightsChange?.({ ...insights, weather: e.target.value })}
-            placeholder="Add your analysis of the weather data, trends, and observations for this location..."
-            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+            value={insights.precipitationChart}
+            onChange={(e) => onInsightsChange?.({ ...insights, precipitationChart: e.target.value })}
+            placeholder="Add your analysis and insights about precipitation patterns and their impact on irrigation needs..."
+            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
           />
         </div>
         
@@ -163,15 +185,15 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({
           </ResponsiveContainer>
         </div>
         
-        {/* Manual General Insights */}
+        {/* Manual Temperature/ET0 Chart Insights */}
         <div className="mt-4 p-4 bg-purple-50 dark:bg-gray-700/30 rounded-lg border border-purple-200 dark:border-gray-600">
           <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-            General Analysis Notes
+            Temperature/ET₀ Chart Analysis
           </label>
           <textarea
-            value={insights.general}
-            onChange={(e) => onInsightsChange?.({ ...insights, general: e.target.value })}
-            placeholder="Add your general analysis, observations, and insights for this location..."
+            value={insights.temperatureChart}
+            onChange={(e) => onInsightsChange?.({ ...insights, temperatureChart: e.target.value })}
+            placeholder="Add your analysis of evapotranspiration patterns and temperature-driven water demand..."
             className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
           />
         </div>

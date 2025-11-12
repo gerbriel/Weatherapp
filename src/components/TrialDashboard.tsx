@@ -138,7 +138,14 @@ export const TrialDashboard: React.FC = () => {
 
   // Reports view persistent state
   const [reportSelectedLocationIds, setReportSelectedLocationIds] = useState<Set<string>>(new Set());
-  const [reportInsights, setReportInsights] = useState<Map<string, { weather: string; crop: string; cropComparison: string; general: string }>>(new Map());
+  const [reportInsights, setReportInsights] = useState<Map<string, { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  }>>(new Map());
 
   // Frost warnings hook
   const { activeFrostWarnings, criticalFrostWarnings } = useFrostWarnings(
