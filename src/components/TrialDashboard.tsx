@@ -188,33 +188,33 @@ export const TrialDashboard: React.FC = () => {
       const fetchWeatherForTrialLocations = async () => {
         setWeatherFetched(true); // Set immediately to prevent duplicate calls
         
-        const locationsWithWeather = await Promise.all(
-          locationsContextLocations.map(async (location: any) => {
-            try {
-              const weatherData = await weatherService.getWeatherData({
-                id: location.id,
-                name: location.name,
-                latitude: location.latitude,
-                longitude: location.longitude,
-                isFavorite: false
-              });
-              
-              return {
-                ...location,
-                weatherData,
-                loading: false,
-                error: undefined
-              };
-            } catch (error) {
-              console.error(`Failed to fetch weather for ${location.name}:`, error);
-              return {
-                ...location,
-                loading: false,
-                error: error instanceof Error ? error.message : 'Failed to fetch weather data'
-              };
-            }
-          })
-        );
+        // Process locations sequentially to respect rate limiting
+        const locationsWithWeather = [];
+        for (const location of locationsContextLocations) {
+          try {
+            const weatherData = await weatherService.getWeatherData({
+              id: location.id,
+              name: location.name,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              isFavorite: false
+            });
+            
+            locationsWithWeather.push({
+              ...location,
+              weatherData,
+              loading: false,
+              error: undefined
+            });
+          } catch (error) {
+            console.error(`Failed to fetch weather for ${location.name}:`, error);
+            locationsWithWeather.push({
+              ...location,
+              loading: false,
+              error: error instanceof Error ? error.message : 'Failed to fetch weather data'
+            });
+          }
+        }
         
         setTrialLocationsWithWeather(locationsWithWeather);
       };
