@@ -1876,7 +1876,7 @@ export const TrialDashboard: React.FC = () => {
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   selectedLocation={null}
-                  availableLocations={availableLocations}
+                  availableLocations={user ? availableLocations : trialLocationsWithWeather}
                   onDisplayLocationsChange={setDisplayedLocations}
                   reportSelectedLocationIds={reportSelectedLocationIds}
                   onReportSelectedLocationIdsChange={setReportSelectedLocationIds}
