@@ -17,6 +17,8 @@ interface DateRange {
 class WeatherService {
   private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+  private requestQueue: Promise<any> = Promise.resolve();
+  private readonly REQUEST_DELAY = 200; // 200ms delay between requests to avoid rate limits
   
   async getWeatherData(location: LocationData): Promise<WeatherApiResponse> {
     const cacheKey = `${location.latitude},${location.longitude}`;
@@ -25,6 +27,23 @@ class WeatherService {
     // Check cache first
     const cached = this.cache.get(cacheKey);
     if (cached && (now - cached.timestamp) < this.CACHE_DURATION) {
+      return cached.data;
+    }
+    
+    // Queue the request to avoid rate limiting
+    return new Promise((resolve, reject) => {
+      this.requestQueue = this.requestQueue
+        .then(() => new Promise(r => setTimeout(r, this.REQUEST_DELAY)))
+        .then(() => this.fetchWeatherData(location, cacheKey, now))
+        .then(resolve)
+        .catch(reject);
+    });
+  }
+  
+  private async fetchWeatherData(location: LocationData, cacheKey: string, timestamp: number): Promise<WeatherApiResponse> {
+    // Double-check cache after waiting in queue
+    const cached = this.cache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < this.CACHE_DURATION) {
       return cached.data;
     }
     const params = {
@@ -53,7 +72,7 @@ class WeatherService {
       // Cache the successful response
       this.cache.set(cacheKey, {
         data: response.data,
-        timestamp: now
+        timestamp: Date.now()
       });
       
       return response.data;

@@ -21,9 +21,7 @@ try {
   const root = createRoot(rootElement)
   
   root.render(
-    <StrictMode>
-      <App />
-    </StrictMode>,
+    <App />
   )
 } catch (error) {
   console.error('🚨 Failed to render app:', error)
