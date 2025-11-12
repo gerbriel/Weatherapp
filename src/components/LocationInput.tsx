@@ -16,6 +16,8 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
   const [locationName, setLocationName] = useState('');
+  const [weatherstation, setWeatherstation] = useState('');
+  const [weatherstationID, setWeatherstationID] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -42,9 +44,17 @@ export const LocationInput: React.FC<LocationInputProps> = ({
     onLocationSubmit({
       latitude: lat,
       longitude: lng,
-      name: locationName || `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+      name: locationName || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      ...(weatherstation && { weatherstation }),
+      ...(weatherstationID && { weatherstationID })
     });
     
+    // Clear form after successful submission
+    setLatitude('');
+    setLongitude('');
+    setLocationName('');
+    setWeatherstation('');
+    setWeatherstationID('');
     setIsExpanded(false);
   };
 
@@ -143,6 +153,33 @@ export const LocationInput: React.FC<LocationInputProps> = ({
                 placeholder="e.g., Los Angeles, CA"
                 className="gh-input w-full"
               />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-github-fg-default dark:text-github-dark-fg-default mb-2">
+                  Weather Station (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={weatherstation}
+                  onChange={(e) => setWeatherstation(e.target.value)}
+                  placeholder="e.g., Fresno State"
+                  className="gh-input w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-github-fg-default dark:text-github-dark-fg-default mb-2">
+                  Weather Station ID (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={weatherstationID}
+                  onChange={(e) => setWeatherstationID(e.target.value)}
+                  placeholder="e.g., 80"
+                  className="gh-input w-full"
+                />
+              </div>
             </div>
             
             <div className="flex flex-wrap gap-2">

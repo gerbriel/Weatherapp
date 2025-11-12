@@ -25,9 +25,9 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
 }) => {
   const [options, setOptions] = useState<ComprehensiveExportOptions>({
     includeWeatherData: true,
-    includeCMISData: availableDataTypes.hasCMISData,
+    includeCMISData: availableDataTypes.hasCMISData, // Auto-include when available
     includeCropData: availableDataTypes.hasCropData,
-    includeCalculatorResults: availableDataTypes.hasCalculatorResults,
+    includeCalculatorResults: false, // Always false since we removed this option
     includeFieldBlocks: availableDataTypes.hasFieldBlocks,
     includeHistoricalData: false,
     includeCharts: availableDataTypes.hasCharts,
@@ -69,7 +69,6 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
       options.includeWeatherData,
       options.includeCMISData && availableDataTypes.hasCMISData,
       options.includeCropData && availableDataTypes.hasCropData,
-      options.includeCalculatorResults && availableDataTypes.hasCalculatorResults,
       options.includeFieldBlocks && availableDataTypes.hasFieldBlocks,
       options.includeCharts && availableDataTypes.hasCharts
     ].filter(Boolean).length;
@@ -138,7 +137,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
                 <input
                   type="checkbox"
                   id="cmisData"
-                  checked={options.includeCMISData && availableDataTypes.hasCMISData}
+                  checked={availableDataTypes.hasCMISData ? true : false}
                   onChange={() => toggleOption('includeCMISData')}
                   disabled={!availableDataTypes.hasCMISData}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
@@ -155,12 +154,12 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
                 {availableDataTypes.hasCMISData ? (
                   <div className="flex items-center mt-1">
                     <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-xs text-green-600 dark:text-green-400">Available</span>
+                    <span className="text-xs text-green-600 dark:text-green-400">Available for California locations - Auto-included</span>
                   </div>
                 ) : (
                   <div className="flex items-center mt-1">
                     <Info className="h-3 w-3 text-gray-400 mr-1" />
-                    <span className="text-xs text-gray-500">Not available for selected locations</span>
+                    <span className="text-xs text-gray-500">Only available for California locations</span>
                   </div>
                 )}
               </div>
@@ -200,39 +199,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               </div>
             </div>
 
-            {/* Calculator Results */}
-            <div className="flex items-start space-x-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-              <div className="flex-shrink-0 mt-0.5">
-                <input
-                  type="checkbox"
-                  id="calculatorData"
-                  checked={options.includeCalculatorResults && availableDataTypes.hasCalculatorResults}
-                  onChange={() => toggleOption('includeCalculatorResults')}
-                  disabled={!availableDataTypes.hasCalculatorResults}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
-                />
-              </div>
-              <div className="flex-grow">
-                <label htmlFor="calculatorData" className="flex items-center text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
-                  <Calculator className="h-4 w-4 mr-2 text-purple-500" />
-                  Irrigation Calculator Results
-                </label>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Runtime calculations, water needs, system efficiency, flow rates
-                </p>
-                {availableDataTypes.hasCalculatorResults ? (
-                  <div className="flex items-center mt-1">
-                    <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-xs text-green-600 dark:text-green-400">Available</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center mt-1">
-                    <Info className="h-3 w-3 text-gray-400 mr-1" />
-                    <span className="text-xs text-gray-500">No calculations performed</span>
-                  </div>
-                )}
-              </div>
-            </div>
+
 
             {/* Field Blocks */}
             <div className="flex items-start space-x-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">

@@ -252,6 +252,10 @@ export interface UserLocation {
   timezone?: string;
   is_default: boolean;
   is_active: boolean;
+  is_favorite: boolean;
+  sort_order: number;
+  weatherstation?: string;
+  weatherstation_id?: string;
   metadata: Record<string, any>;
 }
 
@@ -270,6 +274,8 @@ interface AuthContextType {
   updateLocation: (id: string, updates: Partial<UserLocation>) => Promise<{ data: any; error: any }>;
   deleteLocation: (id: string) => Promise<{ error: any }>;
   setDefaultLocation: (id: string) => Promise<{ error: any }>;
+  toggleLocationFavorite: (id: string) => Promise<{ error: any }>;
+  reorderLocations: (locationIds: string[]) => Promise<{ error: any }>;
   resetToTrialLocations: () => Promise<{ data: any; error: any }>;
   switchOrganization: (organizationId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -508,7 +514,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       id: `user-${loc.id}`,
       user_id: userId,
       organization_id: 'local-org',
-      name: `${loc.name} (CIMIS #${loc.cimisStationId})`,
+      name: loc.region.replace(' Area', ''), // Use clean region name (e.g., "Bakersfield" instead of "Bakersfield Area")
       description: `${loc.region} agricultural weather station`,
       latitude: loc.latitude,
       longitude: loc.longitude,
@@ -521,6 +527,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       timezone: 'America/Los_Angeles',
       is_default: index === 0, // First location is default
       is_active: true,
+      is_favorite: false,
+      sort_order: index,
+      weatherstation: loc.name, // Weather station name (e.g., "Arvin-Edison")
+      weatherstation_id: loc.cimisStationId, // Weather station ID (e.g., "125")
       metadata: {
         cimisStationId: loc.cimisStationId,
         region: loc.region,
@@ -690,6 +700,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { data: trialLocations, error: null };
   };
 
+  // Toggle favorite status for a location
+  const toggleLocationFavorite = async (id: string) => {
+    if (!user) return { error: { message: 'No user logged in' } };
+
+    const updatedLocations = locations.map(loc => 
+      loc.id === id 
+        ? { ...loc, is_favorite: !loc.is_favorite }
+        : loc
+    );
+
+    setLocations(updatedLocations);
+    localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updatedLocations));
+
+    return { error: null };
+  };
+
+  // Reorder locations based on new order
+  const reorderLocations = async (locationIds: string[]) => {
+    if (!user) return { error: { message: 'No user logged in' } };
+
+    const updatedLocations = locationIds.map((id, index) => {
+      const location = locations.find(loc => loc.id === id);
+      return location ? { ...location, sort_order: index } : null;
+    }).filter(Boolean) as UserLocation[];
+
+    // Add any locations that weren't in the reorder list (maintain their original order)
+    const reorderedIds = new Set(locationIds);
+    const remainingLocations = locations
+      .filter(loc => !reorderedIds.has(loc.id))
+      .map((loc, index) => ({ ...loc, sort_order: locationIds.length + index }));
+
+    const finalLocations = [...updatedLocations, ...remainingLocations]
+      .sort((a, b) => a.sort_order - b.sort_order);
+
+    setLocations(finalLocations);
+    localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(finalLocations));
+
+    return { error: null };
+  };
+
   const refreshProfile = async () => {
     if (user) {
       await fetchProfile(user.id);
@@ -853,6 +903,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateLocation,
     deleteLocation,
     setDefaultLocation,
+    toggleLocationFavorite,
+    reorderLocations,
     resetToTrialLocations,
     switchOrganization,
     refreshProfile,

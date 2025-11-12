@@ -311,8 +311,7 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
 
   // Load field blocks from localStorage or fallback to generated ones
   const getInitialFieldBlocks = () => {
-    if (propFieldBlocks.length > 0) return propFieldBlocks;
-    
+    // Always prioritize localStorage over prop field blocks for persistent state management
     if (organization?.id) {
       const storageKey = `fieldBlocks_${organization.id}`;
       const saved = localStorage.getItem(storageKey);
@@ -327,16 +326,20 @@ export const FieldBlocksManager: React.FC<FieldBlocksManagerProps> = ({
       }
     }
     
+    // If no localStorage data and prop field blocks exist, use them
+    if (propFieldBlocks.length > 0) return propFieldBlocks;
+    
+    // Otherwise fallback to default organization field blocks
     return getOrganizationFieldBlocks;
   };
 
   const [localFieldBlocks, setLocalFieldBlocks] = useState<FieldBlock[]>(getInitialFieldBlocks());
 
-  // Update local field blocks when prop or organization changes
+  // Update local field blocks only when organization changes (not when propFieldBlocks changes)
   React.useEffect(() => {
     const newFieldBlocks = getInitialFieldBlocks();
     setLocalFieldBlocks(newFieldBlocks);
-  }, [organization?.id, propFieldBlocks]);
+  }, [organization?.id]);
 
   const filteredBlocks = localFieldBlocks.filter(block => {
     const matchesStatus = filterStatus === 'all' || block.status === filterStatus;

@@ -18,7 +18,10 @@ export const LocationsList: React.FC<LocationsListProps> = ({
     user, 
     locations: authLocations, 
     addLocation: authAddLocation,
+    updateLocation: authUpdateLocation,
     deleteLocation: authDeleteLocation,
+    toggleLocationFavorite,
+    reorderLocations: authReorderLocations,
     resetToTrialLocations
   } = useAuth();
   
@@ -28,6 +31,8 @@ export const LocationsList: React.FC<LocationsListProps> = ({
     addLocation: trialAddLocation,
     removeLocation: trialRemoveLocation,
     toggleFavorite,
+    updateLocation: trialUpdateLocation,
+    reorderLocations: trialReorderLocations,
     refreshLocation,
     refreshAllLocations,
     loading: globalLoading
@@ -53,6 +58,8 @@ export const LocationsList: React.FC<LocationsListProps> = ({
         timezone: 'America/Los_Angeles',
         is_default: authLocations.length === 0,
         is_active: true,
+        is_favorite: false,
+        sort_order: authLocations.length,
         metadata: {}
       });
     } else {
@@ -210,29 +217,47 @@ export const LocationsList: React.FC<LocationsListProps> = ({
         onClick={() => onLocationSelect?.(location)}
       >
         <div className="flex items-start justify-between mb-2">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
-              <MapPin className="h-4 w-4 text-gray-500" />
-              <h3 className="font-semibold text-gray-900 dark:text-white">
+              <MapPin className="h-4 w-4 text-gray-500 flex-shrink-0" />
+              <h3 className="font-semibold text-gray-900 dark:text-white truncate" title={location.name}>
                 {location.name}
               </h3>
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+            {/* Weather Station Information - Prominent Display */}
+            {location.weatherstation && location.weatherstationID && (
+              <div className="text-sm font-medium text-blue-700 dark:text-blue-300 truncate mt-1 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
+                <span>{location.weatherstation}</span>
+                <span className="text-blue-600 dark:text-blue-400 ml-2 font-semibold">CMIS #{location.weatherstationID}</span>
+              </div>
+            )}
+            {/* If weatherstation_id exists but weatherstation doesn't, still show CMIS ID */}
+            {location.weatherstation_id && !location.weatherstation && (
+              <div className="text-sm font-medium text-blue-700 dark:text-blue-300 truncate mt-1 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">CMIS #{location.weatherstation_id}</span>
+              </div>
+            )}
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-mono truncate">
               {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
             </p>
           </div>
           
-          <div className="flex items-center space-x-1">
+          <div className="flex items-center space-x-1 flex-shrink-0">
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                toggleFavorite(location.id);
+                if (user) {
+                  toggleLocationFavorite(location.id);
+                } else {
+                  toggleFavorite(location.id);
+                }
               }}
               className={`p-1 rounded ${
                 location.isFavorite
                   ? 'text-yellow-500 hover:text-yellow-600'
                   : 'text-gray-400 hover:text-yellow-500'
               }`}
+              title="Toggle Favorite"
             >
               <Star className={`h-4 w-4 ${location.isFavorite ? 'fill-current' : ''}`} />
             </button>
@@ -244,6 +269,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
               }}
               disabled={location.loading}
               className="p-1 rounded text-gray-400 hover:text-blue-500"
+              title="Refresh Weather Data"
             >
               <RefreshCw className={`h-4 w-4 ${location.loading ? 'animate-spin' : ''}`} />
             </button>
@@ -254,6 +280,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 removeLocationWrapper(location.id);
               }}
               className="p-1 rounded text-gray-400 hover:text-red-500"
+              title="Delete Location"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -307,7 +334,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 Refresh All
               </button>
             </div>
-            <div className={`grid gap-2 ${user ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <div className={`grid gap-2 ${user ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="gh-btn gh-btn-primary text-sm w-full"
@@ -326,9 +353,10 @@ export const LocationsList: React.FC<LocationsListProps> = ({
                 <button
                   onClick={handleResetToTrialLocations}
                   className="gh-btn gh-btn-warning text-sm w-full"
+                  title="Replace all locations with trial locations"
                 >
                   <RotateCcw className="h-4 w-4 mr-1" />
-                  Reset to CIMIS
+                  Reset to Trial
                 </button>
               )}
             </div>

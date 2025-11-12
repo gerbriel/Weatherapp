@@ -8,6 +8,8 @@ interface LocationsContextType {
   addLocation: (location: Omit<LocationData, 'id' | 'isFavorite'>) => void;
   removeLocation: (id: string) => void;
   toggleFavorite: (id: string) => void;
+  updateLocation: (id: string, updates: Partial<LocationData>) => void;
+  reorderLocations: (locationIds: string[]) => void;
   refreshLocation: (id: string) => void;
   refreshAllLocations: () => void;
   loading: boolean;
@@ -44,15 +46,15 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
     } else {
       // Add all default CIMIS stations for trial users
       const defaultLocations = [
-        { latitude: 35.205583, longitude: -118.77841, name: 'Bakersfield - Arvin-Edison (CIMIS #125)' },
-        { latitude: 36.820833, longitude: -119.74231, name: 'Fresno - Fresno State (CIMIS #80)' },
-        { latitude: 37.645222, longitude: -121.18776, name: 'Modesto - Modesto (CIMIS #71)' },
-        { latitude: 39.210667, longitude: -122.16889, name: 'Colusa - Williams (CIMIS #250)' },
-        { latitude: 38.428475, longitude: -122.41021, name: 'Napa - Oakville (CIMIS #77)' },
-        { latitude: 36.625619, longitude: -121.537889, name: 'Salinas - Salinas South II (CIMIS #214)' },
-        { latitude: 35.028281, longitude: -120.56003, name: 'Santa Maria - Nipomo (CIMIS #202)' },
-        { latitude: 36.376917, longitude: -119.037972, name: 'Exeter - Lemon Cove (CIMIS #258)' },
-        { latitude: 36.336222, longitude: -120.11291, name: 'Five Points - Five Points (CIMIS #2)' }
+        { latitude: 35.205583, longitude: -118.77841, name: 'Bakersfield', weatherstation: 'Arvin-Edison', weatherstationID: '125', sortOrder: 0 },
+        { latitude: 36.820833, longitude: -119.74231, name: 'Fresno', weatherstation: 'Fresno State', weatherstationID: '80', sortOrder: 1 },
+        { latitude: 37.645222, longitude: -121.18776, name: 'Modesto', weatherstation: 'Modesto', weatherstationID: '71', sortOrder: 2 },
+        { latitude: 39.210667, longitude: -122.16889, name: 'Colusa', weatherstation: 'Williams', weatherstationID: '250', sortOrder: 3 },
+        { latitude: 38.428475, longitude: -122.41021, name: 'Napa', weatherstation: 'Oakville', weatherstationID: '77', sortOrder: 4 },
+        { latitude: 36.625619, longitude: -121.537889, name: 'Salinas', weatherstation: 'Salinas South II', weatherstationID: '214', sortOrder: 5 },
+        { latitude: 35.028281, longitude: -120.56003, name: 'Santa Maria', weatherstation: 'Nipomo', weatherstationID: '202', sortOrder: 6 },
+        { latitude: 36.376917, longitude: -119.037972, name: 'Exeter', weatherstation: 'Lemon Cove', weatherstationID: '258', sortOrder: 7 },
+        { latitude: 36.336222, longitude: -120.11291, name: 'Five Points', weatherstation: 'Five Points', weatherstationID: '2', sortOrder: 8 }
       ];
       
       defaultLocations.forEach(loc => addLocation(loc));
@@ -80,6 +82,7 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
       ...locationData,
       id: generateId(),
       isFavorite: false,
+      sortOrder: locationData.sortOrder ?? locations.length,
       loading: true,
     };
 
@@ -101,6 +104,34 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
           : location
       )
     );
+  };
+
+  const updateLocation = (id: string, updates: Partial<LocationData>) => {
+    setLocations(prev =>
+      prev.map(location =>
+        location.id === id
+          ? { ...location, ...updates }
+          : location
+      )
+    );
+  };
+
+  const reorderLocations = (locationIds: string[]) => {
+    const reorderedLocations = locationIds.map((id, index) => {
+      const location = locations.find(loc => loc.id === id);
+      return location ? { ...location, sortOrder: index } : null;
+    }).filter(Boolean) as LocationWithWeather[];
+
+    // Add any locations that weren't in the reorder list
+    const reorderedIds = new Set(locationIds);
+    const remainingLocations = locations
+      .filter(loc => !reorderedIds.has(loc.id))
+      .map((loc, index) => ({ ...loc, sortOrder: locationIds.length + index }));
+
+    const finalLocations = [...reorderedLocations, ...remainingLocations]
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+    setLocations(finalLocations);
   };
 
   const refreshLocationData = async (id: string, locationData?: LocationWithWeather) => {
@@ -179,6 +210,8 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         addLocation,
         removeLocation,
         toggleFavorite,
+        updateLocation,
+        reorderLocations,
         refreshLocation,
         refreshAllLocations,
         loading,

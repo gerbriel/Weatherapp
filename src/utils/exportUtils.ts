@@ -497,6 +497,11 @@ export function exportComprehensiveData(
     calculatorInputs?: any;
     selectedLocation?: any;
     fieldBlocks?: any[];
+    insights?: {
+      weather?: string;
+      crop?: string;
+      general?: string;
+    };
   } = {}
 ) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -507,7 +512,8 @@ export function exportComprehensiveData(
     calculatorResult,
     calculatorInputs,
     selectedLocation,
-    fieldBlocks = []
+    fieldBlocks = [],
+    insights
   } = additionalData;
 
   // Handle special chart export formats
@@ -520,7 +526,8 @@ export function exportComprehensiveData(
     exportChartsAsHTML(locations, selectedCrops, cropInstances, {
       calculatorResult,
       calculatorInputs,
-      fieldBlocks
+      fieldBlocks,
+      insights
     });
     return;
   }
@@ -556,6 +563,20 @@ export function exportComprehensiveData(
       const csv = convertToCSV(fieldBlockData);
       downloadFile(csv, `field-blocks-${timestamp}.csv`, 'text/csv');
     }
+
+    // Export insights if provided
+    if (insights && (insights.weather || insights.crop || insights.general)) {
+      const insightsData = [
+        { insight_type: 'Weather Analysis', content: insights.weather || '(No weather insights provided)' },
+        { insight_type: 'Crop Analysis', content: insights.crop || '(No crop insights provided)' },
+        { insight_type: 'General Report Summary', content: insights.general || '(No general insights provided)' }
+      ].filter(item => item.content && item.content.trim() !== '');
+      
+      if (insightsData.length > 0) {
+        const csv = convertToCSV(insightsData);
+        downloadFile(csv, `manual-insights-${timestamp}.csv`, 'text/csv');
+      }
+    }
   } else {
     // Export as Excel with multiple sheets
     const workbook = XLSX.utils.book_new();
@@ -588,6 +609,20 @@ export function exportComprehensiveData(
       const fieldBlockData = prepareFieldBlocksExportData(fieldBlocks);
       const worksheet = XLSX.utils.json_to_sheet(fieldBlockData);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Field Blocks");
+    }
+
+    // Add insights if provided
+    if (insights && (insights.weather || insights.crop || insights.general)) {
+      const insightsData = [
+        { insight_type: 'Weather Analysis', content: insights.weather || '(No weather insights provided)' },
+        { insight_type: 'Crop Analysis', content: insights.crop || '(No crop insights provided)' },
+        { insight_type: 'General Report Summary', content: insights.general || '(No general insights provided)' }
+      ].filter(item => item.content !== '(No weather insights provided)' && item.content !== '(No crop insights provided)' && item.content !== '(No general insights provided)' || item.insight_type === 'General Report Summary');
+      
+      if (insightsData.length > 0) {
+        const worksheet = XLSX.utils.json_to_sheet(insightsData);
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Manual Insights");
+      }
     }
 
     // Generate and download the Excel file

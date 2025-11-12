@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings, Cloud, BarChart3, Wheat, Sun } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings, Cloud, BarChart3, Wheat, Sun, FileText } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { exportComprehensiveData, type ComprehensiveExportOptions } from '../utils/exportUtils';
 import { SimpleWeatherCharts } from './SimpleWeatherCharts';
@@ -41,9 +41,13 @@ interface ReportViewProps {
   calculatorResult?: RuntimeResult | null;
   calculatorInputs?: any;
   selectedLocation?: any; // Current selected location
-  fieldBlocks?: any[]; // Field blocks for location-specific field data
   availableLocations?: any[]; // Available locations - same as sidebar
   onDisplayLocationsChange?: (locations: any[]) => void; // Callback to notify parent of filtered locations
+  // Persistent state props
+  reportSelectedLocationIds?: Set<string>;
+  onReportSelectedLocationIdsChange?: (ids: Set<string>) => void;
+  reportInsights?: Map<string, { weather: string; crop: string; general: string }>;
+  onReportInsightsChange?: (insights: Map<string, { weather: string; crop: string; cropComparison: string; general: string }>) => void;
 }
 
 export const ReportView: React.FC<ReportViewProps> = ({ 
@@ -52,9 +56,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
   calculatorResult = null,
   calculatorInputs = null,
   selectedLocation = null,
-  fieldBlocks = [],
   availableLocations = [],
-  onDisplayLocationsChange = () => {}
+  onDisplayLocationsChange = () => {},
+  reportSelectedLocationIds = new Set(),
+  onReportSelectedLocationIdsChange = () => {},
+  reportInsights = new Map(),
+  onReportInsightsChange = () => {}
 }) => {
   // Always call the hook to follow rules of hooks
   let locationsData: any[] = [];
@@ -73,8 +80,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const locations = availableLocations.length > 0 ? availableLocations : locationsData;
   const refreshAllLocations = refreshFunction;
   
-  // State for location filtering
-  const [selectedLocationIds, setSelectedLocationIds] = useState<Set<string>>(new Set());
+  // State for location filtering - now managed by parent
+  const selectedLocationIds = reportSelectedLocationIds;
+  const setSelectedLocationIds = onReportSelectedLocationIdsChange;
   const [showCropInsights, setShowCropInsights] = useState(true);
   const [showAIInsights, setShowAIInsights] = useState(false);
   // showAllLocations replaced with multiselect dropdown functionality
@@ -93,6 +101,27 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const [historicalWeatherData, setHistoricalWeatherData] = useState<Map<string, any>>(new Map());
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  // Helper functions for location-specific insights
+  const getLocationInsights = (locationId: string) => {
+    return reportInsights.get(locationId) || { weather: '', crop: '', cropComparison: '', general: '' };
+  };
+
+  const updateLocationInsights = (locationId: string, newInsights: { weather: string; crop: string; general: string }) => {
+    const updatedMap = new Map(reportInsights);
+    updatedMap.set(locationId, newInsights);
+    onReportInsightsChange(updatedMap);
+  };
+
+  // Convert Map-based insights to combined insights for export
+  const getCombinedInsights = () => {
+    const allInsights = Array.from(reportInsights.values());
+    return {
+      weather: allInsights.map(insight => insight.weather).filter(w => w).join('\n\n'),
+      crop: allInsights.map(insight => insight.crop).filter(c => c).join('\n\n'),
+      general: allInsights.map(insight => insight.general).filter(g => g).join('\n\n')
+    };
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -300,7 +329,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   state: (location as any).state,
                   region: (location as any).region,
                   name: location.name,
-                  cimisStationId: (location as any).cimisStationId  // Include CIMIS station ID from trial locations
+                  cimisStationId: (location as any).cimisStationId || location.weatherstationID  // Include weather station ID
                 };
 
                 const station = await cmisService.findNearestStation(
@@ -400,7 +429,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       calculatorResult: null, // Don't include calculator for quick export
       calculatorInputs: null,
       selectedLocation,
-      fieldBlocks: []
+      fieldBlocks: [],
+      insights: getCombinedInsights()
     });
   };
 
@@ -425,7 +455,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       calculatorResult: null, // Don't include calculator for quick export
       calculatorInputs: null,
       selectedLocation,
-      fieldBlocks: []
+      fieldBlocks: [],
+      insights: getCombinedInsights()
     });
   };
 
@@ -437,7 +468,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       calculatorResult,
       calculatorInputs,
       selectedLocation,
-      fieldBlocks
+      fieldBlocks: [], // Field blocks are managed by FieldBlocksManager
+      insights: getCombinedInsights()
     });
   };
 
@@ -447,7 +479,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
     hasCMISData: cmisData.size > 0,
     hasCropData: selectedCrops.length > 0,
     hasCalculatorResults: !!calculatorResult,
-    hasFieldBlocks: fieldBlocks.length > 0,
+    hasFieldBlocks: false, // Field blocks are managed separately
     hasHistoricalData: reportMode === 'historical' && historicalWeatherData.size > 0,
     hasCharts: displayLocations.some(loc => loc.weatherData?.daily) // Charts available if weather data exists
   };
@@ -501,25 +533,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     role="listbox"
                     aria-multiselectable="true"
                   >
-                    {/* Select All Option */}
-                    <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-600">
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-gray-700 dark:text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={selectedLocationIds.size === locationsWithWeather.length}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedLocationIds(new Set(locationsWithWeather.map(loc => loc.id)));
-                            } else {
-                              setSelectedLocationIds(new Set());
-                            }
-                          }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
-                        />
-                        Select All ({locationsWithWeather.length})
-                      </label>
-                    </div>
-                    
                     {/* Individual Location Options */}
                     {locationsWithWeather.map((location) => (
                       <label
@@ -563,6 +576,23 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   </div>
                 )}
               </div>
+              
+              {/* Select All Locations Checkbox - Right of Dropdown */}
+              <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={selectedLocationIds.size === locationsWithWeather.length && locationsWithWeather.length > 0}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedLocationIds(new Set(locationsWithWeather.map(loc => loc.id)));
+                    } else {
+                      setSelectedLocationIds(new Set());
+                    }
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
+                />
+                Select All Locations ({locationsWithWeather.length})
+              </label>
             </div>
             
             <div className="flex items-center gap-6">
@@ -729,31 +759,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </div>
             )}
 
-            {/* Field Blocks */}
-            {fieldBlocks.length > 0 && (
-              <div>
-                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Field Blocks ({fieldBlocks.length})</h4>
-                <div className="space-y-1">
-                  {fieldBlocks.slice(0, 3).map((block) => (
-                    <div key={block.id} className="text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center space-x-1">
-                        <MapPin className="h-3 w-3 text-blue-500" />
-                        <span>{block.name}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 ml-4">
-                        {block.crop_name} • {block.acres} acres • {block.status}
-                        {block.address && ` • ${block.address}`}
-                      </div>
-                    </div>
-                  ))}
-                  {fieldBlocks.length > 3 && (
-                    <div className="text-sm text-gray-500 dark:text-gray-500">
-                      +{fieldBlocks.length - 3} more blocks
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+
 
             {/* Calculator Results */}
             {calculatorResult && (
@@ -1095,7 +1101,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
               {/* Weather Charts */}
               <div className="mt-6">
                 <ChartErrorBoundary>
-                  <SimpleWeatherCharts location={location} showAIInsights={showAIInsights} />
+                  <SimpleWeatherCharts 
+                    location={location} 
+                    showAIInsights={showAIInsights} 
+                    insights={getLocationInsights(location.id)}
+                    onInsightsChange={(newInsights) => updateLocationInsights(location.id, newInsights)}
+                  />
                 </ChartErrorBoundary>
               </div>
 
@@ -1111,6 +1122,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       dateRange={dateRange}
                       reportMode={reportMode}
                       showAIInsights={showAIInsights}
+                      insights={getLocationInsights(location.id)}
+                      onInsightsChange={(newInsights) => updateLocationInsights(location.id, newInsights)}
                     />
                   </ChartErrorBoundary>
                 </div>
@@ -1338,7 +1351,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
             {/* Weather Charts */}
             <div className="mt-6">
               <ChartErrorBoundary>
-                <SimpleWeatherCharts location={location} showAIInsights={showAIInsights} />
+                <SimpleWeatherCharts 
+                  location={location} 
+                  showAIInsights={showAIInsights} 
+                  insights={getLocationInsights(location.id)}
+                  onInsightsChange={(newInsights) => updateLocationInsights(location.id, newInsights)}
+                />
               </ChartErrorBoundary>
             </div>
 
@@ -1354,6 +1372,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     dateRange={dateRange}
                     reportMode={reportMode}
                     showAIInsights={showAIInsights}
+                    insights={getLocationInsights(location.id)}
+                    onInsightsChange={(newInsights) => updateLocationInsights(location.id, newInsights)}
                   />
                 </ChartErrorBoundary>
               </div>
@@ -1362,6 +1382,25 @@ export const ReportView: React.FC<ReportViewProps> = ({
         );
           })}
         </>
+      )}
+
+      {/* General Report Insights */}
+      {selectedLocationIds.size > 0 && (
+        <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-600">
+          <div className="flex items-center mb-3">
+            <FileText className="h-5 w-5 mr-2 text-gray-700 dark:text-gray-300" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              General Report Insights
+            </h3>
+          </div>
+          <textarea
+            value=""
+            onChange={() => {}}
+            placeholder="General insights will be available per location in the future..."
+            disabled
+            className="w-full h-32 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 opacity-50"
+          />
+        </div>
       )}
 
       {/* Summary Footer - only show when locations are displayed */}

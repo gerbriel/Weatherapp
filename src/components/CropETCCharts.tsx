@@ -34,6 +34,8 @@ interface CropETCChartsProps {
   dateRange?: { startDate: string; endDate: string; };
   reportMode?: 'current' | 'historical';
   showAIInsights?: boolean;
+  insights?: { weather: string; crop: string; cropComparison: string; general: string };
+  onInsightsChange?: (insights: { weather: string; crop: string; cropComparison: string; general: string }) => void;
 }
 
 // Helper function to calculate ETO using simplified Penman equation
@@ -93,7 +95,9 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
   className = "",
   dateRange,
   reportMode = 'current',
-  showAIInsights = false
+  showAIInsights = false,
+  insights = { weather: '', crop: '', cropComparison: '', general: '' },
+  onInsightsChange = () => {}
 }) => {
   // Get all available crop types
   const availableCrops = useMemo(() => {
@@ -699,6 +703,19 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           )}
         </div>
         
+        {/* Manual Crop Insights */}
+        <div className="mt-4 p-4 bg-green-50 dark:bg-gray-700/30 rounded-lg border border-green-200 dark:border-gray-600">
+          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            Crop Analysis Notes
+          </label>
+          <textarea
+            value={insights.crop}
+            onChange={(e) => onInsightsChange({ ...insights, crop: e.target.value })}
+            placeholder="Add your analysis of crop ET data, irrigation needs, and agricultural insights for this location..."
+            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+          />
+        </div>
+        
         {/* Centered AI Insights for Individual Crop Water Use */}
         {showAIInsights && (
           <div className="mt-6 mb-4">
@@ -1026,6 +1043,19 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
               </div>
             </div>
           )}
+        </div>
+        
+        {/* Manual Crop ETC Analysis */}
+        <div className="mt-4 p-4 bg-orange-50 dark:bg-gray-700/30 rounded-lg border border-orange-200 dark:border-gray-600">
+          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            ETC Comparison Analysis Notes
+          </label>
+          <textarea
+            value={insights.cropComparison}
+            onChange={(e) => onInsightsChange({ ...insights, cropComparison: e.target.value })}
+            placeholder="Add your analysis of the ETC vs ETO comparison, crop coefficients, and irrigation timing insights..."
+            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+          />
         </div>
         
         {/* AI Insights - Full Width */}

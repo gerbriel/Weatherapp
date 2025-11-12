@@ -8,6 +8,8 @@ interface LocationFormData {
   longitude: number | '';
   state: string;
   region: string;
+  weatherstation?: string;
+  weatherstationID?: string;
 }
 
 interface LocationFormErrors {
@@ -16,6 +18,8 @@ interface LocationFormErrors {
   longitude?: string;
   state?: string;
   region?: string;
+  weatherstation?: string;
+  weatherstationID?: string;
 }
 
 interface LocationAddModalProps {
@@ -54,7 +58,9 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
     latitude: '',
     longitude: '',
     state: '',
-    region: ''
+    region: '',
+    weatherstation: '',
+    weatherstationID: ''
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [isManualEntry, setIsManualEntry] = useState(false);
@@ -110,7 +116,9 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
         latitude: Number(formData.latitude),
         longitude: Number(formData.longitude),
         state: formData.state,
-        region: formData.region.trim()
+        region: formData.region.trim(),
+        ...(formData.weatherstation && { weatherstation: formData.weatherstation.trim() }),
+        ...(formData.weatherstationID && { weatherstationID: formData.weatherstationID.trim() })
       });
       
       // Reset form and close modal
@@ -119,7 +127,9 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
         latitude: '',
         longitude: '',
         state: '',
-        region: ''
+        region: '',
+        weatherstation: '',
+        weatherstationID: ''
       });
       setErrors({});
       onClose();
@@ -136,7 +146,9 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
       latitude: location.latitude,
       longitude: location.longitude,
       state: location.state,
-      region: location.region
+      region: location.region,
+      weatherstation: '',
+      weatherstationID: ''
     });
     setIsManualEntry(true);
   };
@@ -160,7 +172,9 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
             latitude: parseFloat(latitude.toFixed(6)),
             longitude: parseFloat(longitude.toFixed(6)),
             state: '',
-            region: 'Current Location'
+            region: 'Current Location',
+            weatherstation: '',
+            weatherstationID: ''
           });
           setIsManualEntry(true);
         } catch (error) {
@@ -338,6 +352,40 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                   }`}
                 />
                 {errors.region && <p className="text-red-400 text-sm mt-1">{errors.region}</p>}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Weather Station <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.weatherstation || ''}
+                    onChange={(e) => setFormData({ ...formData, weatherstation: e.target.value })}
+                    placeholder="e.g., Fresno State"
+                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                      errors.weatherstation ? 'border-red-500' : 'border-gray-700'
+                    }`}
+                  />
+                  {errors.weatherstation && <p className="text-red-400 text-sm mt-1">{errors.weatherstation}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Weather Station ID <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.weatherstationID || ''}
+                    onChange={(e) => setFormData({ ...formData, weatherstationID: e.target.value })}
+                    placeholder="e.g., 80"
+                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                      errors.weatherstationID ? 'border-red-500' : 'border-gray-700'
+                    }`}
+                  />
+                  {errors.weatherstationID && <p className="text-red-400 text-sm mt-1">{errors.weatherstationID}</p>}
+                </div>
               </div>
 
               <div className="flex gap-3 pt-4">

@@ -34,7 +34,7 @@ interface ChartExportData {
 export function generateComprehensiveChartUrls(
   locations: LocationWithWeather[],
   selectedCrops: string[] = [],
-  _cropInstances: any[] = []
+  cropInstances: any[] = []
 ): Map<string, ChartExportData> {
   const chartDataMap = new Map<string, ChartExportData>();
 
@@ -162,26 +162,31 @@ export function generateComprehensiveChartUrls(
     let cropETcUrl: string | undefined;
     let cropETcData: any[] | undefined;
 
-    if (selectedCrops.length > 0) {
+    // Use all selected crops for each location chart (instead of just location-specific crops)
+    // This ensures all crop lines appear on every chart
+    const allCropTypes = selectedCrops.length > 0 ? selectedCrops : 
+      Array.from(new Set(cropInstances.map(crop => crop.cropId)));
+    
+    if (allCropTypes.length > 0) {
       // Generate Kc values for different crops and growth stages
       const generateKcValues = (cropName: string) => {
         // Simplified Kc coefficient progression for different crops
         const kcProfiles: { [key: string]: number[] } = {
-          'Tomatoes': [0.6, 0.8, 1.15, 1.15, 1.15, 0.9, 0.8, 0.7, 0.65, 0.6, 0.6, 0.65, 0.7, 0.75],
-          'Corn': [0.3, 0.5, 0.8, 1.2, 1.2, 1.15, 1.1, 1.0, 0.95, 0.9, 0.8, 0.75, 0.7, 0.65],
-          'Wheat': [0.4, 0.6, 0.8, 1.15, 1.15, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45],
-          'Lettuce': [0.7, 0.8, 0.9, 1.0, 1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.6],
-          'Alfalfa': [0.4, 0.6, 0.85, 1.2, 1.2, 1.15, 1.1, 1.05, 1.0, 0.95, 0.9, 0.85, 0.8, 0.75]
+          'tomatoes': [0.6, 0.8, 1.15, 1.15, 1.15, 0.9, 0.8, 0.7, 0.65, 0.6, 0.6, 0.65, 0.7, 0.75],
+          'corn': [0.3, 0.5, 0.8, 1.2, 1.2, 1.15, 1.1, 1.0, 0.95, 0.9, 0.8, 0.75, 0.7, 0.65],
+          'wheat': [0.4, 0.6, 0.8, 1.15, 1.15, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.55, 0.5, 0.45],
+          'lettuce': [0.7, 0.8, 0.9, 1.0, 1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.6],
+          'alfalfa': [0.4, 0.6, 0.85, 1.2, 1.2, 1.15, 1.1, 1.05, 1.0, 0.95, 0.9, 0.85, 0.8, 0.75]
         };
         
         // Default Kc progression if crop not found
         const defaultKc = [0.5, 0.7, 0.9, 1.1, 1.15, 1.1, 1.0, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65];
         
-        return kcProfiles[cropName] || defaultKc;
+        return kcProfiles[cropName.toLowerCase()] || defaultKc;
       };
 
       // Calculate crop-specific data
-      const cropCalculations = selectedCrops.map((cropName, index) => {
+      const cropCalculations = allCropTypes.map((cropName, index) => {
         const colors = ['#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#3B82F6', '#F97316', '#84CC16'];
         const color = colors[index % colors.length];
         const kcValues = generateKcValues(cropName);
@@ -191,14 +196,17 @@ export function generateComprehensiveChartUrls(
           return Number((et0 * kc).toFixed(3));
         });
         
+        // Format crop name for display (capitalize first letter)
+        const displayName = cropName.charAt(0).toUpperCase() + cropName.slice(1);
+        
         return {
-          cropName,
+          cropName: displayName,
           color,
           kcValues,
           etcData,
           datasets: {
             etc: {
-              label: `${cropName} ETc`,
+              label: `${displayName} ETc`,
               data: etcData,
               borderColor: color,
               backgroundColor: `${color}33`,
@@ -208,7 +216,7 @@ export function generateComprehensiveChartUrls(
               pointBorderColor: color
             },
             kc: {
-              label: `${cropName} Kc`,
+              label: `${displayName} Kc`,
               data: kcValues,
               borderColor: color,
               backgroundColor: 'transparent',
@@ -611,10 +619,28 @@ export async function exportChartsAsHTML(
     calculatorResult?: any;
     calculatorInputs?: any;
     fieldBlocks?: any[];
+    insights?: {
+      weather?: string;
+      crop?: string;
+      cropComparison?: string;
+      general?: string;
+    } | Map<string, { weather: string; crop: string; cropComparison: string; general: string; }>;
   }
 ) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const chartDataMap = generateComprehensiveChartUrls(locations, selectedCrops, cropInstances);
+  
+  // Helper function to get insights for a specific location
+  const getLocationInsights = (locationId: string) => {
+    if (!additionalData?.insights) return null;
+    
+    if (additionalData.insights instanceof Map) {
+      return additionalData.insights.get(locationId) || { weather: '', crop: '', cropComparison: '', general: '' };
+    } else {
+      // For backward compatibility with combined insights
+      return additionalData.insights;
+    }
+  };
 
   let htmlContent = `
     <!DOCTYPE html>
@@ -625,28 +651,29 @@ export async function exportChartsAsHTML(
       <title>Comprehensive Weather Report - ${new Date().toLocaleDateString()}</title>
       <style>
         body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          max-width: 1200px;
+          font-family: Arial, Helvetica, sans-serif;
+          line-height: 1.7;
+          color: #414042;
+          font-size: 17px;
+          max-width: 600px;
           margin: 0 auto;
-          padding: 20px;
-          background: #f8f9fa;
+          padding: 22px;
+          background: #F4F4F4;
         }
         .header {
           text-align: center;
           margin-bottom: 40px;
-          padding: 30px;
-          background: white;
+          padding: 38px 32px;
+          background: #FFFFFF;
           border-radius: 12px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         .location-section {
           margin-bottom: 50px;
-          background: white;
-          padding: 30px;
+          background: #FFFFFF;
+          padding: 38px 32px;
           border-radius: 12px;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         .chart-container {
           margin: 30px 0;
@@ -654,14 +681,15 @@ export async function exportChartsAsHTML(
         }
         .chart-image {
           max-width: 100%;
-          border-radius: 8px;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
           margin: 20px 0;
         }
         .chart-title {
-          color: #2563eb;
+          color: #0A7DD6;
           margin-bottom: 15px;
-          font-size: 1.3em;
+          font-size: 23px;
+          font-weight: bold;
         }
         .weather-stats-grid {
           display: grid;
@@ -670,55 +698,55 @@ export async function exportChartsAsHTML(
           margin: 30px 0;
         }
         .stat-card {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
+          background: #F4F4F4;
+          border: 1px solid #0A7DD6;
+          border-radius: 12px;
           padding: 20px;
           text-align: center;
         }
         .stat-label {
-          font-size: 0.875rem;
-          color: #64748b;
+          font-size: 15px;
+          color: #353750;
           text-transform: uppercase;
-          font-weight: 600;
+          font-weight: bold;
           margin-bottom: 8px;
         }
         .stat-value {
-          font-size: 1.5rem;
+          font-size: 25px;
           font-weight: bold;
-          color: #1e293b;
+          color: #0A7DD6;
         }
         .forecast-table {
           width: 100%;
           border-collapse: collapse;
           margin: 20px 0;
-          font-size: 0.875rem;
+          font-size: 15px;
           overflow-x: auto;
           display: block;
           white-space: nowrap;
         }
         .forecast-table thead {
-          background: #f1f5f9;
+          background: #353750;
         }
         .forecast-table th, .forecast-table td {
-          border: 1px solid #d1d5db;
+          border: 1px solid #F4F4F4;
           padding: 8px 12px;
           text-align: left;
         }
         .forecast-table th {
-          font-weight: 600;
-          color: #374151;
+          font-weight: bold;
+          color: #FFFFFF;
           text-transform: uppercase;
-          font-size: 0.75rem;
+          font-size: 15px;
         }
         .forecast-table tbody tr:nth-child(even) {
-          background: #f9fafb;
+          background: #F4F4F4;
         }
         .data-sources-panel {
-          background: #dbeafe;
-          border: 1px solid #93c5fd;
-          border-radius: 8px;
-          padding: 20px;
+          background: #F4F4F4;
+          border: 1px solid #0A7DD6;
+          border-radius: 12px;
+          padding: 32px;
           margin: 30px 0;
         }
         .data-sources-grid {
@@ -728,16 +756,17 @@ export async function exportChartsAsHTML(
           margin-top: 15px;
         }
         .data-source-card {
-          background: white;
-          border: 1px solid #93c5fd;
-          border-radius: 6px;
-          padding: 15px;
+          background: #FFFFFF;
+          border: 1px solid #0A7DD6;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
         }
         .crop-summary {
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-          border-radius: 8px;
-          padding: 20px;
+          background: #F4F4F4;
+          border: 1px solid #FF7D5E;
+          border-radius: 12px;
+          padding: 32px;
           margin: 30px 0;
         }
         .crop-summary-grid {
@@ -746,23 +775,92 @@ export async function exportChartsAsHTML(
           gap: 20px;
           margin-top: 15px;
         }
-        h1 { color: #1e40af; font-size: 2.5em; margin-bottom: 10px; }
-        h2 { color: #1e40af; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; }
-        h3 { color: #374151; margin-top: 30px; }
-        h4 { color: #374151; margin-top: 20px; margin-bottom: 10px; }
+        h1 { 
+          color: #0A7DD6; 
+          font-size: 28px; 
+          font-weight: bold;
+          margin-bottom: 10px; 
+          text-align: center;
+        }
+        h2 { 
+          color: #0A7DD6; 
+          font-size: 23px; 
+          font-weight: bold;
+          border-bottom: 3px solid #0A7DD6; 
+          padding-bottom: 10px; 
+          text-align: center;
+        }
+        h3 { 
+          color: #0A7DD6; 
+          font-size: 21px; 
+          font-weight: bold;
+          margin-top: 30px; 
+          text-align: center;
+        }
+        h4 { 
+          color: #353750; 
+          font-size: 17px; 
+          font-weight: bold;
+          margin-top: 20px; 
+          margin-bottom: 10px; 
+        }
         .metadata {
-          background: #f1f5f9;
-          padding: 20px;
-          border-radius: 8px;
+          background: #F4F4F4;
+          padding: 32px;
+          border-radius: 12px;
           margin-bottom: 20px;
+          border: 1px solid #353750;
         }
         .footer {
           text-align: center;
           margin-top: 50px;
+          padding: 32px;
+          background: #353750;
+          border-radius: 12px;
+          color: #FFFFFF;
+        }
+        .insights-section {
+          background: #FFFFFF;
+          border: 2px solid #FF7D5E;
+          border-radius: 12px;
+          padding: 32px;
+          margin: 30px 0;
+        }
+        .insights-title {
+          color: #FF7D5E;
+          font-size: 21px;
+          font-weight: bold;
+          margin-bottom: 15px;
+          text-align: center;
+        }
+        .insight-item {
+          margin-bottom: 20px;
           padding: 20px;
-          background: #e5e7eb;
-          border-radius: 8px;
-          color: #6b7280;
+          background: #F4F4F4;
+          border-radius: 12px;
+          border-left: 4px solid #0A7DD6;
+        }
+        .insight-label {
+          color: #353750;
+          font-weight: bold;
+          font-size: 17px;
+          margin-bottom: 8px;
+        }
+        .insight-content {
+          color: #414042;
+          font-size: 17px;
+          line-height: 1.7;
+        }
+        @media (max-width: 600px) {
+          body { 
+            padding: 22px; 
+          }
+          .header, .location-section {
+            padding: 22px;
+          }
+          .data-sources-panel, .crop-summary, .metadata {
+            padding: 22px;
+          }
         }
         @media print {
           body { background: white; }
@@ -786,27 +884,27 @@ export async function exportChartsAsHTML(
   // Data Sources Information Panel
   htmlContent += `
     <div class="data-sources-panel">
-      <h4 style="color: #1e40af; margin-bottom: 15px;">📡 Data Sources & APIs</h4>
+      <h4 style="color: #0A7DD6; margin-bottom: 15px; font-weight: bold;">📡 Data Sources & APIs</h4>
       <div class="data-sources-grid">
         <div class="data-source-card">
-          <div style="font-weight: 600; color: #1e40af; margin-bottom: 8px;">🌤️ Weather Data</div>
-          <div style="font-size: 0.875rem; color: #6b7280;">
+          <div style="font-weight: bold; color: #0A7DD6; margin-bottom: 8px; font-size: 17px;">🌤️ Weather Data</div>
+          <div style="font-size: 16px; color: #414042;">
             <strong>API:</strong> Open-Meteo Forecast<br/>
             <strong>Data:</strong> Temperature, precipitation, wind, humidity<br/>
             <strong>Coverage:</strong> GFS Global forecast
           </div>
         </div>
         <div class="data-source-card">
-          <div style="font-weight: 600; color: #059669; margin-bottom: 8px;">💧 Evapotranspiration</div>
-          <div style="font-size: 0.875rem; color: #6b7280;">
+          <div style="font-weight: bold; color: #FF7D5E; margin-bottom: 8px; font-size: 17px;">💧 Evapotranspiration</div>
+          <div style="font-size: 16px; color: #414042;">
             <strong>API:</strong> Open-Meteo ET₀<br/>
             <strong>Method:</strong> FAO-56 Penman-Monteith<br/>
             <strong>Type:</strong> Reference evapotranspiration
           </div>
         </div>
         <div class="data-source-card">
-          <div style="font-weight: 600; color: #7c3aed; margin-bottom: 8px;">🌾 Crop Coefficients</div>
-          <div style="font-size: 0.875rem; color: #6b7280;">
+          <div style="font-weight: bold; color: #075FA6; margin-bottom: 8px; font-size: 17px;">🌾 Crop Coefficients</div>
+          <div style="font-size: 16px; color: #414042;">
             <strong>Source:</strong> FAO-56 Guidelines<br/>
             <strong>Enhancement:</strong> CMIS API (CA only)<br/>
             <strong>Analysis:</strong> ETC = ET₀ × Kc
@@ -820,7 +918,7 @@ export async function exportChartsAsHTML(
   if (selectedCrops.length > 0 || cropInstances.length > 0 || additionalData?.calculatorResult || (additionalData?.fieldBlocks && additionalData.fieldBlocks.length > 0)) {
     htmlContent += `
       <div class="crop-summary">
-        <h4 style="color: #059669; margin-bottom: 15px;">🌱 Crop Management Summary</h4>
+        <h4 style="color: #FF7D5E; margin-bottom: 15px; font-weight: bold; font-size: 21px; text-align: center;">🌱 Crop Management Summary</h4>
         <div class="crop-summary-grid">
     `;
 
@@ -987,8 +1085,21 @@ export async function exportChartsAsHTML(
         </div>
     `;
 
+    // Add weather insights for this location
+    const locationInsights = getLocationInsights(location.id);
+    if (locationInsights && locationInsights.weather && locationInsights.weather.trim()) {
+      htmlContent += `
+        <div class="insight-item" style="margin: 20px 0; padding: 15px; background-color: #f8fafc; border-left: 4px solid #3b82f6; border-radius: 8px;">
+          <div class="insight-label" style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">🌤️ Weather Analysis - ${location.name}</div>
+          <div class="insight-content" style="color: #374151; line-height: 1.6;">${locationInsights.weather.replace(/\n/g, '<br>')}</div>
+        </div>
+      `;
+    }
+
     // Enhanced Agricultural Charts for ETC, ETO, and Kc
-    if (selectedCrops.length > 0) {
+    const locationCrops = cropInstances.filter(crop => crop.locationId === location.id);
+    // Show charts for all locations if there are any selected crops (not just location-specific crops)
+    if (selectedCrops.length > 0 || locationCrops.length > 0) {
       if (data.chartImageUrls.etcEtoComparisonUrl) {
         htmlContent += `
           <div class="chart-container">
@@ -1027,16 +1138,46 @@ export async function exportChartsAsHTML(
           </div>
         `;
       }
+      
+      // Add crop insights for this location
+      if (locationInsights && locationInsights.crop && locationInsights.crop.trim()) {
+        htmlContent += `
+          <div class="insight-item" style="margin: 20px 0; padding: 15px; background-color: #f0fdf4; border-left: 4px solid #10b981; border-radius: 8px;">
+            <div class="insight-label" style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">🌾 Crop Analysis - ${location.name}</div>
+            <div class="insight-content" style="color: #374151; line-height: 1.6;">${locationInsights.crop.replace(/\n/g, '<br>')}</div>
+          </div>
+        `;
+      }
+
+      // Add crop comparison insights for this location
+      if (locationInsights && locationInsights.cropComparison && locationInsights.cropComparison.trim()) {
+        htmlContent += `
+          <div class="insight-item" style="margin: 20px 0; padding: 15px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px;">
+            <div class="insight-label" style="font-weight: 600; color: #1f2937; margin-bottom: 8px;">📊 ETC Comparison Analysis - ${location.name}</div>
+            <div class="insight-content" style="color: #374151; line-height: 1.6;">${locationInsights.cropComparison.replace(/\n/g, '<br>')}</div>
+          </div>
+        `;
+      }
     }
 
     htmlContent += '</div>';
   });
 
+  // Add any remaining general insights at the bottom (backward compatibility)
+  if (additionalData?.insights && !(additionalData.insights instanceof Map)) {
+    if (additionalData.insights.general && additionalData.insights.general.trim()) {
+      htmlContent += `
+        <div class="insights-section" style="margin-top: 30px;">
+          <h3 class="insights-title">📋 General Report Summary</h3>
+          <div class="insight-item">
+            <div class="insight-content" style="color: #374151; line-height: 1.6;">${additionalData.insights.general.replace(/\n/g, '<br>')}</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
   htmlContent += `
-      <div class="footer">
-        <p>📊 Charts generated using QuickChart.io • 🌐 Data from Open-Meteo Weather API</p>
-        <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-      </div>
     </body>
     </html>
   `;
@@ -1063,7 +1204,7 @@ export function generatePrintableChartReport(
   cropInstances: any[] = []
 ) {
   // This will open the HTML report in a new window that's optimized for printing
-  exportChartsAsHTML(locations, selectedCrops, cropInstances);
+  exportChartsAsHTML(locations, selectedCrops, cropInstances, {});
   
   // Provide user instructions
   alert('📊 Chart report generated!\n\n' +

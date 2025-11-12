@@ -36,7 +36,10 @@ export interface LocationData {
   latitude: number;
   longitude: number;
   name: string;
+  weatherstation?: string;
+  weatherstationID?: string;
   isFavorite: boolean;
+  sortOrder?: number;
   lastUpdated?: string;
 }
 

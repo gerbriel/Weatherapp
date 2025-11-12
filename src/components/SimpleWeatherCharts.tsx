@@ -7,9 +7,16 @@ import type { LocationWithWeather } from '../types/weather';
 interface SimpleWeatherChartsProps {
   location: LocationWithWeather;
   showAIInsights?: boolean;
+  insights?: { weather: string; crop: string; cropComparison: string; general: string };
+  onInsightsChange?: (insights: { weather: string; crop: string; cropComparison: string; general: string }) => void;
 }
 
-export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ location, showAIInsights = false }) => {
+export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ 
+  location, 
+  showAIInsights = false,
+  insights = { weather: '', crop: '', cropComparison: '', general: '' },
+  onInsightsChange 
+}) => {
   const [isReady, setIsReady] = useState(false);
   const { isDarkMode } = useTheme();
 
@@ -105,6 +112,19 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
           </ResponsiveContainer>
         </div>
         
+        {/* Manual Weather Insights */}
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-gray-700/30 rounded-lg border border-blue-200 dark:border-gray-600">
+          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            Weather Analysis Notes
+          </label>
+          <textarea
+            value={insights.weather}
+            onChange={(e) => onInsightsChange?.({ ...insights, weather: e.target.value })}
+            placeholder="Add your analysis of the weather data, trends, and observations for this location..."
+            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+          />
+        </div>
+        
         {/* AI Insights for Precipitation - Centered */}
         {showAIInsights && (
           <ChartAIInsights
@@ -141,6 +161,19 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({ locati
               <Line type="monotone" dataKey="et0" stroke="#f97316" strokeWidth={2} name="Daily ET₀" dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: '#f97316' }} />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+        
+        {/* Manual General Insights */}
+        <div className="mt-4 p-4 bg-purple-50 dark:bg-gray-700/30 rounded-lg border border-purple-200 dark:border-gray-600">
+          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+            General Analysis Notes
+          </label>
+          <textarea
+            value={insights.general}
+            onChange={(e) => onInsightsChange?.({ ...insights, general: e.target.value })}
+            placeholder="Add your general analysis, observations, and insights for this location..."
+            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+          />
         </div>
         
         {/* AI Insights for Evapotranspiration - Centered */}

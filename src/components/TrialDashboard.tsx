@@ -19,6 +19,7 @@ import { ReportView } from './ReportView';
 import FrostWarningDashboard from './FrostWarningDashboard';
 import FrostAlertSubscription from './FrostAlertSubscription';
 import { FrostEmailService } from '../services/frostEmailService';
+import { EnhancedLocationsList } from './EnhancedLocationsList';
 
 interface WeatherData {
   temperature: number;
@@ -132,8 +133,12 @@ export const TrialDashboard: React.FC = () => {
     systemType: ''
   });
   const [calculatorResult, setCalculatorResult] = useState<RuntimeResult | null>(null);
-  const [fieldBlocks, setFieldBlocks] = useState<FieldBlock[]>([]);
+
   const [displayedLocations, setDisplayedLocations] = useState<any[]>(availableLocations);
+
+  // Reports view persistent state
+  const [reportSelectedLocationIds, setReportSelectedLocationIds] = useState<Set<string>>(new Set());
+  const [reportInsights, setReportInsights] = useState<Map<string, { weather: string; crop: string; cropComparison: string; general: string }>>(new Map());
 
   // Frost warnings hook
   const { activeFrostWarnings, criticalFrostWarnings } = useFrostWarnings(
@@ -203,27 +208,14 @@ export const TrialDashboard: React.FC = () => {
     setTimeout(() => {
       setWeatherData(mockWeatherData);
       
-      // Filter available crops based on organization's crop distribution
-      if (organization?.cropDistribution) {
-        const orgCropNames = organization.cropDistribution.map(crop => crop.name);
-        const filteredCrops = COMPREHENSIVE_CROP_DATABASE.filter(crop => 
-          orgCropNames.includes(crop.name)
-        );
-        setAvailableCrops(filteredCrops);
-        
-        // Only auto-select if no crops are currently selected (but don't create instances)
-        setSelectedCrops(prev => {
-          if (prev.length === 0) {
-            // Auto-select but don't create instances (isManualToggle = false)
-            return filteredCrops.map(crop => crop.id);
-          }
-          // Keep existing selections but filter to valid crops
-          return prev.filter(cropId => filteredCrops.some(crop => crop.id === cropId));
-        });
-      } else {
-        // Fallback to full database if no organization data
-        setAvailableCrops(COMPREHENSIVE_CROP_DATABASE);
-      }
+      // Always show the full comprehensive crop database for crop selection
+      setAvailableCrops(COMPREHENSIVE_CROP_DATABASE);
+      
+      // Don't auto-select any crops - let users choose manually
+      setSelectedCrops(prev => {
+        // Keep existing selections but ensure they're valid crops
+        return prev.filter(cropId => COMPREHENSIVE_CROP_DATABASE.some(crop => crop.id === cropId));
+      });
       
       setLoading(false);
     }, 1000);
@@ -245,315 +237,7 @@ export const TrialDashboard: React.FC = () => {
     setCalculatorResult(null);
   }, [selectedLocation]);
 
-  // Initialize field blocks when organization changes
-  useEffect(() => {
-    if (!organization) {
-      setFieldBlocks([]);
-      return;
-    }
 
-    const getOrganizationFieldBlocks = (): FieldBlock[] => {
-      switch (organization.id) {
-        case 'local-org':
-          return [
-            {
-              id: 'block-1',
-              organization_id: 'local-org',
-              name: 'Fresno North Field',
-              description: 'Primary lettuce production',
-              location_name: 'Fresno, CA',
-              assigned_users: ['user-1'],
-              crop_id: 'lettuce',
-              crop_name: 'Lettuce',
-              acres: 120,
-              irrigation_methods: [
-                { method: 'drip', stage: 'All stages', notes: 'Drip irrigation throughout season' }
-              ],
-              soil_type: 'Garden Soil',
-              date_planted: '2024-10-01',
-              growth_stage: 'Harvest',
-              system_efficiency: 95,
-              water_allocation: 75,
-              status: 'active',
-              notes: 'Organic lettuce for family',
-              created_at: '2024-10-01T10:00:00Z',
-              updated_at: '2024-10-25T12:00:00Z'
-            },
-            {
-              id: 'block-2',
-              organization_id: 'local-org',
-              name: 'Fresno South Field',
-              description: 'Secondary lettuce plot',
-              location_name: 'Fresno, CA',
-              assigned_users: ['user-1'],
-              crop_id: 'lettuce',
-              crop_name: 'Lettuce',
-              acres: 60,
-              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
-              soil_type: 'Sandy Loam',
-              date_planted: '2024-10-15',
-              growth_stage: 'Vegetative',
-              system_efficiency: 92,
-              water_allocation: 38,
-              status: 'active',
-              notes: 'Second planting for continuous harvest',
-              created_at: '2024-10-15T08:00:00Z',
-              updated_at: '2024-11-01T14:00:00Z'
-            },
-            {
-              id: 'block-3',
-              organization_id: 'local-org',
-              name: 'Salinas Greenhouse',
-              description: 'Indoor tomato production',
-              location_name: 'Salinas, CA',
-              assigned_users: ['user-1'],
-              crop_id: 'tomatoes',
-              crop_name: 'Tomatoes',
-              acres: 135,
-              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
-              soil_type: 'Potting Mix',
-              date_planted: '2024-09-15',
-              growth_stage: 'Fruiting',
-              system_efficiency: 98,
-              water_allocation: 95,
-              status: 'active',
-              notes: 'Cherry tomatoes',
-              created_at: '2024-09-15T09:00:00Z',
-              updated_at: '2024-10-22T15:30:00Z'
-            },
-            {
-              id: 'block-4',
-              organization_id: 'local-org',
-              name: 'Bakersfield Spinach Plot',
-              description: 'Spinach and green vegetables',
-              location_name: 'Bakersfield, CA',
-              assigned_users: ['user-1'],
-              crop_id: 'spinach',
-              crop_name: 'Spinach',
-              acres: 100,
-              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
-              soil_type: 'Clay Loam',
-              date_planted: '2024-09-20',
-              growth_stage: 'Mature',
-              system_efficiency: 90,
-              water_allocation: 55,
-              status: 'active',
-              notes: 'Organic spinach rotation',
-              created_at: '2024-09-20T08:00:00Z',
-              updated_at: '2024-10-20T14:00:00Z'
-            },
-            {
-              id: 'block-5',
-              organization_id: 'local-org',
-              name: 'Bakersfield Carrot Field',
-              description: 'Root vegetables area',
-              location_name: 'Bakersfield, CA',
-              assigned_users: ['user-1'],
-              crop_id: 'carrots',
-              crop_name: 'Carrots',
-              acres: 80,
-              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
-              soil_type: 'Sandy Loam',
-              date_planted: '2024-08-15',
-              growth_stage: 'Harvest',
-              system_efficiency: 92,
-              water_allocation: 45,
-              status: 'active',
-              notes: 'Heirloom carrot varieties',
-              created_at: '2024-08-15T07:30:00Z',
-              updated_at: '2024-10-18T11:15:00Z'
-            }
-          ];
-
-        case 'demo-farm-coop':
-          return [
-            {
-              id: 'block-1',
-              organization_id: 'demo-farm-coop',
-              name: 'Salinas North',
-              description: 'Primary lettuce production',
-              location_name: 'Salinas Valley',
-              assigned_users: ['user-1', 'user-2'],
-              crop_id: 'lettuce',
-              crop_name: 'Lettuce',
-              acres: 750,
-              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
-              soil_type: 'Sandy Loam',
-              date_planted: '2024-10-15',
-              growth_stage: 'Vegetative',
-              system_efficiency: 92,
-              water_allocation: 425,
-              status: 'active',
-              notes: 'High-value organic lettuce rotation',
-              created_at: '2024-10-15T08:00:00Z',
-              updated_at: '2024-10-20T10:30:00Z'
-            },
-            {
-              id: 'block-2',
-              organization_id: 'demo-farm-coop',
-              name: 'Fresno Central',
-              description: 'Broccoli production area',
-              location_name: 'Fresno County',
-              assigned_users: ['user-3', 'user-4'],
-              crop_id: 'broccoli',
-              crop_name: 'Broccoli',
-              acres: 625,
-              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
-              soil_type: 'Clay Loam',
-              date_planted: '2024-09-10',
-              growth_stage: 'Heading',
-              system_efficiency: 85,
-              water_allocation: 280,
-              status: 'active',
-              notes: 'Premium broccoli for export',
-              created_at: '2024-09-10T07:00:00Z',
-              updated_at: '2024-10-18T15:45:00Z'
-            },
-            {
-              id: 'block-3',
-              organization_id: 'demo-farm-coop',
-              name: 'San Joaquin South',
-              description: 'Mixed crop rotation',
-              location_name: 'San Joaquin',
-              assigned_users: ['user-5'],
-              crop_id: 'almonds',
-              crop_name: 'Almonds',
-              acres: 500,
-              irrigation_methods: [{ method: 'micro-spray', stage: 'All stages', notes: 'Micro-spray irrigation' }],
-              soil_type: 'Sandy Clay',
-              date_planted: '2024-03-01',
-              growth_stage: 'Nut Fill',
-              system_efficiency: 83,
-              water_allocation: 45.5,
-              status: 'active',
-              notes: 'Mature almond orchard',
-              created_at: '2024-03-01T08:00:00Z',
-              updated_at: '2024-10-15T12:00:00Z'
-            },
-            {
-              id: 'block-4',
-              organization_id: 'demo-farm-coop',
-              name: 'Napa Valley East',
-              description: 'Premium grape vineyard',
-              location_name: 'Napa Valley',
-              assigned_users: ['user-3', 'user-4'],
-              crop_id: 'grapes',
-              crop_name: 'Grapes',
-              acres: 375,
-              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
-              soil_type: 'Volcanic Clay',
-              date_planted: '2024-04-15',
-              growth_stage: 'Harvest',
-              system_efficiency: 95,
-              water_allocation: 225,
-              status: 'active',
-              notes: 'Cabernet Sauvignon for premium wine',
-              created_at: '2024-04-15T08:00:00Z',
-              updated_at: '2024-10-22T09:15:00Z'
-            },
-            {
-              id: 'block-5',
-              organization_id: 'demo-farm-coop',
-              name: 'Monterey Coastal',
-              description: 'Strawberry greenhouse complex',
-              location_name: 'Monterey Bay',
-              assigned_users: ['user-1', 'user-2'],
-              crop_id: 'strawberries',
-              crop_name: 'Strawberries',
-              acres: 250,
-              irrigation_methods: [{ method: 'drip', stage: 'All stages', notes: 'Drip irrigation' }],
-              soil_type: 'Sandy Loam',
-              date_planted: '2024-08-01',
-              growth_stage: 'Fruiting',
-              system_efficiency: 98,
-              water_allocation: 320,
-              status: 'active',
-              notes: 'Year-round strawberry production',
-              created_at: '2024-08-01T06:30:00Z',
-              updated_at: '2024-10-28T11:00:00Z'
-            }
-          ];
-
-        case 'enterprise-ag':
-          return [
-            {
-              id: 'block-1',
-              organization_id: 'enterprise-ag',
-              name: 'Central Corn A',
-              description: 'Primary corn production',
-              location_name: 'Central Operations',
-              assigned_users: ['user-1', 'user-2', 'user-3'],
-              crop_id: 'corn',
-              crop_name: 'Corn',
-              acres: 2550,
-              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
-              soil_type: 'Silt Loam',
-              date_planted: '2024-05-15',
-              growth_stage: 'Grain Fill',
-              system_efficiency: 88,
-              water_allocation: 1425,
-              status: 'active',
-              notes: 'Hybrid corn for feed production',
-              created_at: '2024-05-15T06:00:00Z',
-              updated_at: '2024-10-25T14:30:00Z'
-            },
-            {
-              id: 'block-2',
-              organization_id: 'enterprise-ag',
-              name: 'Northern Soybeans',
-              description: 'Soybean cultivation',
-              location_name: 'Northern Division',
-              assigned_users: ['user-4', 'user-5'],
-              crop_id: 'soybeans',
-              crop_name: 'Soybeans',
-              acres: 2125,
-              irrigation_methods: [{ method: 'sprinkler', stage: 'All stages', notes: 'Sprinkler irrigation' }],
-              soil_type: 'Clay Loam',
-              date_planted: '2024-06-01',
-              growth_stage: 'Pod Fill',
-              system_efficiency: 84,
-              water_allocation: 950,
-              status: 'active',
-              notes: 'Non-GMO soybeans for export',
-              created_at: '2024-06-01T07:00:00Z',
-              updated_at: '2024-10-20T11:15:00Z'
-            },
-            {
-              id: 'block-3',
-              organization_id: 'enterprise-ag',
-              name: 'Southern Wheat',
-              description: 'Winter wheat production',
-              location_name: 'Southern Division',
-              assigned_users: ['user-6'],
-              crop_id: 'wheat',
-              crop_name: 'Wheat',
-              acres: 1700,
-              irrigation_methods: [{ method: 'flood', stage: 'All stages', notes: 'Flood irrigation' }],
-              soil_type: 'Silt Clay',
-              date_planted: '2024-10-01',
-              growth_stage: 'Tillering',
-              system_efficiency: 86,
-              water_allocation: 475.5,
-              status: 'active',
-              notes: 'Hard red winter wheat',
-              created_at: '2024-10-01T05:30:00Z',
-              updated_at: '2024-10-22T16:20:00Z'
-            }
-          ];
-
-        default:
-          return [];
-      }
-    };
-
-    setFieldBlocks(prev => {
-      const orgBlocks = getOrganizationFieldBlocks();
-      const dynamicBlocks = prev.filter(block => 
-        block.id.startsWith('block-') && !orgBlocks.find(orgBlock => orgBlock.id === block.id)
-      );
-      return [...orgBlocks, ...dynamicBlocks];
-    });
-  }, [organization?.id]);
 
   const handleCropToggle = (cropId: string, isManualToggle: boolean = true) => {
     setSelectedCrops(prev => {
@@ -610,6 +294,48 @@ export const TrialDashboard: React.FC = () => {
 
   const removeAllCrops = () => {
     setSelectedCrops([]);
+  };
+
+  const handleApplyToLocation = (locationId: string, cropIds: string[]) => {
+    // Apply selected crops to a specific location by creating crop instances
+    const location = availableLocations.find(loc => loc.id === locationId);
+    if (!location) return;
+
+    cropIds.forEach(cropId => {
+      const crop = availableCrops.find(c => c.id === cropId);
+      if (!crop) return;
+
+      // Check if this crop instance already exists for this location
+      const existingInstance = cropInstances.find(instance => 
+        instance.cropId === cropId && instance.locationId === locationId
+      );
+
+      if (!existingInstance) {
+        const newInstance = {
+          id: `instance-${Date.now()}-${cropId}-${locationId}`,
+          cropId: cropId,
+          plantingDate: new Date().toISOString().split('T')[0],
+          currentStage: 0,
+          locationId: locationId,
+          notes: `Applied to ${location.name} - edit for more details`
+        };
+        
+        setCropInstances(prev => [...prev, newInstance]);
+      }
+    });
+
+    // Also add to selected crops if not already there
+    setSelectedCrops(prev => {
+      const newCrops = cropIds.filter(cropId => !prev.includes(cropId));
+      return [...prev, ...newCrops];
+    });
+  };
+
+  const handleApplyToAllLocations = (cropIds: string[]) => {
+    // Apply selected crops to all available locations
+    availableLocations.forEach(location => {
+      handleApplyToLocation(location.id, cropIds);
+    });
   };
 
   // Load crop profiles from localStorage
@@ -708,12 +434,7 @@ export const TrialDashboard: React.FC = () => {
 
   // Sync field block updates back to crop instances and calculator
   const handleFieldBlockUpdate = (updatedBlock: FieldBlock) => {
-    // Update field blocks
-    setFieldBlocks(prev => prev.map(block => 
-      block.id === updatedBlock.id ? updatedBlock : block
-    ));
-
-    // Update related crop instances
+    // Update related crop instances based on field block changes
     setCropInstances(prev => prev.map(instance => {
       if (instance.fieldName === updatedBlock.name || 
           (instance.locationId === selectedLocation?.id && 
@@ -907,102 +628,10 @@ export const TrialDashboard: React.FC = () => {
           </div>
           
           <div className="p-6 overflow-y-auto h-full">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">Locations</h3>
-                <button
-                  onClick={() => setShowLocationModal(true)}
-                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                  title="Add New Location"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-              {availableLocations.map((location) => (
-                <div key={location.id} className="relative group">
-                  <div
-                    onClick={() => setSelectedLocation(location)}
-                    className={`w-full text-left p-4 rounded-lg transition-all border cursor-pointer ${
-                      selectedLocation.id === location.id
-                        ? 'bg-blue-600 text-white border-blue-500'
-                        : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3">
-                        <div className={`p-2 rounded-lg ${
-                          selectedLocation.id === location.id ? 'bg-blue-700' : 'bg-gray-200 dark:bg-gray-700'
-                        }`}>
-                          <MapPin className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{location.name}</div>
-                          <div className="text-xs opacity-75 mt-1">
-                            {('region' in location) ? location.region : `${location.latitude}°, ${location.longitude}°`}
-                          </div>
-                          {/* Coordinates Display */}
-                          <div className="text-xs opacity-60 mt-1 font-mono">
-                            {location.latitude?.toFixed(4)}°, {location.longitude?.toFixed(4)}°
-                          </div>
-                          {/* Weather Status */}
-                          <div className="flex items-center space-x-2 mt-2">
-                            <div className="flex items-center space-x-1">
-                              <Thermometer className="h-3 w-3" />
-                              <span className="text-xs">{weatherData?.temperature ? ((weatherData.temperature * 9/5 + 32).toFixed(0)) : '--'}°F</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Droplets className="h-3 w-3" />
-                              <span className="text-xs">{weatherData?.humidity?.toFixed(0) || '--'}%</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Toggle favorite status
-                          }}
-                          className="p-1.5 text-yellow-500 dark:text-yellow-400 hover:text-yellow-600 dark:hover:text-yellow-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/50 transition-colors"
-                          title="Add to Favorites"
-                        >
-                          <Star className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Edit location
-                          }}
-                          className="p-1.5 text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600/50 transition-colors"
-                          title="Edit Location"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </button>
-                        {availableLocations.length > 1 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (selectedLocation.id === location.id && availableLocations.length > 1) {
-                                const newIndex = availableLocations.findIndex(loc => loc.id === location.id);
-                                const nextLocation = availableLocations[newIndex === 0 ? 1 : 0];
-                                setSelectedLocation(nextLocation);
-                              }
-                              removeLocation(location.id);
-                            }}
-                            className="p-1.5 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-gray-600/50 transition-colors"
-                            title="Remove Location"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <EnhancedLocationsList
+              onLocationSelect={setSelectedLocation}
+              selectedLocationId={selectedLocation?.id}
+            />
           </div>
         </div>
         )}
@@ -1165,7 +794,7 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'overview'
-                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -1179,7 +808,7 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'calculator'
-                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -1193,7 +822,7 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'reports'
-                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -1207,7 +836,7 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'notifications'
-                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -1221,7 +850,7 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'org-dashboard'
-                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -1235,7 +864,7 @@ export const TrialDashboard: React.FC = () => {
                       }}
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'field-blocks'
-                          ? 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white'
+                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
@@ -1821,12 +1450,6 @@ export const TrialDashboard: React.FC = () => {
                                   const currentWateringCycle = crop.isPerennial && crop.wateringCycles ? 
                                     crop.wateringCycles[instance.currentWateringCycle || 0] : null;
                                   
-                                  // Find associated field block
-                                  const associatedBlock = fieldBlocks.find(block => 
-                                    block.name === instance.fieldName || 
-                                    (block.crop_id === instance.cropId && block.location_name === selectedLocation?.name)
-                                  );
-                                  
                                   return (
                                     <button
                                       key={instance.id}
@@ -1837,7 +1460,7 @@ export const TrialDashboard: React.FC = () => {
                                           crop: crop.name,
                                           kcValue: currentWateringCycle?.kc || currentStage?.kc || crop.stages[0]?.kc,
                                           selectedMonth: new Date().getMonth() + 1, // Set to current month
-                                          area: associatedBlock?.acres || 0,
+                                          area: 0, // Default area since field blocks are managed separately
                                           areaUnit: 'acres'
                                         });
                                       }}
@@ -1847,7 +1470,6 @@ export const TrialDashboard: React.FC = () => {
                                         <p className="text-green-700 dark:text-green-300 font-medium text-sm">{crop.name}</p>
                                         <p className="text-green-600 dark:text-green-200 text-xs">
                                           {instance.fieldName && `📍 ${instance.fieldName}`}
-                                          {associatedBlock && ` (${associatedBlock.acres} acres)`}
                                         </p>
                                         <p className="text-green-200 text-xs">
                                           Stage: {currentWateringCycle ? 
@@ -1863,11 +1485,7 @@ export const TrialDashboard: React.FC = () => {
                                         <p className="text-green-400 text-sm font-mono">
                                           Kc: {currentWateringCycle?.kc || currentStage?.kc || crop.stages[0]?.kc}
                                         </p>
-                                        {associatedBlock && (
-                                          <p className="text-green-300 text-xs">
-                                            {associatedBlock.irrigation_methods[0]?.method || 'Not specified'}
-                                          </p>
-                                        )}
+
                                       </div>
                                     </button>
                                   );
@@ -2119,9 +1737,12 @@ export const TrialDashboard: React.FC = () => {
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   selectedLocation={null}
-                  fieldBlocks={fieldBlocks}
                   availableLocations={availableLocations}
                   onDisplayLocationsChange={setDisplayedLocations}
+                  reportSelectedLocationIds={reportSelectedLocationIds}
+                  onReportSelectedLocationIdsChange={setReportSelectedLocationIds}
+                  reportInsights={reportInsights}
+                  onReportInsightsChange={setReportInsights}
                 />
               </>
             ) : currentView === 'notifications' ? (
@@ -2186,7 +1807,6 @@ export const TrialDashboard: React.FC = () => {
                   selectedCrops={selectedCrops}
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
-                  fieldBlocks={fieldBlocks}
                   selectedLocation={selectedLocation}
                   availableLocations={availableLocations}
                   onFieldBlockUpdate={handleFieldBlockUpdate}
@@ -2212,6 +1832,9 @@ export const TrialDashboard: React.FC = () => {
         onCropToggle={handleCropToggle}
         onAddAllCrops={addAllCrops}
         onRemoveAllCrops={removeAllCrops}
+        locations={availableLocations}
+        onApplyToLocation={handleApplyToLocation}
+        onApplyToAllLocations={handleApplyToAllLocations}
       />
       
 

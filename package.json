@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@hello-pangea/dnd": "^18.0.1",
     "@supabase/supabase-js": "^2.76.1",
     "@types/node-fetch": "^2.6.13",
     "@types/react-router-dom": "^5.3.3",
