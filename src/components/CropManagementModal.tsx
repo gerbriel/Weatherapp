@@ -14,6 +14,8 @@ interface CropManagementModalProps {
   locations?: any[];
   onApplyToLocation?: (locationId: string, cropIds: string[]) => void;
   onApplyToAllLocations?: (cropIds: string[]) => void;
+  appliedLocations?: Set<string>;
+  isApplyingToAll?: boolean;
 }
 
 export const CropManagementModal: React.FC<CropManagementModalProps> = ({
@@ -26,7 +28,9 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
   onRemoveAllCrops,
   locations = [],
   onApplyToLocation,
-  onApplyToAllLocations
+  onApplyToAllLocations,
+  appliedLocations = new Set(),
+  isApplyingToAll = false
 }) => {
   // Deduplicate locations to fix count issue
   const uniqueLocations = locations.filter((location, index, self) => 
@@ -334,9 +338,24 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
                   <div className="mb-3">
                     <button
                       onClick={() => onApplyToAllLocations(selectedCrops)}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors font-medium"
+                      disabled={isApplyingToAll}
+                      className={`px-4 py-2 text-white text-sm rounded-lg transition-all duration-300 font-medium flex items-center gap-2 transform ${
+                        isApplyingToAll 
+                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 cursor-not-allowed scale-105 shadow-lg' 
+                          : 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 hover:scale-105 hover:shadow-lg'
+                      }`}
                     >
-                      Apply to All Locations ({uniqueLocations.length})
+                      {isApplyingToAll && (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>
+                          <div className="flex space-x-1">
+                            <div className="w-1 h-1 bg-white rounded-full animate-bounce"></div>
+                            <div className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                            <div className="w-1 h-1 bg-white rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          </div>
+                        </div>
+                      )}
+                      <span>{isApplyingToAll ? 'Applying to All Locations...' : `Apply to All Locations (${uniqueLocations.length})`}</span>
                     </button>
                   </div>
                 )}
@@ -344,20 +363,47 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
                 {/* Individual Location Selection */}
                 <div className="space-y-2">
                   <div className="text-xs text-blue-300 font-medium">Or select specific locations:</div>
-                  <div className="max-h-32 overflow-y-auto border border-blue-600 rounded-md">
-                    {uniqueLocations.map(location => (
-                      <button
-                        key={location.id}
-                        onClick={() => onApplyToLocation && onApplyToLocation(location.id, selectedCrops)}
-                        className="w-full text-left px-3 py-2 text-white text-sm hover:bg-blue-800/50 transition-colors border-b border-blue-700/50 last:border-b-0"
-                        title={`Apply crops to ${location.name}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="truncate flex-1 mr-2">{location.name}</span>
-                          <span className="text-xs text-blue-300 flex-shrink-0">Apply</span>
-                        </div>
-                      </button>
-                    ))}
+                  <div className="max-h-32 overflow-y-auto bg-blue-900/20 rounded-md">
+                    {uniqueLocations.map(location => {
+                      const isApplied = appliedLocations.has(location.id);
+                      return (
+                        <button
+                          key={location.id}
+                          onClick={() => onApplyToLocation && onApplyToLocation(location.id, selectedCrops)}
+                          className={`w-full text-left px-3 py-2 text-white text-sm transition-all duration-500 transform ${
+                            isApplied 
+                              ? 'bg-gradient-to-r from-green-500/40 to-emerald-500/40 scale-105 shadow-lg' 
+                              : 'hover:bg-blue-700/40 hover:scale-102'
+                          } ${
+                            location === uniqueLocations[uniqueLocations.length - 1] ? '' : 'border-b border-blue-700/30'
+                          }`}
+                          title={`Apply crops to ${location.name}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="truncate flex-1 mr-2">{location.name}</span>
+                            <div className={`text-xs flex-shrink-0 flex items-center gap-1 transition-all duration-500 ${
+                              isApplied ? 'text-green-200' : 'text-blue-300'
+                            }`}>
+                              {isApplied && (
+                                <div className="relative">
+                                  <svg className="h-4 w-4 text-green-400 animate-ping absolute" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                  <svg className="h-4 w-4 text-green-400 relative" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
+                              <span className={`transition-all duration-300 ${
+                                isApplied ? 'font-semibold' : ''
+                              }`}>
+                                {isApplied ? 'Applied!' : 'Apply'}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

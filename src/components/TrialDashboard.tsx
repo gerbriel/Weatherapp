@@ -93,18 +93,39 @@ interface RuntimeResult {
 }
 
 export const TrialDashboard: React.FC = () => {
-  const { user, signOut, organization } = useAuth();
-  const { trialLocations, disableTrialMode, removeLocation: removeTrialLocation } = useTrial();
-  const { locations: userLocations, removeLocation: removeUserLocation } = useLocations();
+  const { 
+    user, 
+    signOut, 
+    organization,
+    locations: authLocations, 
+    deleteLocation: authDeleteLocation
+  } = useAuth();
+  const { disableTrialMode } = useTrial();
+  const { 
+    locations: locationsContextLocations, 
+    removeLocation: removeUserLocation
+  } = useLocations();
   
-  // State for trial locations with weather data - initialize with trial locations
-  const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>(
-    trialLocations.map(loc => ({ ...loc, loading: true }))
-  );
+  // Use same location source as EnhancedLocationsList for consistency
+  const rawAvailableLocations = user ? authLocations : locationsContextLocations;
   
-  // Use user locations if authenticated, otherwise use trial locations with weather data
-  const availableLocations = user ? userLocations : (trialLocationsWithWeather.length > 0 ? trialLocationsWithWeather : trialLocations);
-  const removeLocation = user ? removeUserLocation : removeTrialLocation;
+  // Deduplicate locations by ID (safeguard against any duplication issues)
+  const availableLocations = React.useMemo(() => {
+    const seen = new Set<string>();
+    return rawAvailableLocations.filter(loc => {
+      if (seen.has(loc.id)) {
+        return false;
+      }
+      seen.add(loc.id);
+      return true;
+    });
+  }, [rawAvailableLocations]);
+  
+  const removeLocation = user ? authDeleteLocation : removeUserLocation;
+
+  
+  // State for enhanced trial locations with weather data - only for display enhancement
+  const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>([]);
   
   const [selectedLocation, setSelectedLocation] = useState(availableLocations[0] || null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -147,25 +168,29 @@ export const TrialDashboard: React.FC = () => {
     general: string;
   }>>(new Map());
 
+  // Visual feedback states for crop application
+  const [appliedLocations, setAppliedLocations] = useState<Set<string>>(new Set());
+  const [isApplyingToAll, setIsApplyingToAll] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>('');
+
   // Frost warnings hook
   const { activeFrostWarnings, criticalFrostWarnings } = useFrostWarnings(
     availableLocations, 
     cropInstances
   );
 
-  // Fetch real weather data for trial locations
+  // Track if weather has been fetched to prevent duplicate API calls
+  const [weatherFetched, setWeatherFetched] = useState(false);
+
+  // Fetch real weather data for trial locations (for enhanced display only)
   useEffect(() => {
-    if (!user && trialLocations.length > 0) {
-      // First, initialize with trial locations marked as loading
-      setTrialLocationsWithWeather(
-        trialLocations.map(loc => ({ ...loc, loading: true }))
-      );
-      
+    if (!user && locationsContextLocations.length > 0 && !weatherFetched) {
       const fetchWeatherForTrialLocations = async () => {
+        setWeatherFetched(true); // Set immediately to prevent duplicate calls
+        
         const locationsWithWeather = await Promise.all(
-          trialLocations.map(async (location) => {
+          locationsContextLocations.map(async (location: any) => {
             try {
-              console.log(`Fetching weather data for ${location.name}...`);
               const weatherData = await weatherService.getWeatherData({
                 id: location.id,
                 name: location.name,
@@ -174,7 +199,6 @@ export const TrialDashboard: React.FC = () => {
                 isFavorite: false
               });
               
-              console.log(`✅ Weather data loaded for ${location.name}`);
               return {
                 ...location,
                 weatherData,
@@ -193,12 +217,11 @@ export const TrialDashboard: React.FC = () => {
         );
         
         setTrialLocationsWithWeather(locationsWithWeather);
-        console.log(`✅ All trial locations updated with weather data`);
       };
       
       fetchWeatherForTrialLocations();
     }
-  }, [user, trialLocations]);
+  }, [user, locationsContextLocations, weatherFetched]);
 
   // Mock weather data for trial overview card
   useEffect(() => {
@@ -306,11 +329,19 @@ export const TrialDashboard: React.FC = () => {
   const handleApplyToLocation = (locationId: string, cropIds: string[]) => {
     // Apply selected crops to a specific location by creating crop instances
     const location = availableLocations.find(loc => loc.id === locationId);
-    if (!location) return;
+    if (!location || cropIds.length === 0) {
+      return;
+    }
+
+    // Batch create new instances
+    const newInstances: CropInstance[] = [];
+    let appliedCount = 0;
 
     cropIds.forEach(cropId => {
       const crop = availableCrops.find(c => c.id === cropId);
-      if (!crop) return;
+      if (!crop) {
+        return;
+      }
 
       // Check if this crop instance already exists for this location
       const existingInstance = cropInstances.find(instance => 
@@ -318,8 +349,13 @@ export const TrialDashboard: React.FC = () => {
       );
 
       if (!existingInstance) {
+        // Generate unique ID with more entropy to avoid duplicates
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substr(2, 9);
+        const uniqueId = `instance-${timestamp}-${randomSuffix}-${cropId.substr(0, 4)}-${locationId.substr(0, 8)}`;
+        
         const newInstance = {
-          id: `instance-${Date.now()}-${cropId}-${locationId}`,
+          id: uniqueId,
           cropId: cropId,
           plantingDate: new Date().toISOString().split('T')[0],
           currentStage: 0,
@@ -327,22 +363,76 @@ export const TrialDashboard: React.FC = () => {
           notes: `Applied to ${location.name} - edit for more details`
         };
         
-        setCropInstances(prev => [...prev, newInstance]);
+        newInstances.push(newInstance);
+        appliedCount++;
       }
     });
+
+    // Batch update crop instances
+    if (newInstances.length > 0) {
+      setCropInstances(prev => [...prev, ...newInstances]);
+    }
 
     // Also add to selected crops if not already there
     setSelectedCrops(prev => {
       const newCrops = cropIds.filter(cropId => !prev.includes(cropId));
-      return [...prev, ...newCrops];
+      if (newCrops.length > 0) {
+        return [...prev, ...newCrops];
+      }
+      return prev;
     });
+
+    // Visual feedback - mark this location as applied
+    if (appliedCount > 0) {
+      setAppliedLocations(prev => new Set([...prev, locationId]));
+      setSuccessMessage(`✅ Applied ${appliedCount} crop${appliedCount > 1 ? 's' : ''} to ${location.name}!`);
+      
+      // Remove the feedback after 3 seconds
+      setTimeout(() => {
+        setAppliedLocations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(locationId);
+          return newSet;
+        });
+      }, 3000);
+
+      // Clear success message after 4 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 4000);
+    }
   };
 
   const handleApplyToAllLocations = (cropIds: string[]) => {
-    // Apply selected crops to all available locations
-    availableLocations.forEach(location => {
-      handleApplyToLocation(location.id, cropIds);
-    });
+    if (cropIds.length === 0 || availableLocations.length === 0) return;
+    
+    // Show loading state
+    setIsApplyingToAll(true);
+    
+    // Apply selected crops to all available locations with a small delay for UX
+    setTimeout(() => {
+      let totalApplied = 0;
+      
+      availableLocations.forEach((location, index) => {
+        // Stagger the applications slightly for better visual feedback
+        setTimeout(() => {
+          const beforeCount = cropInstances.length;
+          handleApplyToLocation(location.id, cropIds);
+          // This is approximate since handleApplyToLocation is async
+        }, index * 150);
+      });
+      
+      // Hide loading state after all applications
+      setTimeout(() => {
+        setIsApplyingToAll(false);
+        setSuccessMessage(`🎉 Applied crops to all ${availableLocations.length} locations!`);
+        
+        // Clear bulk success message after 5 seconds
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 5000);
+      }, availableLocations.length * 150 + 500);
+    }, 300);
   };
 
   // Load crop profiles from localStorage
@@ -493,8 +583,16 @@ export const TrialDashboard: React.FC = () => {
     const deduplicatedInstances = locationInstances.reduce((acc, instance) => {
       const existingIndex = acc.findIndex(existing => existing.cropId === instance.cropId);
       if (existingIndex >= 0) {
-        // Replace with more recent instance (higher ID means more recent)
-        if (parseInt(instance.id.replace('quick-', '')) > parseInt(acc[existingIndex].id.replace('quick-', ''))) {
+        // Replace with more recent instance based on ID comparison
+        // Handle different ID formats (quick-, instance-, etc.)
+        const currentTime = instance.id.includes('-') ? 
+          parseInt(instance.id.split('-')[1]) || 0 : 
+          parseInt(instance.id) || 0;
+        const existingTime = acc[existingIndex].id.includes('-') ? 
+          parseInt(acc[existingIndex].id.split('-')[1]) || 0 : 
+          parseInt(acc[existingIndex].id) || 0;
+          
+        if (currentTime > existingTime) {
           acc[existingIndex] = instance;
         }
       } else {
@@ -677,17 +775,6 @@ export const TrialDashboard: React.FC = () => {
                       Dashboard
                     </button>
                     <button
-                      onClick={() => setCurrentView('calculator')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'calculator'
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <Gauge className="h-4 w-4 mr-1 inline" />
-                      Calculator
-                    </button>
-                    <button
                       onClick={() => setCurrentView('reports')}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                         currentView === 'reports'
@@ -697,6 +784,17 @@ export const TrialDashboard: React.FC = () => {
                     >
                       <TrendingUp className="h-4 w-4 mr-1 inline" />
                       Reports
+                    </button>
+                    <button
+                      onClick={() => setCurrentView('calculator')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'calculator'
+                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      <Gauge className="h-4 w-4 mr-1 inline" />
+                      Calculator
                     </button>
                     <button
                       onClick={() => setCurrentView('notifications')}
@@ -810,20 +908,6 @@ export const TrialDashboard: React.FC = () => {
                     </button>
                     <button
                       onClick={() => {
-                        setCurrentView('calculator');
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'calculator'
-                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <Gauge className="h-4 w-4 mr-3" />
-                      Calculator
-                    </button>
-                    <button
-                      onClick={() => {
                         setCurrentView('reports');
                         setMobileMenuOpen(false);
                       }}
@@ -835,6 +919,20 @@ export const TrialDashboard: React.FC = () => {
                     >
                       <TrendingUp className="h-4 w-4 mr-3" />
                       Reports
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCurrentView('calculator');
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        currentView === 'calculator'
+                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Gauge className="h-4 w-4 mr-3" />
+                      Calculator
                     </button>
                     <button
                       onClick={() => {
@@ -1100,7 +1198,19 @@ export const TrialDashboard: React.FC = () => {
                 {/* Crop Management Section */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Crop Management</h2>
+                    <div>
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Crop Management</h2>
+                      {/* Global crop summary */}
+                      {cropInstances.length > 0 && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {cropInstances.length} total plantings across {availableLocations.filter(loc => 
+                            cropInstances.some(inst => inst.locationId === loc.id)
+                          ).length} location{availableLocations.filter(loc => 
+                            cropInstances.some(inst => inst.locationId === loc.id)
+                          ).length !== 1 ? 's' : ''}
+                        </p>
+                      )}
+                    </div>
                     <button
                       onClick={() => setShowCropSelector(true)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
@@ -1128,8 +1238,13 @@ export const TrialDashboard: React.FC = () => {
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-gray-900 dark:text-white font-medium">{getLocationCropInstances().length} Active Crop{getLocationCropInstances().length !== 1 ? 's' : ''}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Click "Manage Crops" to add more or modify existing crops</p>
+                          <p className="text-gray-900 dark:text-white font-medium">{getLocationCropInstances().length} Active Crop{getLocationCropInstances().length !== 1 ? 's' : ''} at {selectedLocation?.name}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {cropInstances.length > getLocationCropInstances().length ? 
+                              `Showing crops for this location only. ${cropInstances.length - getLocationCropInstances().length} more crops at other locations.` :
+                              'Click "Manage Crops" to add more or modify existing crops'
+                            }
+                          </p>
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full"></div>
@@ -1842,7 +1957,31 @@ export const TrialDashboard: React.FC = () => {
         locations={availableLocations}
         onApplyToLocation={handleApplyToLocation}
         onApplyToAllLocations={handleApplyToAllLocations}
+        appliedLocations={appliedLocations}
+        isApplyingToAll={isApplyingToAll}
       />
+
+      {/* Floating Success Notification */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-5 duration-300">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 max-w-sm">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 animate-bounce" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <span className="text-sm font-medium">{successMessage}</span>
+            <button 
+              onClick={() => setSuccessMessage('')}
+              className="flex-shrink-0 ml-2 text-white/80 hover:text-white"
+            >
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
       
 
       {/* Profile Management Modal */}

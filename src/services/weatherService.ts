@@ -15,7 +15,18 @@ interface DateRange {
 }
 
 class WeatherService {
+  private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
+  
   async getWeatherData(location: LocationData): Promise<WeatherApiResponse> {
+    const cacheKey = `${location.latitude},${location.longitude}`;
+    const now = Date.now();
+    
+    // Check cache first
+    const cached = this.cache.get(cacheKey);
+    if (cached && (now - cached.timestamp) < this.CACHE_DURATION) {
+      return cached.data;
+    }
     const params = {
       latitude: location.latitude,
       longitude: location.longitude,
@@ -38,6 +49,13 @@ class WeatherService {
 
     try {
       const response = await axios.get<WeatherApiResponse>(FORECAST_URL, { params });
+      
+      // Cache the successful response
+      this.cache.set(cacheKey, {
+        data: response.data,
+        timestamp: now
+      });
+      
       return response.data;
     } catch (error) {
       console.error('Error fetching weather data:', error);

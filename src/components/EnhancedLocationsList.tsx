@@ -64,7 +64,19 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
   } = useLocations();
 
   // Use auth locations for authenticated users, trial locations for trial users
-  const locations = user ? authLocations : trialLocations;
+  const rawLocations = user ? authLocations : trialLocations;
+  
+  // Deduplicate locations by ID (safeguard against any duplication issues)
+  const locations = React.useMemo(() => {
+    const seen = new Set<string>();
+    return rawLocations.filter(loc => {
+      if (seen.has(loc.id)) {
+        return false;
+      }
+      seen.add(loc.id);
+      return true;
+    });
+  }, [rawLocations]);
   
   // State management
   const [showAddForm, setShowAddForm] = useState(false);
@@ -125,7 +137,6 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     } else {
       // For trial users, we'll need to implement reordering in LocationsContext
       // For now, just update local state (won't persist)
-      console.log('Trial user reordering not yet implemented');
     }
   };
 
@@ -195,7 +206,6 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
       await authUpdateLocation(editingLocation.id, updates);
     } else {
       // For trial users, we'll need to implement updating in LocationsContext
-      console.log('Trial user editing not yet implemented');
     }
 
     setEditingLocation(null);
@@ -323,17 +333,22 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
   };
 
   const handleResetToTrialLocations = async () => {
-    if (!user) return;
-    
     const confirmMessage = 'This will replace all your current locations with the standard CIMIS agricultural weather stations. Are you sure?';
     if (window.confirm(confirmMessage)) {
       try {
-        const result = await resetToTrialLocations();
-        if (result.error) {
-          alert('Failed to reset locations: ' + result.error.message);
+        if (user) {
+          // For authenticated users, use the auth context reset
+          const result = await resetToTrialLocations();
+          if (result.error) {
+            alert('Failed to reset locations: ' + result.error.message);
+          } else {
+            alert('✅ Successfully reset to CIMIS agricultural weather stations!');
+          }
         } else {
-          alert('✅ Successfully reset to CIMIS agricultural weather stations!');
-          // Note: locations will auto-refresh through context
+          // For trial users, clear localStorage and reload page to get defaults
+          localStorage.removeItem('weatherLocations');
+          alert('✅ Successfully reset to default CIMIS agricultural weather stations!');
+          window.location.reload();
         }
       } catch (error) {
         console.error('Error resetting locations:', error);
@@ -597,6 +612,25 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
         </div>
       </div>
 
+      {/* Utility Buttons */}
+      <div className="px-6 pb-4 space-y-2">
+        <button
+          onClick={() => setShowDefaultLocations(true)}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <Plus className="h-4 w-4" />
+          Add CIMIS Stations
+        </button>
+        
+        <button
+          onClick={handleResetToTrialLocations}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 dark:border-orange-600 rounded-md text-sm text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Reset to Default CIMIS
+        </button>
+      </div>
+
       {/* Locations List with Drag and Drop */}
       <div className="flex-1 overflow-y-auto">
         <DragDropContext onDragEnd={handleDragEnd}>
@@ -645,24 +679,8 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
       </div>
 
       {/* Footer with utilities */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2">
-        <button
-          onClick={() => setShowDefaultLocations(true)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-        >
-          <Plus className="h-4 w-4" />
-          Add CIMIS Stations
-        </button>
-        
-        {user && (
-          <button
-            onClick={handleResetToTrialLocations}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-orange-300 dark:border-orange-600 rounded-md text-sm text-orange-700 dark:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset to Default CIMIS
-          </button>
-        )}
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
+        {/* Footer content removed - buttons moved to header */}
       </div>
 
       {/* Add Location Modal */}

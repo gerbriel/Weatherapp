@@ -25,6 +25,15 @@ export const useLocations = () => {
   return context;
 };
 
+// Helper function to generate UUID v4 compatible IDs
+const generateId = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 interface LocationsProviderProps {
   children: React.ReactNode;
 }
@@ -32,14 +41,20 @@ interface LocationsProviderProps {
 export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }) => {
   const [locations, setLocations] = useState<LocationWithWeather[]>([]);
   const [loading, setLoading] = useState(false);
+  const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
   // Load locations from localStorage on component mount
   useEffect(() => {
+    if (defaultsInitialized) {
+      return; // Prevent running multiple times
+    }
+    
     const savedLocations = localStorage.getItem('weatherLocations');
     if (savedLocations) {
       try {
         const parsedLocations = JSON.parse(savedLocations);
         setLocations(parsedLocations);
+        setDefaultsInitialized(true);
       } catch (error) {
         console.error('Error parsing saved locations:', error);
       }
@@ -57,9 +72,18 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         { latitude: 36.336222, longitude: -120.11291, name: 'Five Points', weatherstation: 'Five Points', weatherstationID: '2', sortOrder: 8 }
       ];
       
-      defaultLocations.forEach(loc => addLocation(loc));
+      // Create all locations at once with proper IDs
+      const newLocations = defaultLocations.map(loc => ({
+        ...loc,
+        id: generateId(),
+        isFavorite: false,
+        loading: true
+      }));
+      
+      setLocations(newLocations);
+      setDefaultsInitialized(true);
     }
-  }, []);
+  }, [defaultsInitialized]);
 
   // Save locations to localStorage whenever locations change
   useEffect(() => {
@@ -67,15 +91,6 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
       localStorage.setItem('weatherLocations', JSON.stringify(locations));
     }
   }, [locations]);
-
-  const generateId = () => {
-    // Generate a UUID v4 compatible string
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  };
 
   const addLocation = (locationData: Omit<LocationData, 'id' | 'isFavorite'>) => {
     const newLocation: LocationWithWeather = {
