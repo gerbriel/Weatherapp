@@ -18,7 +18,8 @@ class WeatherService {
   private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
   private requestQueue: Promise<any> = Promise.resolve();
-  private readonly REQUEST_DELAY = 200; // 200ms delay between requests to avoid rate limits
+  private readonly REQUEST_DELAY = 2000; // 2 second delay between requests to avoid rate limits
+  private lastRequestTime = 0;
   
   async getWeatherData(location: LocationData): Promise<WeatherApiResponse> {
     const cacheKey = `${location.latitude},${location.longitude}`;
@@ -29,12 +30,25 @@ class WeatherService {
     if (cached && (now - cached.timestamp) < this.CACHE_DURATION) {
       return cached.data;
     }
-    
-    // Queue the request to avoid rate limiting
+
+    // Add to request queue with delay to avoid rate limiting
     return new Promise((resolve, reject) => {
       this.requestQueue = this.requestQueue
-        .then(() => new Promise(r => setTimeout(r, this.REQUEST_DELAY)))
-        .then(() => this.fetchWeatherData(location, cacheKey, now))
+        .then(() => {
+          // Ensure minimum time between requests
+          const timeSinceLastRequest = Date.now() - this.lastRequestTime;
+          const additionalDelay = Math.max(0, this.REQUEST_DELAY - timeSinceLastRequest);
+          return new Promise(resolve => setTimeout(resolve, additionalDelay));
+        })
+        .then(() => {
+          // Check cache again after waiting in queue
+          const cachedAfterWait = this.cache.get(cacheKey);
+          if (cachedAfterWait && (Date.now() - cachedAfterWait.timestamp) < this.CACHE_DURATION) {
+            return cachedAfterWait.data;
+          }
+          this.lastRequestTime = Date.now();
+          return this.fetchWeatherData(location, cacheKey, now);
+        })
         .then(resolve)
         .catch(reject);
     });
@@ -77,13 +91,14 @@ class WeatherService {
       
       return response.data;
     } catch (error) {
-      console.error('Error fetching weather data:', error);
-      
-      // Check if it's a rate limiting error
+      // Check if it's a rate limiting error - don't log it to console
       if (axios.isAxiosError(error) && error.response?.status === 429) {
+        // Silently throw without console.error to avoid cluttering console
         throw new Error('Rate limit exceeded. Please wait before refreshing weather data.');
       }
       
+      // Only log non-rate-limit errors
+      console.error('Error fetching weather data:', error);
       throw new Error('Failed to fetch weather data');
     }
   }

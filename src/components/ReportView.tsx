@@ -1440,12 +1440,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
       {/* Summary Footer - only show when locations are displayed */}
       {selectedLocationIds.size > 0 && (
       <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
-        <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
-          <div className="flex items-center gap-2">
+        <div className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+          <div className="flex items-center gap-2 justify-center">
             <BarChart3 className="h-5 w-5" />
-            Comprehensive Report Generated for {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}
+            <span>Comprehensive Report Generated for {displayLocations.length} Location{displayLocations.length !== 1 ? 's' : ''}</span>
           </div>
-        </p>
+        </div>
         
         {displayLocations.length > 0 && (
           <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">
