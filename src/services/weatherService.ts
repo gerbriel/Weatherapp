@@ -18,8 +18,10 @@ class WeatherService {
   private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
   private requestQueue: Promise<any> = Promise.resolve();
-  private readonly REQUEST_DELAY = 2000; // 2 second delay between requests to avoid rate limits
+  private readonly REQUEST_DELAY = 3000; // 3 second delay between requests to avoid rate limits
   private lastRequestTime = 0;
+  private readonly MAX_RETRIES = 2;
+  private readonly RETRY_DELAY = 5000; // 5 second delay before retry
   
   async getWeatherData(location: LocationData): Promise<WeatherApiResponse> {
     const cacheKey = `${location.latitude},${location.longitude}`;
@@ -54,7 +56,7 @@ class WeatherService {
     });
   }
   
-  private async fetchWeatherData(location: LocationData, cacheKey: string, timestamp: number): Promise<WeatherApiResponse> {
+  private async fetchWeatherData(location: LocationData, cacheKey: string, timestamp: number, retryCount = 0): Promise<WeatherApiResponse> {
     // Double-check cache after waiting in queue
     const cached = this.cache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < this.CACHE_DURATION) {
@@ -91,8 +93,14 @@ class WeatherService {
       
       return response.data;
     } catch (error) {
-      // Check if it's a rate limiting error - don't log it to console
+      // Check if it's a rate limiting error
       if (axios.isAxiosError(error) && error.response?.status === 429) {
+        // Retry with exponential backoff if we haven't exceeded max retries
+        if (retryCount < this.MAX_RETRIES) {
+          const delay = this.RETRY_DELAY * Math.pow(2, retryCount);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return this.fetchWeatherData(location, cacheKey, timestamp, retryCount + 1);
+        }
         // Silently throw without console.error to avoid cluttering console
         throw new Error('Rate limit exceeded. Please wait before refreshing weather data.');
       }

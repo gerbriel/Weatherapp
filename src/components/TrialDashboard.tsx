@@ -188,9 +188,19 @@ export const TrialDashboard: React.FC = () => {
       const fetchWeatherForTrialLocations = async () => {
         setWeatherFetched(true); // Set immediately to prevent duplicate calls
         
+        // Initialize with loading state for all locations
+        setTrialLocationsWithWeather(
+          locationsContextLocations.map(loc => ({
+            ...loc,
+            loading: true,
+            error: undefined
+          }))
+        );
+        
         // Process locations sequentially to respect rate limiting
-        const locationsWithWeather = [];
-        for (const location of locationsContextLocations) {
+        // Update state progressively as each location loads
+        for (let i = 0; i < locationsContextLocations.length; i++) {
+          const location = locationsContextLocations[i];
           try {
             const weatherData = await weatherService.getWeatherData({
               id: location.id,
@@ -200,23 +210,30 @@ export const TrialDashboard: React.FC = () => {
               isFavorite: false
             });
             
-            locationsWithWeather.push({
-              ...location,
-              weatherData,
-              loading: false,
-              error: undefined
+            // Update just this location in the state
+            setTrialLocationsWithWeather(prev => {
+              const updated = [...prev];
+              updated[i] = {
+                ...location,
+                weatherData,
+                loading: false,
+                error: undefined
+              };
+              return updated;
             });
           } catch (error) {
-            console.error(`Failed to fetch weather for ${location.name}:`, error);
-            locationsWithWeather.push({
-              ...location,
-              loading: false,
-              error: error instanceof Error ? error.message : 'Failed to fetch weather data'
+            // Silently handle errors without console.error (already handled in service)
+            setTrialLocationsWithWeather(prev => {
+              const updated = [...prev];
+              updated[i] = {
+                ...location,
+                loading: false,
+                error: error instanceof Error ? error.message : 'Failed to fetch weather data'
+              };
+              return updated;
             });
           }
         }
-        
-        setTrialLocationsWithWeather(locationsWithWeather);
       };
       
       fetchWeatherForTrialLocations();
