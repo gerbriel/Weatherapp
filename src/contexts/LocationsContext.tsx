@@ -59,17 +59,11 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         console.error('Error parsing saved locations:', error);
       }
     } else {
-      // Add all default CIMIS stations for trial users
+      // Add only 3 default CIMIS stations for trial users to avoid API rate limiting
       const defaultLocations = [
-        { latitude: 35.205583, longitude: -118.77841, name: 'Bakersfield', weatherstation: 'Arvin-Edison', weatherstationID: '125', sortOrder: 0 },
-        { latitude: 36.820833, longitude: -119.74231, name: 'Fresno', weatherstation: 'Fresno State', weatherstationID: '80', sortOrder: 1 },
-        { latitude: 37.645222, longitude: -121.18776, name: 'Modesto', weatherstation: 'Modesto', weatherstationID: '71', sortOrder: 2 },
-        { latitude: 39.210667, longitude: -122.16889, name: 'Colusa', weatherstation: 'Williams', weatherstationID: '250', sortOrder: 3 },
-        { latitude: 38.428475, longitude: -122.41021, name: 'Napa', weatherstation: 'Oakville', weatherstationID: '77', sortOrder: 4 },
-        { latitude: 36.625619, longitude: -121.537889, name: 'Salinas', weatherstation: 'Salinas South II', weatherstationID: '214', sortOrder: 5 },
-        { latitude: 35.028281, longitude: -120.56003, name: 'Santa Maria', weatherstation: 'Nipomo', weatherstationID: '202', sortOrder: 6 },
-        { latitude: 36.376917, longitude: -119.037972, name: 'Exeter', weatherstation: 'Lemon Cove', weatherstationID: '258', sortOrder: 7 },
-        { latitude: 36.336222, longitude: -120.11291, name: 'Five Points', weatherstation: 'Five Points', weatherstationID: '2', sortOrder: 8 }
+        { latitude: 36.7650, longitude: -121.7569, name: 'Castroville', weatherstation: 'Castroville', weatherstationID: '125', sortOrder: 0 },
+        { latitude: 36.8175, longitude: -119.7417, name: 'Fresno State', weatherstation: 'Fresno State', weatherstationID: '80', sortOrder: 1 },
+        { latitude: 37.7633, longitude: -121.2158, name: 'Manteca', weatherstation: 'Manteca', weatherstationID: '71', sortOrder: 2 }
       ];
       
       // Create all locations at once with proper IDs
