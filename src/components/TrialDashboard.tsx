@@ -181,12 +181,15 @@ export const TrialDashboard: React.FC = () => {
 
   // Track if weather has been fetched to prevent duplicate API calls
   const [weatherFetched, setWeatherFetched] = useState(false);
+  const weatherFetchedRef = React.useRef(false); // Use ref to prevent re-fetches across renders
 
   // Fetch real weather data for trial locations (for enhanced display only)
   useEffect(() => {
-    if (!user && locationsContextLocations.length > 0 && !weatherFetched) {
+    // Only fetch if we're in trial mode, have locations, and haven't fetched yet
+    if (!user && locationsContextLocations.length > 0 && !weatherFetchedRef.current) {
       const fetchWeatherForTrialLocations = async () => {
-        setWeatherFetched(true); // Set immediately to prevent duplicate calls
+        weatherFetchedRef.current = true; // Set ref immediately to prevent duplicate calls
+        setWeatherFetched(true);
         
         // Initialize with loading state for all locations
         setTrialLocationsWithWeather(
@@ -238,7 +241,7 @@ export const TrialDashboard: React.FC = () => {
       
       fetchWeatherForTrialLocations();
     }
-  }, [user, locationsContextLocations, weatherFetched]);
+  }, [user, locationsContextLocations.length]); // Only depend on user and length, not the array itself
 
   // Mock weather data for trial overview card
   useEffect(() => {
