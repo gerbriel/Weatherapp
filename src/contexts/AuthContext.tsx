@@ -307,6 +307,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [locations, setLocations] = useState<UserLocation[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Check and upgrade cache version for hourly data
+  useEffect(() => {
+    const CACHE_VERSION = '2.1'; // Increment when API structure changes
+    const currentVersion = localStorage.getItem('weatherCacheVersion');
+    
+    if (currentVersion !== CACHE_VERSION) {
+      console.log('Upgrading weather cache to include hourly data...');
+      localStorage.removeItem('weatherCache');
+      localStorage.setItem('weatherCacheVersion', CACHE_VERSION);
+    }
+  }, []);
+
   // Fetch user profile and organization data (simplified - no database dependency)
   const fetchProfile = async (userId: string) => {
     try {
@@ -425,87 +437,98 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Convert trial locations to user locations format
+    // Create default user locations based on California's trial locations
   const createDefaultUserLocations = (userId: string): UserLocation[] => {
+    // All 9 default CIMIS agricultural weather stations
     const trialLocations = [
       {
         id: 'cimis-125',
-        name: 'Arvin-Edison',
+        name: 'Bakersfield',
+        weatherstation: 'Arvin-Edison',
         latitude: 35.205583,
         longitude: -118.77841,
         state: 'California',
-        region: 'Bakersfield Area',
+        region: 'Bakersfield',
         cimisStationId: '125'
       },
       {
         id: 'cimis-80',
-        name: 'Fresno State',
+        name: 'Fresno',
+        weatherstation: 'Fresno State',
         latitude: 36.820833,
         longitude: -119.74231,
         state: 'California',
-        region: 'Fresno Area',
+        region: 'Fresno',
         cimisStationId: '80'
       },
       {
         id: 'cimis-71',
         name: 'Modesto',
+        weatherstation: 'Modesto',
         latitude: 37.645222,
         longitude: -121.18776,
         state: 'California',
-        region: 'Modesto Area',
+        region: 'Modesto',
         cimisStationId: '71'
       },
       {
         id: 'cimis-250',
-        name: 'Williams',
+        name: 'Colusa',
+        weatherstation: 'Williams',
         latitude: 39.210667,
         longitude: -122.16889,
         state: 'California',
-        region: 'Colusa Area',
+        region: 'Colusa',
         cimisStationId: '250'
       },
       {
         id: 'cimis-77',
-        name: 'Oakville',
+        name: 'Napa',
+        weatherstation: 'Oakville',
         latitude: 38.428475,
         longitude: -122.41021,
         state: 'California',
-        region: 'Napa Valley',
+        region: 'Napa',
         cimisStationId: '77'
       },
       {
         id: 'cimis-214',
-        name: 'Salinas South II',
+        name: 'Salinas',
+        weatherstation: 'Salinas South II',
         latitude: 36.625619,
         longitude: -121.537889,
         state: 'California',
-        region: 'Salinas Area',
+        region: 'Salinas',
         cimisStationId: '214'
       },
       {
         id: 'cimis-202',
-        name: 'Nipomo',
+        name: 'Santa Maria',
+        weatherstation: 'Nipomo',
         latitude: 35.028281,
         longitude: -120.56003,
         state: 'California',
-        region: 'Santa Maria Area',
+        region: 'Santa Maria',
         cimisStationId: '202'
       },
       {
         id: 'cimis-258',
-        name: 'Lemon Cove',
+        name: 'Exeter',
+        weatherstation: 'Lemon Cove',
         latitude: 36.376917,
         longitude: -119.037972,
         state: 'California',
-        region: 'Exeter Area',
+        region: 'Exeter',
         cimisStationId: '258'
       },
       {
         id: 'cimis-2',
         name: 'Five Points',
+        weatherstation: 'Five Points',
         latitude: 36.336222,
         longitude: -120.11291,
         state: 'California',
-        region: 'Five Points Area',
+        region: 'Five Points',
         cimisStationId: '2'
       }
     ];
@@ -514,8 +537,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       id: `user-${loc.id}`,
       user_id: userId,
       organization_id: 'local-org',
-      name: loc.region.replace(' Area', ''), // Use clean region name (e.g., "Bakersfield" instead of "Bakersfield Area")
-      description: `${loc.region} agricultural weather station`,
+      name: loc.name, // Use the actual name (Castroville, Fresno State, Manteca)
+      description: `${loc.name} agricultural weather station`,
       latitude: loc.latitude,
       longitude: loc.longitude,
       elevation: 100, // Default elevation
@@ -529,8 +552,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       is_active: true,
       is_favorite: false,
       sort_order: index,
-      weatherstation: loc.name, // Weather station name (e.g., "Arvin-Edison")
-      weatherstation_id: loc.cimisStationId, // Weather station ID (e.g., "125")
+      weatherstation: loc.weatherstation, // Weather station name
+      weatherstation_id: loc.cimisStationId, // Weather station ID
       metadata: {
         cimisStationId: loc.cimisStationId,
         region: loc.region,

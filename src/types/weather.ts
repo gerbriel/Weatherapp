@@ -8,6 +8,17 @@ export interface DailyWeatherData {
   rain_sum: number[];
   et0_fao_evapotranspiration: number[];
   et0_fao_evapotranspiration_sum: number[];
+  weather_code: number[];
+}
+
+export interface HourlyWeatherData {
+  time: string[];
+  temperature_2m: number[];
+  relative_humidity_2m: number[];
+  precipitation: number[];
+  precipitation_probability: number[];
+  weather_code: number[];
+  wind_speed_10m: number[];
 }
 
 export interface WeatherApiResponse {
@@ -27,8 +38,19 @@ export interface WeatherApiResponse {
     rain_sum: string;
     et0_fao_evapotranspiration: string;
     et0_fao_evapotranspiration_sum: string;
+    weather_code: string;
   };
   daily: DailyWeatherData;
+  hourly_units?: {
+    time: string;
+    temperature_2m: string;
+    relative_humidity_2m: string;
+    precipitation: string;
+    precipitation_probability: string;
+    weather_code: string;
+    wind_speed_10m: string;
+  };
+  hourly?: HourlyWeatherData;
 }
 
 export interface LocationData {

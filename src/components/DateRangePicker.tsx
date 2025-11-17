@@ -30,13 +30,21 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 }) => {
   const [showPresets, setShowPresets] = useState(false);
 
-  // Get today's date in YYYY-MM-DD format
-  const today = new Date().toISOString().split('T')[0];
+  // Helper to format date in local timezone (YYYY-MM-DD)
+  const formatDateLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get today's date in YYYY-MM-DD format (local timezone)
+  const today = formatDateLocal(new Date());
   
   // Calculate max date (today) and min date (1 year ago)
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const minDate = oneYearAgo.toISOString().split('T')[0];
+  const minDate = formatDateLocal(oneYearAgo);
 
   // Preset date ranges
   const presetRanges: PresetRange[] = [
@@ -52,8 +60,8 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
     const start = new Date();
     start.setDate(end.getDate() - days);
     
-    onEndDateChange(end.toISOString().split('T')[0]);
-    onStartDateChange(start.toISOString().split('T')[0]);
+    onEndDateChange(formatDateLocal(end));
+    onStartDateChange(formatDateLocal(start));
     setShowPresets(false);
     
     // Automatically trigger data fetch after setting preset dates

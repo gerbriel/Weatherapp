@@ -650,222 +650,218 @@ export async function exportChartsAsHTML(
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Comprehensive Weather Report - ${new Date().toLocaleDateString()}</title>
       <style>
+        * {
+          box-sizing: border-box;
+        }
         body {
-          font-family: Arial, Helvetica, sans-serif;
-          line-height: 1.7;
-          color: #414042;
-          font-size: 17px;
-          max-width: 600px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          line-height: 1.6;
+          color: #353750;
+          font-size: 16px;
+          max-width: 800px;
           margin: 0 auto;
-          padding: 22px;
-          background: #F4F4F4;
+          padding: 30px 20px;
+          background: #F9FAFB;
         }
         .header {
           text-align: center;
           margin-bottom: 40px;
-          padding: 38px 32px;
+          padding: 30px;
           background: #FFFFFF;
           border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          border: 1px solid #E5E7EB;
         }
         .location-section {
           margin-bottom: 50px;
           background: #FFFFFF;
-          padding: 38px 32px;
+          padding: 40px;
           border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          border: 1px solid #E5E7EB;
         }
         .chart-container {
-          margin: 30px 0;
-          text-align: center;
+          margin: 25px 0;
         }
         .chart-image {
           max-width: 100%;
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-          margin: 20px 0;
-        }
-        .chart-title {
-          color: #0A7DD6;
-          margin-bottom: 15px;
-          font-size: 23px;
-          font-weight: bold;
+          border-radius: 8px;
+          border: 1px solid #E5E7EB;
+          margin: 15px 0;
         }
         .weather-stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 20px;
-          margin: 30px 0;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 15px;
+          margin: 25px 0;
         }
         .stat-card {
-          background: #F4F4F4;
-          border: 1px solid #0A7DD6;
-          border-radius: 12px;
-          padding: 20px;
+          background: #F9FAFB;
+          border: 2px solid #0A7DD6;
+          border-radius: 10px;
+          padding: 20px 16px;
           text-align: center;
+          transition: transform 0.2s;
         }
         .stat-label {
-          font-size: 15px;
+          font-size: 14px;
           color: #353750;
           text-transform: uppercase;
-          font-weight: bold;
-          margin-bottom: 8px;
+          font-weight: 600;
+          margin-top: 8px;
+          letter-spacing: 0.5px;
         }
         .stat-value {
-          font-size: 25px;
+          font-size: 28px;
           font-weight: bold;
           color: #0A7DD6;
+          line-height: 1;
         }
         .forecast-table {
           width: 100%;
           border-collapse: collapse;
-          margin: 20px 0;
-          font-size: 15px;
-          overflow-x: auto;
-          display: block;
-          white-space: nowrap;
+          margin: 0;
+          font-size: 14px;
+          background: white;
         }
         .forecast-table thead {
-          background: #353750;
-        }
-        .forecast-table th, .forecast-table td {
-          border: 1px solid #F4F4F4;
-          padding: 8px 12px;
-          text-align: left;
+          background: #F9FAFB;
         }
         .forecast-table th {
-          font-weight: bold;
-          color: #FFFFFF;
+          border: 1px solid #E5E7EB;
+          padding: 12px 16px;
+          text-align: left;
+          font-weight: 600;
+          color: #353750;
           text-transform: uppercase;
-          font-size: 15px;
+          font-size: 13px;
+          letter-spacing: 0.3px;
+        }
+        .forecast-table td {
+          border: 1px solid #E5E7EB;
+          padding: 12px 16px;
+          text-align: left;
+          color: #414042;
         }
         .forecast-table tbody tr:nth-child(even) {
-          background: #F4F4F4;
+          background: #F9FAFB;
         }
-        .data-sources-panel {
-          background: #F4F4F4;
-          border: 1px solid #0A7DD6;
-          border-radius: 12px;
-          padding: 32px;
-          margin: 30px 0;
-        }
-        .data-sources-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 15px;
-          margin-top: 15px;
-        }
-        .data-source-card {
-          background: #FFFFFF;
-          border: 1px solid #0A7DD6;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-        .crop-summary {
-          background: #F4F4F4;
-          border: 1px solid #FF7D5E;
-          border-radius: 12px;
-          padding: 32px;
-          margin: 30px 0;
-        }
-        .crop-summary-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin-top: 15px;
+        .forecast-table tbody tr:hover {
+          background: #F0F9FF;
         }
         h1 { 
           color: #0A7DD6; 
-          font-size: 28px; 
-          font-weight: bold;
-          margin-bottom: 10px; 
-          text-align: center;
+          font-size: 26px; 
+          font-weight: 700;
+          margin: 0 0 12px 0; 
+          letter-spacing: -0.5px;
         }
         h2 { 
           color: #0A7DD6; 
-          font-size: 23px; 
-          font-weight: bold;
-          border-bottom: 3px solid #0A7DD6; 
-          padding-bottom: 10px; 
-          text-align: center;
+          font-size: 22px; 
+          font-weight: 700;
+          margin: 0;
+          padding: 0;
+          border: none;
         }
         h3 { 
-          color: #0A7DD6; 
-          font-size: 21px; 
-          font-weight: bold;
-          margin-top: 30px; 
-          text-align: center;
+          color: #353750; 
+          font-size: 18px; 
+          font-weight: 600;
+          margin-top: 25px; 
+          margin-bottom: 15px;
         }
         h4 { 
           color: #353750; 
-          font-size: 17px; 
-          font-weight: bold;
+          font-size: 16px; 
+          font-weight: 600;
           margin-top: 20px; 
-          margin-bottom: 10px; 
+          margin-bottom: 12px; 
         }
         .metadata {
-          background: #F4F4F4;
-          padding: 32px;
-          border-radius: 12px;
-          margin-bottom: 20px;
-          border: 1px solid #353750;
+          background: #F9FAFB;
+          padding: 20px;
+          border-radius: 8px;
+          margin-top: 20px;
+          border: 1px solid #E5E7EB;
+          font-size: 14px;
+        }
+        .metadata p {
+          margin: 8px 0;
+          color: #414042;
         }
         .footer {
           text-align: center;
           margin-top: 50px;
-          padding: 32px;
+          padding: 25px;
           background: #353750;
           border-radius: 12px;
           color: #FFFFFF;
         }
-        .insights-section {
-          background: #FFFFFF;
-          border: 2px solid #FF7D5E;
+        .data-sources-panel {
+          background: #F9FAFB;
+          border: 1px solid #E5E7EB;
           border-radius: 12px;
-          padding: 32px;
+          padding: 30px;
           margin: 30px 0;
         }
-        .insights-title {
-          color: #FF7D5E;
-          font-size: 21px;
-          font-weight: bold;
-          margin-bottom: 15px;
-          text-align: center;
+        .data-sources-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 20px;
+          margin-top: 15px;
         }
-        .insight-item {
-          margin-bottom: 20px;
+        .data-source-card {
+          background: #FFFFFF;
+          border: 1px solid #E5E7EB;
+          border-radius: 8px;
           padding: 20px;
-          background: #F4F4F4;
+        }
+        .crop-summary {
+          background: #F9FAFB;
+          border: 1px solid #E5E7EB;
           border-radius: 12px;
-          border-left: 4px solid #0A7DD6;
+          padding: 30px;
+          margin: 30px 0;
         }
-        .insight-label {
-          color: #353750;
-          font-weight: bold;
-          font-size: 17px;
-          margin-bottom: 8px;
+        .crop-summary-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 20px;
+          margin-top: 15px;
         }
-        .insight-content {
-          color: #414042;
-          font-size: 17px;
-          line-height: 1.7;
-        }
-        @media (max-width: 600px) {
+        @media (max-width: 768px) {
           body { 
-            padding: 22px; 
+            padding: 20px 15px; 
           }
           .header, .location-section {
-            padding: 22px;
+            padding: 25px 20px;
           }
-          .data-sources-panel, .crop-summary, .metadata {
-            padding: 22px;
+          .weather-stats-grid {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .forecast-table {
+            font-size: 12px;
+          }
+          .forecast-table th,
+          .forecast-table td {
+            padding: 8px 10px;
           }
         }
         @media print {
-          body { background: white; }
-          .location-section { page-break-inside: avoid; }
-          .forecast-table { display: table; white-space: normal; }
+          body { 
+            background: white;
+            max-width: 100%;
+          }
+          .location-section { 
+            page-break-inside: avoid;
+            box-shadow: none;
+            border: 1px solid #E5E7EB;
+          }
+          .stat-card {
+            break-inside: avoid;
+          }
         }
       </style>
     </head>
@@ -989,6 +985,79 @@ export async function exportChartsAsHTML(
     htmlContent += '</div></div>';
   }
 
+  // Add comprehensive ET Summary for ALL locations (appears once before individual sections)
+  htmlContent += `
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 40px;">
+      <tr>
+        <td>
+          <h2 style="text-align: center; margin: 0 0 25px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 20px; color: #353750;">📊 Comprehensive ET Summary - All Locations</h2>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <!-- ET Chart Header -->
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 0;">
+            <tr>
+              <td style="background-color: #0A7DD6; color: #ffffff; padding: 12px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-weight: bold; font-size: 17px;">
+                14-Day Summary
+              </td>
+            </tr>
+          </table>
+          
+          <!-- Summary Table -->
+          <table width="100%" cellpadding="12" cellspacing="0" border="0" style="border: 1px solid #E5E7EB; border-top: none; border-collapse: collapse;">
+            <!-- Header Row -->
+            <tr style="background-color: #F9FAFB;">
+              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: left; font-weight: 600;">Location</th>
+              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">CIMIS Station</th>
+              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Last 7 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Total Precip (in)</span></th>
+              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Last 7 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Total ETo (in)</span></th>
+              <th style="background-color: #DBEAFE; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 2px solid #0A7DD6; text-align: center; font-weight: 600;">Today<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Precip / ETo (in)</span></th>
+              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Next 6 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Forecast Precip (in)</span></th>
+              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Next 6 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Forecast ETo (in)</span></th>
+              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Active Crops</th>
+            </tr>
+            <!-- Data Rows -->
+            ${locations.map((loc, idx) => {
+              const locForecast = generate14DayForecast(loc);
+              const locationCropCount = cropInstances.filter(c => c.locationId === loc.id).length;
+              
+              // Calculate summaries
+              const last7Days = locForecast.slice(0, 7);
+              const today = locForecast[7];
+              const next6Days = locForecast.slice(8, 14);
+              
+              const last7Precip = last7Days.reduce((sum, day) => sum + parseFloat(day.precipitation || '0'), 0).toFixed(2);
+              const last7ETo = last7Days.reduce((sum, day) => sum + Number(day.et0), 0).toFixed(2);
+              
+              const todayPrecip = parseFloat(today?.precipitation || '0').toFixed(2);
+              const todayETo = Number(today?.et0 || 0).toFixed(2);
+              
+              const next6Precip = next6Days.reduce((sum, day) => sum + parseFloat(day.precipitation || '0'), 0).toFixed(2);
+              const next6ETo = next6Days.reduce((sum, day) => sum + Number(day.et0), 0).toFixed(2);
+              
+              return `
+                <tr style="background-color: ${idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};">
+                  <td style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB;">${loc.name}</td>
+                  <td style="color: #6B7280; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center;">--</td>
+                  <td style="color: #3B82F6; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${last7Precip}</td>
+                  <td style="color: #10B981; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${last7ETo}</td>
+                  <td style="color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 2px solid #0A7DD6; background-color: #F0F9FF; text-align: center; font-weight: 600;">
+                    <span style="color: #3B82F6;">${todayPrecip}</span> / <span style="color: #10B981;">${todayETo}</span>
+                  </td>
+                  <td style="color: #3B82F6; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${next6Precip}</td>
+                  <td style="color: #10B981; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${next6ETo}</td>
+                  <td style="color: ${locationCropCount > 0 ? '#10B981' : '#6B7280'}; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${locationCropCount > 0 ? `✓ (${locationCropCount})` : '--'}</td>
+                </tr>
+              `;
+            }).join('')}
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
+
+  // Now iterate through each location for detailed charts
   chartDataMap.forEach((data, locationId) => {
     const location = locations.find(loc => loc.id === locationId);
     if (!location) return;
@@ -999,89 +1068,86 @@ export async function exportChartsAsHTML(
     // Generate 14-day forecast data
     const forecastData = generate14DayForecast(location);
 
+    // Calculate week date range
+    const weekStart = forecastData[0]?.formattedDate || 'N/A';
+    const weekEnd = forecastData[forecastData.length - 1]?.formattedDate || 'N/A';
+    
     htmlContent += `
       <div class="location-section">
-        <h2>🌍 ${location.name}</h2>
-        <p style="color: #6b7280; margin-bottom: 20px;">
-          📍 ${location.latitude?.toFixed(4) || 'N/A'}, ${location.longitude?.toFixed(4) || 'N/A'} • 
-          NCEP GFS Seamless Model
-        </p>
-
-        <!-- Today's Weather Stats Grid -->
-        <h3>📅 Today's Weather Stats</h3>
-        <div class="weather-stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">🌡️ High</div>
-            <div class="stat-value">${todayData.tempMax}°F</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">🌡️ Low</div>
-            <div class="stat-value">${todayData.tempMin}°F</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">💧 Precip</div>
-            <div class="stat-value">${todayData.precipitation} in</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">🌱 ET₀</div>
-            <div class="stat-value">${Number(todayData.et0).toFixed(2)} inches</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">📊 ET₀ Sum</div>
-            <div class="stat-value">${Number(todayData.et0_sum).toFixed(2)} inches</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">🌾 ETC Actual</div>
-            <div class="stat-value">${todayData.etcActual}</div>
+        <!-- Header Section -->
+        <div style="border-bottom: 2px solid #0A7DD6; padding-bottom: 20px; margin-bottom: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <div style="background: #E6F2FF; padding: 8px; border-radius: 8px;">
+                  <span style="font-size: 24px;">💧</span>
+                </div>
+                <h2 style="margin: 0; border: none; padding: 0; text-align: left;">Weekly Irrigation Snapshot</h2>
+              </div>
+              <p style="color: #6b7280; margin: 0; font-size: 15px;">Week of ${weekStart}</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="margin: 0; color: #6b7280; font-size: 14px;">Location</p>
+              <p style="margin: 0; font-weight: bold; color: #353750; font-size: 19px;">${location.name}</p>
+            </div>
           </div>
         </div>
 
-        <!-- 14-Day Forecast Table -->
-        <h3>📈 14-Day Forecast Data</h3>
-        <div style="overflow-x: auto;">
-          <table class="forecast-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>High (°F)</th>
-                <th>Low (°F)</th>
-                <th>Precip (in)</th>
-                <th>ET₀ Projected (in)</th>
-                <th>ET₀ Sum (inches)</th>
-                <th>ETC Actual (in)</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${forecastData.map((day) => `
-                <tr>
-                  <td style="font-weight: 600;">${day.formattedDate}</td>
-                  <td><strong>${day.tempMax}°</strong></td>
-                  <td>${day.tempMin}°</td>
-                  <td>${day.precipitation}</td>
-                  <td>${Number(day.et0).toFixed(2)}</td>
-                  <td>${Number(day.et0_sum).toFixed(2)}</td>
-                  <td>🌾 ${day.etcActual}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <!-- Today's Weather State -->
+        <h3 style="text-align: left; font-size: 19px; color: #353750; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+          <span>☀️</span> Today's Weather State
+        </h3>
+        <div class="weather-stats-grid" style="margin-bottom: 30px;">
+          <div class="stat-card" style="background: linear-gradient(135deg, #FFF5F5 0%, #FFE5E5 100%); border-color: #FF7D5E;">
+            <div class="stat-value" style="color: #FF7D5E; font-size: 32px;">${todayData.tempMax}°F</div>
+            <div class="stat-label" style="color: #353750; font-size: 14px;">Avg Temp</div>
+          </div>
+          <div class="stat-card" style="background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); border-color: #0A7DD6;">
+            <div class="stat-value" style="color: #0A7DD6; font-size: 32px;">${todayData.precipitation}"</div>
+            <div class="stat-label" style="color: #353750; font-size: 14px;">Total Precip</div>
+          </div>
+          <div class="stat-card" style="background: linear-gradient(135deg, #F5F5F5 0%, #E5E5E5 100%); border-color: #6B7280;">
+            <div class="stat-value" style="color: #353750; font-size: 32px;">--</div>
+            <div class="stat-label" style="color: #353750; font-size: 14px;">Avg Wind</div>
+          </div>
         </div>
 
-        <!-- Weather Charts -->
-        <div class="chart-container">
-          <h3 class="chart-title">💧 Precipitation Forecast (14 Days)</h3>
-          <img src="${data.chartImageUrls.precipitationUrl}" 
-               alt="Precipitation Chart for ${location.name}" 
-               class="chart-image" />
-          <p><em>Shows total precipitation and rain amounts for the next 14 days</em></p>
+        <!-- Week's Summary -->
+        <div style="background: #F9FAFB; padding: 24px; border-radius: 8px; border: 1px solid #E5E7EB; margin-bottom: 30px;">
+          <h3 style="text-align: left; font-size: 19px; color: #353750; margin-top: 0; margin-bottom: 12px;">Week's Summary</h3>
+          <p style="color: #414042; line-height: 1.7; margin: 0; font-size: 16px;">
+            ${location.name} experienced ${todayData.precipitation} inches of precipitation this period. 
+            The average temperature ranged from ${todayData.tempMin}°F to ${todayData.tempMax}°F. 
+            Reference evapotranspiration (ET₀) totaled ${Number(todayData.et0_sum).toFixed(2)} inches for the week.
+            ${cropInstances.filter(c => c.locationId === location.id).length > 0 
+              ? ` Currently tracking ${cropInstances.filter(c => c.locationId === location.id).length} active crop planting(s) at this location.`
+              : ''}
+          </p>
         </div>
 
-        <div class="chart-container">
-          <h3 class="chart-title">🌱 Evapotranspiration (ET₀) Forecast</h3>
-          <img src="${data.chartImageUrls.et0Url}" 
-               alt="ET0 Chart for ${location.name}" 
-               class="chart-image" />
-          <p><em>Daily reference evapotranspiration rates for irrigation planning</em></p>
+        <!-- Charts Section -->
+        <div style="margin-top: 30px;">
+          <!-- Precipitation Chart -->
+          <div class="chart-container" style="margin-bottom: 30px;">
+            <h3 style="text-align: left; font-size: 17px; color: #353750; margin-bottom: 15px; font-weight: bold;">
+              💧 Precipitation Forecast (7 Days)
+            </h3>
+            <img src="${data.chartImageUrls.precipitationUrl}" 
+                 alt="Precipitation Chart for ${location.name}" 
+                 class="chart-image" 
+                 style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #E5E7EB;" />
+          </div>
+
+          <!-- ET0 Chart -->
+          <div class="chart-container" style="margin-bottom: 30px;">
+            <h3 style="text-align: left; font-size: 17px; color: #353750; margin-bottom: 15px; font-weight: bold;">
+              🌱 Reference Evapotranspiration (ET₀)
+            </h3>
+            <img src="${data.chartImageUrls.et0Url}" 
+                 alt="ET0 Chart for ${location.name}" 
+                 class="chart-image"
+                 style="width: 100%; height: auto; border-radius: 8px; border: 1px solid #E5E7EB;" />
+          </div>
         </div>
     `;
 

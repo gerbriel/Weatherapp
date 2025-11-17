@@ -22,11 +22,11 @@ const FrostWarningDashboard: React.FC<FrostWarningDashboardProps> = ({
 
   const getRiskColor = (cropRisk: FrostWarning['cropRisk']) => {
     switch (cropRisk) {
-      case 'critical': return 'text-red-600 bg-red-50 border-red-200';
-      case 'high': return 'text-orange-600 bg-orange-50 border-orange-200';
-      case 'moderate': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      case 'low': return 'text-blue-600 bg-blue-50 border-blue-200';
-      default: return 'text-gray-600 bg-gray-50 border-gray-200';
+      case 'critical': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+      case 'high': return 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800';
+      case 'moderate': return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
+      case 'low': return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
+      default: return 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-700';
     }
   };
 
@@ -59,12 +59,12 @@ const FrostWarningDashboard: React.FC<FrostWarningDashboardProps> = ({
     <div className="space-y-6">
       {/* Critical Alerts Banner */}
       {criticalFrostWarnings.length > 0 && (
-        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-200 dark:border-red-800 rounded-lg p-4">
           <div className="flex items-center space-x-2 mb-2">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-            <h3 className="font-semibold text-red-800">Critical Frost Alert</h3>
+            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+            <h3 className="font-semibold text-red-800 dark:text-red-300">Critical Frost Alert</h3>
           </div>
-          <p className="text-red-700">
+          <p className="text-red-700 dark:text-red-400">
             {criticalFrostWarnings.length} location(s) have critical frost conditions. 
             Take immediate protective action.
           </p>
@@ -97,10 +97,10 @@ const FrostWarningDashboard: React.FC<FrostWarningDashboardProps> = ({
                     {FROST_THRESHOLDS[warning.severity].icon}
                   </span>
                   <div>
-                    <h3 className="font-semibold capitalize">
+                    <h3 className="font-semibold capitalize text-gray-900 dark:text-white">
                       {warning.severity.replace('-', ' ')}
                     </h3>
-                    <div className="flex items-center space-x-4 text-sm">
+                    <div className="flex items-center space-x-4 text-sm text-gray-700 dark:text-gray-300">
                       <span className="flex items-center space-x-1">
                         <MapPin className="w-4 h-4" />
                         <span>{warning.locationName}</span>
@@ -113,10 +113,10 @@ const FrostWarningDashboard: React.FC<FrostWarningDashboardProps> = ({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
                     {warning.temperature}°F
                   </div>
-                  <div className="text-sm">
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
                     {warning.probability}% probability
                   </div>
                 </div>
@@ -126,7 +126,7 @@ const FrostWarningDashboard: React.FC<FrostWarningDashboardProps> = ({
               <div className={`rounded-lg p-3 border ${getRiskColor(warning.cropRisk)}`}>
                 <div className="flex items-center justify-between mb-2">
                   <span className="font-medium">Crop Risk Level</span>
-                  <span className="px-2 py-1 rounded text-xs font-medium bg-white bg-opacity-50">
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-white dark:bg-gray-800 bg-opacity-50 dark:bg-opacity-50">
                     {warning.cropRisk.toUpperCase()}
                   </span>
                 </div>
@@ -139,14 +139,14 @@ const FrostWarningDashboard: React.FC<FrostWarningDashboardProps> = ({
               </div>
 
               {/* Recommendations */}
-              <div className="bg-white bg-opacity-50 rounded-lg p-3">
-                <h4 className="font-medium mb-2 flex items-center space-x-2">
+              <div className="bg-white dark:bg-gray-800 bg-opacity-50 dark:bg-opacity-50 rounded-lg p-3">
+                <h4 className="font-medium mb-2 flex items-center space-x-2 text-gray-900 dark:text-white">
                   <Shield className="w-4 h-4" />
                   <span>Protection Recommendations</span>
                 </h4>
                 <ul className="space-y-1">
                   {warning.recommendations.map((rec, index) => (
-                    <li key={index} className="text-sm flex items-start space-x-2">
+                    <li key={index} className="text-sm flex items-start space-x-2 text-gray-700 dark:text-gray-300">
                       <span className="text-xs mt-1">•</span>
                       <span>{rec}</span>
                     </li>
@@ -155,20 +155,20 @@ const FrostWarningDashboard: React.FC<FrostWarningDashboardProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-2 border-t border-white border-opacity-30">
-                <div className="text-xs text-gray-600">
+              <div className="flex items-center justify-between pt-2 border-t border-gray-300 dark:border-gray-600 border-opacity-30">
+                <div className="text-xs text-gray-600 dark:text-gray-400">
                   Created: {new Date(warning.createdAt).toLocaleTimeString()}
                 </div>
                 <div className="flex space-x-2">
                   {onSendAlert && (
                     <button
                       onClick={() => onSendAlert(warning)}
-                      className="px-3 py-1 bg-white text-gray-700 rounded text-sm font-medium hover:bg-gray-50 transition-colors"
+                      className="px-3 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
                     >
                       Send Alert
                     </button>
                   )}
-                  <button className="px-3 py-1 bg-white bg-opacity-50 text-gray-700 rounded text-sm font-medium hover:bg-white hover:bg-opacity-70 transition-colors">
+                  <button className="px-3 py-1 bg-white dark:bg-gray-800 bg-opacity-50 dark:bg-opacity-50 text-gray-700 dark:text-gray-300 rounded text-sm font-medium hover:bg-white dark:hover:bg-gray-700 hover:bg-opacity-70 transition-colors border border-gray-300 dark:border-gray-600">
                     View Details
                   </button>
                 </div>

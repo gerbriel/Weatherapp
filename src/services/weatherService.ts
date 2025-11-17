@@ -17,6 +17,7 @@ interface DateRange {
 class WeatherService {
   private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache (increased to reduce API calls)
+  private readonly CACHE_VERSION = '2'; // Increment this to invalidate all caches
   private requestQueue: Promise<any> = Promise.resolve();
   private readonly REQUEST_DELAY = 5000; // 5 second delay between requests to avoid rate limits (increased from 3s)
   private lastRequestTime = 0;
@@ -24,8 +25,8 @@ class WeatherService {
   private readonly RETRY_DELAY = 10000; // 10 second delay before retry (increased from 5s)
   
   constructor() {
-    // Load cache from localStorage on initialization
-    this.loadCacheFromStorage();
+    // Clear old cache version and load current cache
+    this.validateAndLoadCache();
   }
   
   // Public method to clear cache
@@ -33,8 +34,28 @@ class WeatherService {
     this.cache.clear();
     try {
       localStorage.removeItem('weather_cache');
+      localStorage.removeItem('weather_cache_version');
     } catch (error) {
       console.error('Failed to clear weather cache from storage:', error);
+    }
+  }
+  
+  private validateAndLoadCache() {
+    try {
+      const storedVersion = localStorage.getItem('weather_cache_version');
+      
+      // If version doesn't match, clear old cache
+      if (storedVersion !== this.CACHE_VERSION) {
+        console.log('Weather cache version mismatch. Clearing old cache...');
+        localStorage.removeItem('weather_cache');
+        localStorage.setItem('weather_cache_version', this.CACHE_VERSION);
+        return;
+      }
+      
+      // Load cache if version matches
+      this.loadCacheFromStorage();
+    } catch (error) {
+      console.error('Failed to validate cache version:', error);
     }
   }
   
@@ -115,9 +136,20 @@ class WeatherService {
         'precipitation_sum',
         'rain_sum', 
         'et0_fao_evapotranspiration',
-        'et0_fao_evapotranspiration_sum'
+        'et0_fao_evapotranspiration_sum',
+        'weather_code'
       ].join(','),
-      forecast_days: 14,
+      hourly: [
+        'temperature_2m',
+        'relative_humidity_2m',
+        'precipitation',
+        'precipitation_probability',
+        'weather_code',
+        'wind_speed_10m'
+      ].join(','),
+      forecast_days: 16, // Increased to support 14-day future reports
+      forecast_hours: 24, // Get 24 hours of hourly forecast data
+      past_days: 0, // No past data needed - focus on upcoming forecasts
       models: 'gfs_global', // Use NOAA GFS Global model for reliable US weather data
       timezone: 'America/Los_Angeles',
       temperature_unit: 'fahrenheit',

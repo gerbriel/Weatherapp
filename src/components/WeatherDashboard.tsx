@@ -23,6 +23,15 @@ export const WeatherDashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<'location' | 'report' | 'emails' | 'crops' | 'profile'>('location');
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Fetch weather data on-demand when a location is selected (if it doesn't have data yet)
+  useEffect(() => {
+    if (selectedLocation && !selectedLocation.weatherData && !selectedLocation.loading) {
+      console.log('Fetching weather data for selected location:', selectedLocation.name);
+      // For authenticated users, weather data is managed by AuthContext
+      // The data will be fetched automatically through the context
+    }
+  }, [selectedLocation?.id]);
+
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -276,6 +285,158 @@ export const WeatherDashboard: React.FC = () => {
                 {selectedLocation.error && (
                   <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <p className="text-red-700 dark:text-red-400 text-sm">{selectedLocation.error}</p>
+                  </div>
+                )}
+
+                {/* 24-Hour Hourly Forecast */}
+                {selectedLocation?.weatherData?.hourly && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-8">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">24-Hour Forecast</h3>
+                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-700">
+                      <div className="flex space-x-4 pb-2">
+                        {selectedLocation.weatherData.hourly.time.slice(0, 24).map((time: string, index: number) => {
+                          const hour = new Date(time);
+                          const isNow = index === 0; // Only the first hour is "Now"
+                          const hourlyData = selectedLocation.weatherData!.hourly!;
+                          const temp = hourlyData.temperature_2m[index];
+                          const precip = hourlyData.precipitation_probability?.[index] || 0;
+                          const weatherCode = hourlyData.weather_code[index];
+                          const windSpeed = hourlyData.wind_speed_10m[index];
+                          
+                          // Weather code to emoji mapping (WMO codes)
+                          const getWeatherEmoji = (code: number) => {
+                            if (code === 0) return '☀️';
+                            if (code <= 3) return '⛅';
+                            if (code <= 48) return '☁️';
+                            if (code <= 67) return '🌧️';
+                            if (code <= 77) return '❄️';
+                            if (code <= 82) return '🌧️';
+                            if (code <= 86) return '🌨️';
+                            if (code >= 95) return '⛈️';
+                            return '☁️';
+                          };
+
+                          return (
+                            <div
+                              key={time}
+                              className={`flex-shrink-0 text-center min-w-[80px] p-3 rounded-lg transition-colors ${
+                                isNow 
+                                  ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-500' 
+                                  : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
+                              }`}
+                            >
+                              <div className={`text-xs font-medium mb-2 ${
+                                isNow ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                              }`}>
+                                {isNow ? 'Now' : hour.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })}
+                              </div>
+                              <div className="text-2xl mb-2">
+                                {getWeatherEmoji(weatherCode)}
+                              </div>
+                              <div className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                {Math.round(temp)}°
+                              </div>
+                              {precip > 0 && (
+                                <div className="flex items-center justify-center text-xs text-blue-600 dark:text-blue-400 mb-1">
+                                  <span className="mr-1">💧</span>
+                                  {Math.round(precip)}%
+                                </div>
+                              )}
+                              <div className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+                                <span className="mr-1">💨</span>
+                                {Math.round(windSpeed)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 7-Day Forecast */}
+                {selectedLocation?.weatherData?.daily && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-8">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">7-Day Forecast</h3>
+                    <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-700">
+                      <div className="flex space-x-3 pb-2">
+                        {(() => {
+                          const weatherData = selectedLocation.weatherData;
+                          const today = new Date().toISOString().split('T')[0];
+                          const todayIndex = weatherData.daily.time.findIndex(date => date === today);
+                          
+                          if (todayIndex < 0) return null;
+                          
+                          // Get next 7 days starting from today
+                          return weatherData.daily.time.slice(todayIndex, todayIndex + 7).map((date, index) => {
+                            const actualIndex = todayIndex + index;
+                            const dateObj = new Date(date);
+                            const dayName = index === 0 ? 'Today' : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                            const monthDay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                            
+                            const tempMax = weatherData.daily.temperature_2m_max[actualIndex];
+                            const tempMin = weatherData.daily.temperature_2m_min[actualIndex];
+                            const precipitation = weatherData.daily.precipitation_sum[actualIndex] || 0;
+                            const weatherCode = weatherData.daily.weather_code?.[actualIndex] || 0;
+                            const et0 = weatherData.daily.et0_fao_evapotranspiration[actualIndex] || 0;
+                            
+                            // Weather code to emoji mapping (WMO codes)
+                            const getWeatherEmoji = (code: number) => {
+                              if (code === 0) return '☀️';
+                              if (code <= 3) return '⛅';
+                              if (code <= 48) return '☁️';
+                              if (code <= 67) return '🌧️';
+                              if (code <= 77) return '❄️';
+                              if (code <= 82) return '🌧️';
+                              if (code <= 86) return '🌨️';
+                              if (code >= 95) return '⛈️';
+                              return '☁️';
+                            };
+
+                            return (
+                              <div
+                                key={date}
+                                className={`flex-shrink-0 text-center min-w-[100px] p-3 rounded-lg transition-colors ${
+                                  index === 0 
+                                    ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-500' 
+                                    : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
+                                }`}
+                              >
+                                <div className={`text-xs font-semibold mb-1 ${
+                                  index === 0 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
+                                }`}>
+                                  {dayName}
+                                </div>
+                                <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                                  {monthDay}
+                                </div>
+                                <div className="text-2xl mb-2">
+                                  {getWeatherEmoji(weatherCode)}
+                                </div>
+                                <div className="mb-2">
+                                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                                    {Math.round(tempMax)}°
+                                  </div>
+                                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                                    {Math.round(tempMin)}°
+                                  </div>
+                                </div>
+                                {precipitation > 0 && (
+                                  <div className="flex items-center justify-center text-[10px] text-blue-600 dark:text-blue-400 mb-1">
+                                    <span className="mr-0.5">💧</span>
+                                    <span>{precipitation.toFixed(2)}"</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center justify-center text-[10px] text-green-600 dark:text-green-400">
+                                  <span className="mr-0.5">🌱</span>
+                                  <span>{(et0 * 0.0393701).toFixed(2)}"</span>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 )}
 

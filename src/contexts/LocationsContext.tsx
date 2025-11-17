@@ -43,6 +43,19 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
   const [loading, setLoading] = useState(false);
   const [defaultsInitialized, setDefaultsInitialized] = useState(false);
 
+  // Check and upgrade cache version for hourly data
+  useEffect(() => {
+    const CACHE_VERSION = '2.1'; // Increment when API structure changes
+    const currentVersion = localStorage.getItem('weatherCacheVersion');
+    
+    if (currentVersion !== CACHE_VERSION) {
+      console.log('Upgrading weather cache to include hourly data...');
+      localStorage.removeItem('weatherCache');
+      localStorage.removeItem('weatherLocations');
+      localStorage.setItem('weatherCacheVersion', CACHE_VERSION);
+    }
+  }, []);
+
   // Load locations from localStorage on component mount
   useEffect(() => {
     if (defaultsInitialized) {
@@ -59,19 +72,25 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         console.error('Error parsing saved locations:', error);
       }
     } else {
-      // Add only 3 default CIMIS stations for trial users to avoid API rate limiting
+      // Add all 9 default CIMIS stations covering major agricultural regions
       const defaultLocations = [
-        { latitude: 36.7650, longitude: -121.7569, name: 'Castroville', weatherstation: 'Castroville', weatherstationID: '125', sortOrder: 0 },
-        { latitude: 36.8175, longitude: -119.7417, name: 'Fresno State', weatherstation: 'Fresno State', weatherstationID: '80', sortOrder: 1 },
-        { latitude: 37.7633, longitude: -121.2158, name: 'Manteca', weatherstation: 'Manteca', weatherstationID: '71', sortOrder: 2 }
+        { latitude: 35.205583, longitude: -118.77841, name: 'Bakersfield', weatherstation: 'Arvin-Edison', weatherstationID: '125', sortOrder: 0 },
+        { latitude: 36.820833, longitude: -119.74231, name: 'Fresno', weatherstation: 'Fresno State', weatherstationID: '80', sortOrder: 1 },
+        { latitude: 37.645222, longitude: -121.18776, name: 'Modesto', weatherstation: 'Modesto', weatherstationID: '71', sortOrder: 2 },
+        { latitude: 39.210667, longitude: -122.16889, name: 'Colusa', weatherstation: 'Williams', weatherstationID: '250', sortOrder: 3 },
+        { latitude: 38.428475, longitude: -122.41021, name: 'Napa', weatherstation: 'Oakville', weatherstationID: '77', sortOrder: 4 },
+        { latitude: 36.625619, longitude: -121.537889, name: 'Salinas', weatherstation: 'Salinas South II', weatherstationID: '214', sortOrder: 5 },
+        { latitude: 35.028281, longitude: -120.56003, name: 'Santa Maria', weatherstation: 'Nipomo', weatherstationID: '202', sortOrder: 6 },
+        { latitude: 36.376917, longitude: -119.037972, name: 'Exeter', weatherstation: 'Lemon Cove', weatherstationID: '258', sortOrder: 7 },
+        { latitude: 36.336222, longitude: -120.11291, name: 'Five Points', weatherstation: 'Five Points', weatherstationID: '2', sortOrder: 8 }
       ];
       
-      // Create all locations at once with proper IDs
+      // Create all locations at once with proper IDs (don't set loading initially)
       const newLocations = defaultLocations.map(loc => ({
         ...loc,
         id: generateId(),
         isFavorite: false,
-        loading: true
+        loading: false // Will be set to true when weather data is fetched
       }));
       
       setLocations(newLocations);
@@ -79,12 +98,30 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
     }
   }, [defaultsInitialized]);
 
-  // Save locations to localStorage whenever locations change
+  // Save locations to localStorage whenever locations change (but don't save loading states)
   useEffect(() => {
     if (locations.length > 0) {
-      localStorage.setItem('weatherLocations', JSON.stringify(locations));
+      // Clean the locations before saving - remove loading states to prevent persistence
+      const cleanedLocations = locations.map(loc => ({
+        ...loc,
+        loading: false, // Never persist loading state
+        error: undefined // Don't persist errors
+      }));
+      localStorage.setItem('weatherLocations', JSON.stringify(cleanedLocations));
     }
   }, [locations]);
+
+  // Fetch weather data only for the first location on initial load (for faster startup)
+  useEffect(() => {
+    if (!defaultsInitialized || locations.length === 0) return;
+
+    // Only fetch data for the first location (the one that will be selected by default)
+    const firstLocation = locations[0];
+    if (firstLocation && !firstLocation.weatherData && !firstLocation.loading) {
+      console.log('Fetching weather data for default location:', firstLocation.name);
+      refreshLocationData(firstLocation.id);
+    }
+  }, [defaultsInitialized, locations.length]); // Only run when initialization status changes or location count changes
 
   const addLocation = (locationData: Omit<LocationData, 'id' | 'isFavorite'>) => {
     const newLocation: LocationWithWeather = {
@@ -197,9 +234,9 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
     for (let i = 0; i < locations.length; i++) {
       try {
         await refreshLocationData(locations[i].id);
-        // Add 1 second delay between requests to avoid rate limiting
+        // Add 5 second delay between requests to avoid rate limiting (safe for 9+ locations)
         if (i < locations.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 5000));
         }
       } catch (error) {
         console.error(`Failed to refresh location ${locations[i].name}:`, error);

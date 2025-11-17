@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, TrendingUp, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut, FileText } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useTrial } from '../contexts/TrialContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -12,9 +12,6 @@ import { EmailNotifications } from './EmailNotifications';
 import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
 
 import { OrganizationSwitcher } from './OrganizationSwitcher';
-import { FieldBlocksManager } from './FieldBlocksManager';
-import type { FieldBlock } from './FieldBlocksManager';
-import { OrganizationalDashboard } from './OrganizationalDashboard';
 import { ReportView } from './ReportView';
 import FrostWarningDashboard from './FrostWarningDashboard';
 import FrostAlertSubscription from './FrostAlertSubscription';
@@ -103,7 +100,8 @@ export const TrialDashboard: React.FC = () => {
   const { disableTrialMode } = useTrial();
   const { 
     locations: locationsContextLocations, 
-    removeLocation: removeUserLocation
+    removeLocation: removeUserLocation,
+    refreshLocation
   } = useLocations();
   
   // Use same location source as EnhancedLocationsList for consistency
@@ -132,7 +130,7 @@ export const TrialDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications' | 'org-dashboard' | 'field-blocks'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
   const [cropInstances, setCropInstances] = useState<CropInstance[]>([]);
@@ -271,6 +269,14 @@ export const TrialDashboard: React.FC = () => {
     }, 1000);
   }, [selectedLocation, organization]);
 
+  // Fetch weather data on-demand when a location is selected (if it doesn't have data yet)
+  useEffect(() => {
+    if (selectedLocation && !(selectedLocation as any)?.weatherData && !(selectedLocation as any)?.loading) {
+      console.log('Fetching weather data for selected location:', selectedLocation.name);
+      refreshLocation(selectedLocation.id);
+    }
+  }, [selectedLocation?.id]); // Only trigger when the selected location ID changes
+
   // Reset calculator when location changes to avoid showing crops from other locations
   useEffect(() => {
     setCalculatorInputs({
@@ -287,63 +293,128 @@ export const TrialDashboard: React.FC = () => {
     setCalculatorResult(null);
   }, [selectedLocation]);
 
+  // Compute which crops are active at the currently selected location
+  const activeCropsAtLocation = selectedLocation 
+    ? cropInstances
+        .filter(instance => instance.locationId === selectedLocation.id)
+        .map(instance => instance.cropId)
+    : [];
 
 
   const handleCropToggle = (cropId: string, isManualToggle: boolean = true) => {
-    setSelectedCrops(prev => {
-      if (prev.includes(cropId)) {
-        // Remove crop from selection and remove its instances (only if manually toggled)
-        if (isManualToggle) {
-          const instancesToRemove = cropInstances.filter(instance => 
-            instance.cropId === cropId && instance.locationId === selectedLocation?.id
-          );
-          
-          if (instancesToRemove.length > 0) {
-            setCropInstances(prevInstances => 
-              prevInstances.filter(instance => 
-                !(instance.cropId === cropId && instance.locationId === selectedLocation?.id)
-              )
-            );
-          }
+    if (!selectedLocation) {
+      // No location selected - just toggle global selection
+      setSelectedCrops(prev => {
+        if (prev.includes(cropId)) {
+          return prev.filter(id => id !== cropId);
+        } else {
+          return [...prev, cropId];
         }
-        
-        return prev.filter(id => id !== cropId);
-      } else {
-        // Add crop to selection and create a quick crop instance (only if manually toggled and none exists)
-        if (isManualToggle && selectedLocation) {
-          const existingInstance = cropInstances.find(instance => 
-            instance.cropId === cropId && instance.locationId === selectedLocation.id
-          );
-          
-          if (!existingInstance) {
-            const crop = availableCrops.find(c => c.id === cropId);
-            if (crop) {
-              const newInstance: CropInstance = {
-                id: `quick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                cropId: crop.id,
-                plantingDate: new Date().toISOString().split('T')[0], // Today's date
-                currentStage: 0, // Start at first stage
-                currentWateringCycle: 0, // Start at first watering cycle for perennials
-                locationId: selectedLocation.id,
-                notes: 'Quick added crop - edit for more details'
-              };
-              
-              setCropInstances(prev => [...prev, newInstance]);
-            }
-          }
-        }
-        
-        return [...prev, cropId];
+      });
+      return;
+    }
+
+    // Manual toggle - handle per-location logic
+    const existingInstance = cropInstances.find(instance => 
+      instance.cropId === cropId && instance.locationId === selectedLocation.id
+    );
+
+    if (existingInstance) {
+      // Remove instance from THIS location only
+      setCropInstances(prevInstances => 
+        prevInstances.filter(instance => 
+          !(instance.cropId === cropId && instance.locationId === selectedLocation.id)
+        )
+      );
+      
+      // If no instances of this crop exist anywhere, remove from selectedCrops
+      const hasOtherInstances = cropInstances.some(instance => 
+        instance.cropId === cropId && instance.locationId !== selectedLocation.id
+      );
+      if (!hasOtherInstances) {
+        setSelectedCrops(prev => prev.filter(id => id !== cropId));
       }
-    });
+    } else {
+      // Add crop instance to THIS location
+      const crop = availableCrops.find(c => c.id === cropId);
+      if (crop) {
+        const newInstance: CropInstance = {
+          id: `quick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          cropId: crop.id,
+          plantingDate: new Date().toISOString().split('T')[0],
+          currentStage: 0,
+          currentWateringCycle: 0,
+          locationId: selectedLocation.id,
+          notes: 'Quick added crop - edit for more details'
+        };
+        
+        setCropInstances(prev => [...prev, newInstance]);
+        
+        // Also ensure it's in selectedCrops
+        setSelectedCrops(prev => {
+          if (!prev.includes(cropId)) {
+            return [...prev, cropId];
+          }
+          return prev;
+        });
+      }
+    }
   };
 
   const addAllCrops = () => {
-    setSelectedCrops(availableCrops.map(crop => crop.id));
+    // Add all crops to current location
+    if (selectedLocation) {
+      const newInstances: CropInstance[] = [];
+      
+      availableCrops.forEach(crop => {
+        const existingInstance = cropInstances.find(instance => 
+          instance.cropId === crop.id && instance.locationId === selectedLocation.id
+        );
+        
+        if (!existingInstance) {
+          const newInstance: CropInstance = {
+            id: `quick-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${crop.id}`,
+            cropId: crop.id,
+            plantingDate: new Date().toISOString().split('T')[0],
+            currentStage: 0,
+            currentWateringCycle: 0,
+            locationId: selectedLocation.id,
+            notes: 'Quick added crop - edit for more details'
+          };
+          newInstances.push(newInstance);
+        }
+      });
+      
+      if (newInstances.length > 0) {
+        setCropInstances(prev => [...prev, ...newInstances]);
+      }
+      
+      // Add all crop IDs to selectedCrops
+      setSelectedCrops(availableCrops.map(crop => crop.id));
+    }
   };
 
   const removeAllCrops = () => {
-    setSelectedCrops([]);
+    // Clear All should only remove instances from current location
+    if (selectedLocation) {
+      const removedCropIds = cropInstances
+        .filter(instance => instance.locationId === selectedLocation.id)
+        .map(instance => instance.cropId);
+      
+      setCropInstances(prevInstances => 
+        prevInstances.filter(instance => instance.locationId !== selectedLocation.id)
+      );
+      
+      // Remove from selectedCrops only if no other location has these crops
+      setSelectedCrops(prev => {
+        return prev.filter(cropId => {
+          const hasInOtherLocations = cropInstances.some(instance => 
+            instance.cropId === cropId && instance.locationId !== selectedLocation.id
+          );
+          return hasInOtherLocations;
+        });
+      });
+    }
   };
 
   const handleApplyToLocation = (locationId: string, cropIds: string[]) => {
@@ -356,6 +427,8 @@ export const TrialDashboard: React.FC = () => {
     // Batch create new instances
     const newInstances: CropInstance[] = [];
     let appliedCount = 0;
+    let skippedCount = 0;
+    const skippedCropNames: string[] = [];
 
     cropIds.forEach(cropId => {
       const crop = availableCrops.find(c => c.id === cropId);
@@ -385,6 +458,10 @@ export const TrialDashboard: React.FC = () => {
         
         newInstances.push(newInstance);
         appliedCount++;
+      } else {
+        // Track skipped crops that are already applied
+        skippedCount++;
+        skippedCropNames.push(crop.name);
       }
     });
 
@@ -403,9 +480,23 @@ export const TrialDashboard: React.FC = () => {
     });
 
     // Visual feedback - mark this location as applied
-    if (appliedCount > 0) {
+    if (appliedCount > 0 || skippedCount > 0) {
       setAppliedLocations(prev => new Set([...prev, locationId]));
-      setSuccessMessage(`✅ Applied ${appliedCount} crop${appliedCount > 1 ? 's' : ''} to ${location.name}!`);
+      
+      // Build success message based on what was applied and skipped
+      let message = '';
+      if (appliedCount > 0 && skippedCount === 0) {
+        message = `✅ Applied ${appliedCount} crop${appliedCount > 1 ? 's' : ''} to ${location.name}!`;
+      } else if (appliedCount === 0 && skippedCount > 0) {
+        const cropList = skippedCropNames.length <= 2 
+          ? skippedCropNames.join(', ')
+          : `${skippedCropNames.length} crops`;
+        message = `ℹ️ ${cropList} already applied to ${location.name}`;
+      } else if (appliedCount > 0 && skippedCount > 0) {
+        message = `✅ Applied ${appliedCount} new crop${appliedCount > 1 ? 's' : ''} to ${location.name} (${skippedCount} already applied)`;
+      }
+      
+      setSuccessMessage(message);
       
       // Remove the feedback after 3 seconds
       setTimeout(() => {
@@ -432,26 +523,161 @@ export const TrialDashboard: React.FC = () => {
     // Apply selected crops to all available locations with a small delay for UX
     setTimeout(() => {
       let totalApplied = 0;
+      let totalSkipped = 0;
       
       availableLocations.forEach((location, index) => {
         // Stagger the applications slightly for better visual feedback
         setTimeout(() => {
-          const beforeCount = cropInstances.length;
+          // Count how many would be applied vs skipped for this location
+          cropIds.forEach(cropId => {
+            const existingInstance = cropInstances.find(instance => 
+              instance.cropId === cropId && instance.locationId === location.id
+            );
+            if (existingInstance) {
+              totalSkipped++;
+            } else {
+              totalApplied++;
+            }
+          });
+          
           handleApplyToLocation(location.id, cropIds);
-          // This is approximate since handleApplyToLocation is async
         }, index * 150);
       });
       
       // Hide loading state after all applications
       setTimeout(() => {
         setIsApplyingToAll(false);
-        setSuccessMessage(`🎉 Applied crops to all ${availableLocations.length} locations!`);
+        
+        // Build message based on what was applied
+        let message = '';
+        if (totalApplied > 0 && totalSkipped === 0) {
+          message = `🎉 Applied ${cropIds.length} crop${cropIds.length > 1 ? 's' : ''} to all ${availableLocations.length} locations!`;
+        } else if (totalApplied === 0 && totalSkipped > 0) {
+          message = `ℹ️ All selected crops were already applied to these locations`;
+        } else if (totalApplied > 0 && totalSkipped > 0) {
+          message = `✅ Applied ${totalApplied} new crop instance${totalApplied > 1 ? 's' : ''} (${totalSkipped} already existed)`;
+        }
+        
+        setSuccessMessage(message);
         
         // Clear bulk success message after 5 seconds
         setTimeout(() => {
           setSuccessMessage('');
         }, 5000);
       }, availableLocations.length * 150 + 500);
+    }, 300);
+  };
+
+  // Remove crops from a specific location
+  const handleRemoveFromLocation = (locationId: string, cropIds: string[]) => {
+    const location = availableLocations.find(loc => loc.id === locationId);
+    if (!location || cropIds.length === 0) {
+      return;
+    }
+
+    let removedCount = 0;
+    const removedCropNames: string[] = [];
+
+    // Remove crop instances for this location
+    setCropInstances(prev => {
+      const filtered = prev.filter(instance => {
+        const shouldRemove = cropIds.includes(instance.cropId) && instance.locationId === locationId;
+        if (shouldRemove) {
+          const crop = availableCrops.find(c => c.id === instance.cropId);
+          if (crop) {
+            removedCount++;
+            removedCropNames.push(crop.name);
+          }
+        }
+        return !shouldRemove;
+      });
+      return filtered;
+    });
+
+    // Visual feedback
+    if (removedCount > 0) {
+      const cropList = removedCropNames.length <= 2 
+        ? removedCropNames.join(', ')
+        : `${removedCount} crops`;
+      setSuccessMessage(`🗑️ Removed ${cropList} from ${location.name}`);
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 4000);
+    } else {
+      setSuccessMessage(`ℹ️ No selected crops found at ${location.name}`);
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    }
+  };
+
+  // Remove crops from all locations
+  const handleRemoveFromAllLocations = (cropIds: string[]) => {
+    if (cropIds.length === 0 || availableLocations.length === 0) return;
+    
+    setIsApplyingToAll(true);
+    
+    setTimeout(() => {
+      let totalRemoved = 0;
+
+      // Count and remove all matching instances
+      setCropInstances(prev => {
+        const filtered = prev.filter(instance => {
+          const shouldRemove = cropIds.includes(instance.cropId);
+          if (shouldRemove) {
+            totalRemoved++;
+          }
+          return !shouldRemove;
+        });
+        return filtered;
+      });
+
+      setTimeout(() => {
+        setIsApplyingToAll(false);
+        
+        if (totalRemoved > 0) {
+          setSuccessMessage(`🗑️ Removed ${totalRemoved} crop instance${totalRemoved > 1 ? 's' : ''} from all locations`);
+        } else {
+          setSuccessMessage(`ℹ️ No instances of selected crops found at any location`);
+        }
+        
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 5000);
+      }, 500);
+    }, 300);
+  };
+
+  // Clear ALL crops from ALL locations
+  const handleClearAllCropsFromAllLocations = () => {
+    if (cropInstances.length === 0) return;
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to remove all ${cropInstances.length} crop plantings from all ${availableLocations.length} locations?\n\nThis action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+    
+    setIsApplyingToAll(true);
+    
+    setTimeout(() => {
+      const totalRemoved = cropInstances.length;
+      
+      // Clear all crop instances
+      setCropInstances([]);
+      
+      // Clear all selected crops
+      setSelectedCrops([]);
+      
+      setTimeout(() => {
+        setIsApplyingToAll(false);
+        setSuccessMessage(`🗑️ Cleared all ${totalRemoved} crop planting${totalRemoved > 1 ? 's' : ''} from all locations`);
+        
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 5000);
+      }, 500);
     }, 300);
   };
 
@@ -547,51 +773,6 @@ export const TrialDashboard: React.FC = () => {
 
 
 
-
-
-  // Sync field block updates back to crop instances and calculator
-  const handleFieldBlockUpdate = (updatedBlock: FieldBlock) => {
-    // Update related crop instances based on field block changes
-    setCropInstances(prev => prev.map(instance => {
-      if (instance.fieldName === updatedBlock.name || 
-          (instance.locationId === selectedLocation?.id && 
-           instance.cropId === updatedBlock.crop_id)) {
-        const crop = availableCrops.find(c => c.id === updatedBlock.crop_id);
-        const stageIndex = crop?.stages.findIndex(stage => stage.name === updatedBlock.growth_stage) || 0;
-        
-        return {
-          ...instance,
-          fieldName: updatedBlock.name,
-          plantingDate: updatedBlock.date_planted,
-          currentStage: Math.max(0, stageIndex),
-          notes: updatedBlock.notes || instance.notes
-        };
-      }
-      return instance;
-    }));
-
-    // If calculator is using this crop, update it too
-    if (calculatorInputs.crop) {
-      const isCalculatorCropMatch = availableCrops.find(c => 
-        c.name === calculatorInputs.crop && c.id === updatedBlock.crop_id
-      );
-      
-      if (isCalculatorCropMatch) {
-        const crop = availableCrops.find(c => c.id === updatedBlock.crop_id);
-        const stage = crop?.stages.find(s => s.name === updatedBlock.growth_stage);
-        
-        // Get the primary irrigation method for the current stage
-        const primaryIrrigationMethod = updatedBlock.irrigation_methods?.[0]?.method || 'drip';
-        
-        setCalculatorInputs(prev => ({
-          ...prev,
-          growthStage: updatedBlock.growth_stage,
-          kcValue: stage?.kc,
-          systemType: primaryIrrigationMethod
-        }));
-      }
-    }
-  };
 
   // Filter crop instances for the currently selected location and deduplicate
   const getLocationCropInstances = () => {
@@ -802,7 +983,7 @@ export const TrialDashboard: React.FC = () => {
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
-                      <TrendingUp className="h-4 w-4 mr-1 inline" />
+                      <FileText className="h-4 w-4 mr-1 inline" />
                       Reports
                     </button>
                     <button
@@ -826,29 +1007,6 @@ export const TrialDashboard: React.FC = () => {
                     >
                       <Mail className="h-4 w-4 mr-1 inline" />
                       Notifications
-                    </button>
-                    
-                    <button
-                      onClick={() => setCurrentView('org-dashboard')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
-                        currentView === 'org-dashboard'
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <TrendingUp className="h-4 w-4" />
-                      <span>Org Insights</span>
-                    </button>
-                    <button
-                      onClick={() => setCurrentView('field-blocks')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors flex items-center space-x-1 ${
-                        currentView === 'field-blocks'
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <MapPin className="h-4 w-4" />
-                      <span>Field Blocks</span>
                     </button>
                   </div>
                   
@@ -937,7 +1095,7 @@ export const TrialDashboard: React.FC = () => {
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                       }`}
                     >
-                      <TrendingUp className="h-4 w-4 mr-3" />
+                      <FileText className="h-4 w-4 mr-3" />
                       Reports
                     </button>
                     <button
@@ -967,34 +1125,6 @@ export const TrialDashboard: React.FC = () => {
                     >
                       <Mail className="h-4 w-4 mr-3" />
                       Notifications
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCurrentView('org-dashboard');
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'org-dashboard'
-                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <TrendingUp className="h-4 w-4 mr-3" />
-                      Org Insights
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCurrentView('field-blocks');
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'field-blocks'
-                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <MapPin className="h-4 w-4 mr-3" />
-                      Field Blocks
                     </button>
                   </div>
                   
@@ -1041,16 +1171,16 @@ export const TrialDashboard: React.FC = () => {
                     {/* Current Location Weather Overview */}
                     <div className="mb-6 bg-gradient-to-r from-blue-900/30 to-green-900/30 border border-blue-700/50 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
-                          <MapPin className="h-5 w-5 text-blue-400" />
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                          <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                           <span>System Overview - {selectedLocation.name}</span>
                         </h3>
                         <div className="flex items-center space-x-4 text-sm">
-                          <span className="text-green-400 flex items-center space-x-1">
+                          <span className="text-green-600 dark:text-green-400 flex items-center space-x-1">
                             <Sprout className="h-4 w-4" />
                             <span>{selectedCrops.length} crops</span>
                           </span>
-                          <span className="text-yellow-400 flex items-center space-x-1">
+                          <span className="text-yellow-600 dark:text-yellow-400 flex items-center space-x-1">
                             <Plus className="h-4 w-4" />
                             <span>{getLocationCropInstances().length} plantings</span>
                           </span>
@@ -1064,27 +1194,213 @@ export const TrialDashboard: React.FC = () => {
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-red-400">{((weatherData?.temperatureMax || weatherData?.temperature || 0) * 9/5 + 32).toFixed(0)}°F</div>
+                          <div className="text-2xl font-bold text-red-400">
+                            {(() => {
+                              const weatherData = (selectedLocation as any)?.weatherData;
+                              if (!weatherData?.daily?.time) return '--';
+                              const today = new Date().toISOString().split('T')[0];
+                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
+                              return todayIndex >= 0 ? weatherData.daily.temperature_2m_max[todayIndex]?.toFixed(0) : '--';
+                            })()}°F
+                          </div>
                           <div className="text-gray-400">High Temp</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-400">{((weatherData?.temperatureMin || weatherData?.temperature || 0) * 9/5 + 32).toFixed(0)}°F</div>
+                          <div className="text-2xl font-bold text-blue-400">
+                            {(() => {
+                              const weatherData = (selectedLocation as any)?.weatherData;
+                              if (!weatherData?.daily?.time) return '--';
+                              const today = new Date().toISOString().split('T')[0];
+                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
+                              return todayIndex >= 0 ? weatherData.daily.temperature_2m_min[todayIndex]?.toFixed(0) : '--';
+                            })()}°F
+                          </div>
                           <div className="text-gray-400">Low Temp</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-green-400">{((weatherData?.et0 || 0) * 0.0393701).toFixed(3)}</div>
+                          <div className="text-2xl font-bold text-green-400">
+                            {(() => {
+                              const weatherData = (selectedLocation as any)?.weatherData;
+                              if (!weatherData?.daily?.time) return '--';
+                              const today = new Date().toISOString().split('T')[0];
+                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
+                              return todayIndex >= 0 ? (weatherData.daily.et0_fao_evapotranspiration[todayIndex] * 0.0393701)?.toFixed(2) : '--';
+                            })()}
+                          </div>
                           <div className="text-gray-400">ET₀ (in/day)</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-yellow-400">{weatherData?.humidity?.toFixed(0) || 0}%</div>
+                          <div className="text-2xl font-bold text-yellow-400">
+                            {((selectedLocation as any)?.weatherData?.hourly?.relative_humidity_2m?.[0]?.toFixed(0)) || '--'}%
+                          </div>
                           <div className="text-gray-400">Humidity</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-purple-400">{((weatherData?.windSpeed || 0) * 0.621371).toFixed(1)}</div>
+                          <div className="text-2xl font-bold text-purple-400">
+                            {((selectedLocation as any)?.weatherData?.daily?.wind_speed_10m_max?.[0]?.toFixed(1)) || '--'}
+                          </div>
                           <div className="text-gray-400">Wind (mph)</div>
                         </div>
                       </div>
                     </div>
+
+                    {/* 24-Hour Hourly Forecast */}
+                    {(selectedLocation as any)?.weatherData?.hourly ? (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">24-Hour Forecast</h3>
+                        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-700">
+                          <div className="flex space-x-4 pb-2">
+                            {(selectedLocation as any).weatherData.hourly.time.slice(0, 24).map((time: string, index: number) => {
+                              const hour = new Date(time);
+                              const isNow = index === 0; // Only the first hour is "Now"
+                              const temp = (selectedLocation as any).weatherData.hourly.temperature_2m[index];
+                              const precip = (selectedLocation as any).weatherData.hourly.precipitation_probability?.[index] || 0;
+                              const weatherCode = (selectedLocation as any).weatherData.hourly.weather_code[index];
+                              const windSpeed = (selectedLocation as any).weatherData.hourly.wind_speed_10m[index];
+                              
+                              // Weather code to emoji mapping (WMO codes)
+                              const getWeatherEmoji = (code: number) => {
+                                if (code === 0) return '☀️';
+                                if (code <= 3) return '⛅';
+                                if (code <= 48) return '☁️';
+                                if (code <= 67) return '🌧️';
+                                if (code <= 77) return '❄️';
+                                if (code <= 82) return '🌧️';
+                                if (code <= 86) return '🌨️';
+                                if (code >= 95) return '⛈️';
+                                return '☁️';
+                              };
+
+                              return (
+                                <div
+                                  key={time}
+                                  className={`flex-shrink-0 text-center min-w-[80px] p-3 rounded-lg transition-colors ${
+                                    isNow 
+                                      ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-500' 
+                                      : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
+                                  }`}
+                                >
+                                  <div className={`text-xs font-medium mb-2 ${
+                                    isNow ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
+                                  }`}>
+                                    {isNow ? 'Now' : hour.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })}
+                                  </div>
+                                  <div className="text-2xl mb-2">
+                                    {getWeatherEmoji(weatherCode)}
+                                  </div>
+                                  <div className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                    {Math.round(temp)}°
+                                  </div>
+                                  {precip > 0 && (
+                                    <div className="flex items-center justify-center text-xs text-blue-600 dark:text-blue-400 mb-1">
+                                      <span className="mr-1">💧</span>
+                                      {Math.round(precip)}%
+                                    </div>
+                                  )}
+                                  <div className="flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+                                    <span className="mr-1">💨</span>
+                                    {Math.round(windSpeed)}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (selectedLocation as any)?.weatherData && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">24-Hour Forecast</h3>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">
+                          Hourly forecast data is loading... Please refresh the page or select a different location.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 7-Day Forecast */}
+                    {(selectedLocation as any)?.weatherData?.daily && (
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">7-Day Forecast</h3>
+                        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-700">
+                          <div className="flex space-x-3 pb-2">
+                            {(() => {
+                              const weatherData = (selectedLocation as any).weatherData;
+                              const today = new Date().toISOString().split('T')[0];
+                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
+                              
+                              if (todayIndex < 0) return null;
+                              
+                              // Get next 7 days starting from today
+                              return weatherData.daily.time.slice(todayIndex, todayIndex + 7).map((date: string, index: number) => {
+                                const actualIndex = todayIndex + index;
+                                const dateObj = new Date(date);
+                                const dayName = index === 0 ? 'Today' : dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                                const monthDay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                                
+                                const tempMax = weatherData.daily.temperature_2m_max[actualIndex];
+                                const tempMin = weatherData.daily.temperature_2m_min[actualIndex];
+                                const precipitation = weatherData.daily.precipitation_sum[actualIndex] || 0;
+                                const weatherCode = weatherData.daily.weather_code?.[actualIndex] || 0;
+                                const et0 = weatherData.daily.et0_fao_evapotranspiration[actualIndex] || 0;
+                                
+                                // Weather code to emoji mapping (WMO codes)
+                                const getWeatherEmoji = (code: number) => {
+                                  if (code === 0) return '☀️';
+                                  if (code <= 3) return '⛅';
+                                  if (code <= 48) return '☁️';
+                                  if (code <= 67) return '🌧️';
+                                  if (code <= 77) return '❄️';
+                                  if (code <= 82) return '🌧️';
+                                  if (code <= 86) return '🌨️';
+                                  if (code >= 95) return '⛈️';
+                                  return '☁️';
+                                };
+
+                                return (
+                                  <div
+                                    key={date}
+                                    className={`flex-shrink-0 text-center min-w-[100px] p-3 rounded-lg transition-colors ${
+                                      index === 0 
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-500' 
+                                        : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
+                                    }`}
+                                  >
+                                    <div className={`text-xs font-semibold mb-1 ${
+                                      index === 0 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
+                                    }`}>
+                                      {dayName}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                                      {monthDay}
+                                    </div>
+                                    <div className="text-2xl mb-2">
+                                      {getWeatherEmoji(weatherCode)}
+                                    </div>
+                                    <div className="mb-2">
+                                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                                        {Math.round(tempMax)}°
+                                      </div>
+                                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                                        {Math.round(tempMin)}°
+                                      </div>
+                                    </div>
+                                    {precipitation > 0 && (
+                                      <div className="flex items-center justify-center text-[10px] text-blue-600 dark:text-blue-400 mb-1">
+                                        <span className="mr-0.5">💧</span>
+                                        <span>{precipitation.toFixed(2)}"</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center justify-center text-[10px] text-green-600 dark:text-green-400">
+                                      <span className="mr-0.5">🌱</span>
+                                      <span>{(et0 * 0.0393701).toFixed(2)}"</span>
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Frost Alert Widget */}
                     {activeFrostWarnings.length > 0 && (
@@ -1130,11 +1446,10 @@ export const TrialDashboard: React.FC = () => {
                           </div>
                           <h3 className="text-base font-semibold text-gray-900 dark:text-white">Temperature</h3>
                         </div>
-                        <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400" />
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {((weatherData?.temperature || 0) * 9/5 + 32).toFixed(1)}
+                          {((selectedLocation as any)?.weatherData?.hourly?.temperature_2m?.[0]?.toFixed(1)) || '--'}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">°F</span>
                       </div>
@@ -1152,7 +1467,7 @@ export const TrialDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {weatherData?.humidity.toFixed(0)}
+                          {((selectedLocation as any)?.weatherData?.hourly?.relative_humidity_2m?.[0]?.toFixed(0)) || '--'}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">%</span>
                       </div>
@@ -1170,7 +1485,7 @@ export const TrialDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {((weatherData?.windSpeed || 0) * 0.621371).toFixed(1)}
+                          {((selectedLocation as any)?.weatherData?.hourly?.wind_speed_10m?.[0]?.toFixed(1)) || '--'}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">mph</span>
                       </div>
@@ -1188,7 +1503,14 @@ export const TrialDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {((weatherData?.precipitation || 0) * 0.0393701).toFixed(2)}
+                          {(() => {
+                            const weatherData = (selectedLocation as any)?.weatherData;
+                            if (!weatherData?.daily?.time) return '0.00';
+                            const today = new Date().toISOString().split('T')[0];
+                            const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
+                            const precip = todayIndex >= 0 ? weatherData.daily.precipitation_sum[todayIndex] : 0;
+                            return precip ? precip.toFixed(2) : '0.00';
+                          })()}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in</span>
                       </div>
@@ -1206,7 +1528,14 @@ export const TrialDashboard: React.FC = () => {
                       </div>
                       <div className="flex items-baseline space-x-2 mb-2">
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {((weatherData?.et0 || 0) * 0.0393701).toFixed(2)}
+                          {(() => {
+                            const weatherData = (selectedLocation as any)?.weatherData;
+                            if (!weatherData?.daily?.time) return '--';
+                            const today = new Date().toISOString().split('T')[0];
+                            const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
+                            const et0Raw = todayIndex >= 0 ? weatherData.daily.et0_fao_evapotranspiration[todayIndex] : null;
+                            return et0Raw ? (et0Raw * 0.0393701).toFixed(2) : '--';
+                          })()}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in/day</span>
                       </div>
@@ -1310,7 +1639,13 @@ export const TrialDashboard: React.FC = () => {
                         const displayMonth = currentMonthData?.monthName || new Date().toLocaleString('default', { month: 'long' });
                         const isCustomKc = instance.customKcValues?.[currentMonth] !== undefined;
                         
-                        const etc = displayKc * (weatherData?.et0 || 5); // mm/day
+                        // Get ET₀ from selected location's weather data - same logic as System Overview (find today's index)
+                        const weatherDataForCrop = (selectedLocation as any)?.weatherData;
+                        const today = new Date().toISOString().split('T')[0];
+                        const todayIndex = weatherDataForCrop?.daily?.time?.findIndex((date: string) => date === today) ?? -1;
+                        const et0Value = todayIndex >= 0 ? weatherDataForCrop.daily.et0_fao_evapotranspiration[todayIndex] : 5;
+                        
+                        const etc = displayKc * et0Value; // mm/day
                         const etcInches = etc * 0.0393701; // Convert to inches/day
 
                         return (
@@ -1363,72 +1698,111 @@ export const TrialDashboard: React.FC = () => {
                               </div>
                             </div>
 
-                            {/* Crop Coefficient (Kc) Details */}
-                            <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4">
-                              <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-3">Crop Coefficient (Kc) Details</h4>
-                              <div className="grid grid-cols-2 gap-4 mb-4">
+                            {/* Crop Coefficient (Kc) Details - Compact */}
+                            <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 mb-3">
+                              <h4 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2">Crop Coefficient (Kc) Details</h4>
+                              <div className="grid grid-cols-3 gap-3 mb-2">
                                 <div>
-                                  <p className="text-sm text-gray-400 flex items-center">
+                                  <p className="text-xs text-gray-400">Location ET₀ (in/day)</p>
+                                  <p className="text-lg font-bold text-purple-400">
+                                    {(et0Value * 0.0393701).toFixed(2)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-gray-400 flex items-center">
                                     Current Kc Value
                                     {isCustomKc && (
-                                      <span className="ml-2 text-xs text-orange-400 bg-orange-900/30 px-2 py-0.5 rounded" title="Using custom Kc value">
+                                      <span className="ml-1 text-xs text-orange-400 bg-orange-900/30 px-1.5 py-0.5 rounded" title="Using custom Kc value">
                                         Custom
                                       </span>
                                     )}
                                   </p>
-                                  <p className="text-xl font-bold text-blue-400">{displayKc.toFixed(2)}</p>
+                                  <p className="text-lg font-bold text-blue-400">{displayKc.toFixed(2)}</p>
                                 </div>
                                 <div>
-                                  <p className="text-sm text-gray-400">ETc (in/day)</p>
-                                  <p className="text-xl font-bold text-green-400">{etcInches.toFixed(3)}</p>
+                                  <p className="text-xs text-gray-400">ETc (in/day)</p>
+                                  <p className="text-lg font-bold text-green-400">{etcInches.toFixed(2)}</p>
                                 </div>
                               </div>
-                              <div className="text-xs text-gray-400 mb-2">
-                                Formula: ETc = ET₀ × Kc = {(weatherData?.et0 || 5).toFixed(1)} × {displayKc.toFixed(2)}
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                  Formula: ETc = ET₀ × Kc
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-300 font-mono">
+                                  {etcInches.toFixed(2)} = {(et0Value * 0.0393701).toFixed(2)} × {displayKc.toFixed(2)}
+                                </div>
                               </div>
                             </div>
 
-                            <div className="space-y-3">
-                              <div>
-                                <p className="text-sm text-gray-400">Water Needs</p>
-                                <p className="text-white font-bold text-lg">
-                                  {etcInches > 0.25 ? 'Very High' : etcInches > 0.15 ? 'High' : etcInches > 0.10 ? 'Medium' : 'Low'}
-                                  <span className={`ml-2 w-2 h-2 rounded-full inline-block ${
-                                    etcInches > 0.25 ? 'bg-red-500' : etcInches > 0.15 ? 'bg-orange-500' : etcInches > 0.10 ? 'bg-yellow-500' : 'bg-green-500'
-                                  }`}></span>
-                                </p>
+                            <div className="space-y-2">
+                              {/* Water Needs, Current Month, and Coefficient Range in a compact grid */}
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div>
+                                  <p className="text-gray-400">Water Needs</p>
+                                  <p className="text-white font-bold">
+                                    {etcInches > 0.25 ? 'Very High' : etcInches > 0.15 ? 'High' : etcInches > 0.10 ? 'Medium' : 'Low'}
+                                    <span className={`ml-1.5 w-1.5 h-1.5 rounded-full inline-block ${
+                                      etcInches > 0.25 ? 'bg-red-500' : etcInches > 0.15 ? 'bg-orange-500' : etcInches > 0.10 ? 'bg-yellow-500' : 'bg-green-500'
+                                    }`}></span>
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-400">Current Month</p>
+                                  <p className="text-white font-medium">{displayMonth}</p>
+                                </div>
                               </div>
+
                               <div>
-                                <p className="text-sm text-gray-400">Current Month</p>
-                                <p className="text-white font-medium">{displayMonth}</p>
-                                <p className="text-xs text-gray-500">Monthly Kc: {displayKc}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-400">Coefficient Range</p>
-                                <p className="text-white text-sm">
+                                <p className="text-xs text-gray-400">Coefficient Range</p>
+                                <p className="text-white text-xs">
                                   {crop.monthlyKc ? 
-                                    `${Math.min(...crop.monthlyKc.map(m => m.kc)).toFixed(2)} - ${Math.max(...crop.monthlyKc.map(m => m.kc)).toFixed(2)} (annual range)` :
-                                    `${Math.min(...crop.stages.map(s => s.kc)).toFixed(2)} - ${Math.max(...crop.stages.map(s => s.kc)).toFixed(2)} (across all stages)`
+                                    `${Math.min(...crop.monthlyKc.map(m => m.kc)).toFixed(2)} - ${Math.max(...crop.monthlyKc.map(m => m.kc)).toFixed(2)} (annual)` :
+                                    `${Math.min(...crop.stages.map(s => s.kc)).toFixed(2)} - ${Math.max(...crop.stages.map(s => s.kc)).toFixed(2)}`
                                   }
                                 </p>
                               </div>
+
+                              {/* Monthly Kc Values - Compact */}
+                              {crop.monthlyKc && crop.monthlyKc.length > 0 && (
+                                <div className="pt-2 border-t border-gray-700">
+                                  <p className="text-xs text-gray-400 mb-2">Monthly Kc Values</p>
+                                  <div className="grid grid-cols-4 gap-1.5">
+                                    {crop.monthlyKc.map((monthData) => {
+                                      const isCurrentMonth = monthData.month === currentMonth;
+                                      return (
+                                        <div 
+                                          key={monthData.month} 
+                                          className={`p-1.5 rounded text-center transition-all ${
+                                            isCurrentMonth 
+                                              ? 'bg-blue-600/30 border border-blue-500' 
+                                              : 'bg-gray-800/50'
+                                          }`}
+                                        >
+                                          <p className={`text-xs ${isCurrentMonth ? 'text-blue-300 font-semibold' : 'text-gray-400'}`}>
+                                            {monthData.monthName.substring(0, 3)}
+                                          </p>
+                                          <p className={`text-xs font-bold ${isCurrentMonth ? 'text-blue-200' : 'text-white'}`}>
+                                            {monthData.kc.toFixed(2)}
+                                          </p>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
                               <div>
-                                <p className="text-sm text-gray-400">Recommendation</p>
-                                <p className="text-gray-300 text-sm">
+                                <p className="text-xs text-gray-400">Recommendation</p>
+                                <p className="text-gray-300 text-xs">
                                   {currentMonthData?.description || `${displayMonth} - maintain consistent soil moisture for optimal ${crop.name.toLowerCase()} production`}
                                 </p>
-                              </div>
-                              <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Planted</p>
-                                <p className="text-gray-900 dark:text-white text-sm">{new Date(instance.plantingDate).toLocaleDateString()}</p>
-                                <p className="text-xs text-gray-500">({daysSincePlanting} days since planting)</p>
                               </div>
                             </div>
 
                             {instance.notes && (
-                              <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
+                              <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
                                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Notes</p>
-                                <p className="text-sm text-gray-800 dark:text-gray-300">{instance.notes}</p>
+                                <p className="text-xs text-gray-800 dark:text-gray-300">{instance.notes}</p>
                               </div>
                             )}
                           </div>
@@ -1681,7 +2055,7 @@ export const TrialDashboard: React.FC = () => {
 
                         {/* ET Source */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">ET₀ Source</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ET₀ Source</label>
                           <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                             <div className="text-xs text-gray-600 dark:text-gray-400">Current Location: {selectedLocation.name}</div>
                             <div className="text-xs text-blue-600 dark:text-blue-400">Live ET₀: {((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day</div>
@@ -1725,20 +2099,20 @@ export const TrialDashboard: React.FC = () => {
 
                         {/* Zone Flow */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Zone Flow Rate (GPM)</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zone Flow Rate (GPM)</label>
                           <input
                             type="number"
                             step="0.1"
                             placeholder="e.g., 15.5"
                             value={calculatorInputs.zoneFlowGPM || ''}
                             onChange={(e) => setCalculatorInputs({...calculatorInputs, zoneFlowGPM: parseFloat(e.target.value)})}
-                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
 
                         {/* Area */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Area</label>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Area</label>
                           <div className="flex space-x-2">
                             <input
                               type="number"
@@ -1746,20 +2120,18 @@ export const TrialDashboard: React.FC = () => {
                               placeholder="e.g., 2.5"
                               value={calculatorInputs.area || ''}
                               onChange={(e) => setCalculatorInputs({...calculatorInputs, area: parseFloat(e.target.value)})}
-                              className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                              className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                             />
                             <select 
                               value={calculatorInputs.areaUnit}
                               onChange={(e) => setCalculatorInputs({...calculatorInputs, areaUnit: e.target.value as 'acres' | 'sqft'})}
-                              className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                              className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                             >
                               <option value="acres">Acres</option>
                               <option value="sqft">Sq Ft</option>
                             </select>
                           </div>
                         </div>
-
-
 
                         {/* Calculate Button */}
                         <button
@@ -1875,7 +2247,7 @@ export const TrialDashboard: React.FC = () => {
                 </div>
                 <ReportView 
                   selectedCrops={selectedCrops}
-                  cropInstances={getLocationCropInstances()}
+                  cropInstances={cropInstances}
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   selectedLocation={null}
@@ -1893,7 +2265,7 @@ export const TrialDashboard: React.FC = () => {
                 <div className="space-y-8">
                   {/* Email Notifications Section */}
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                       <Mail className="h-6 w-6 mr-3" />
                       Email Notifications
                     </h2>
@@ -1902,7 +2274,7 @@ export const TrialDashboard: React.FC = () => {
                   
                   {/* Frost Alert Subscription Section */}
                   <div>
-                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
                       <Thermometer className="h-6 w-6 mr-3" />
                       Frost Alert Subscriptions
                     </h2>
@@ -1932,28 +2304,6 @@ export const TrialDashboard: React.FC = () => {
                   </div>
                 </div>
               </>
-            ) : currentView === 'org-dashboard' ? (
-              <>
-                {/* Organizational Dashboard */}
-                <OrganizationalDashboard 
-                  selectedCrops={selectedCrops}
-                  cropInstances={getLocationCropInstances()}
-                  calculatorResult={calculatorResult}
-                  // fieldBlocks={fieldBlocks} // Temporarily disabled due to interface conflict
-                />
-              </>
-            ) : currentView === 'field-blocks' ? (
-              <>
-                {/* Field Blocks Management */}
-                <FieldBlocksManager 
-                  selectedCrops={selectedCrops}
-                  calculatorResult={calculatorResult}
-                  calculatorInputs={calculatorInputs}
-                  selectedLocation={selectedLocation}
-                  availableLocations={availableLocations}
-                  onFieldBlockUpdate={handleFieldBlockUpdate}
-                />
-              </>
             ) : null}
           </main>
         </div>
@@ -1970,15 +2320,17 @@ export const TrialDashboard: React.FC = () => {
         isOpen={showCropSelector}
         onClose={() => setShowCropSelector(false)}
         availableCrops={availableCrops}
-        selectedCrops={selectedCrops}
+        selectedCrops={activeCropsAtLocation}
         onCropToggle={handleCropToggle}
         onAddAllCrops={addAllCrops}
         onRemoveAllCrops={removeAllCrops}
         locations={availableLocations}
         onApplyToLocation={handleApplyToLocation}
         onApplyToAllLocations={handleApplyToAllLocations}
+        onClearAllLocations={handleClearAllCropsFromAllLocations}
         appliedLocations={appliedLocations}
         isApplyingToAll={isApplyingToAll}
+        totalCropInstances={cropInstances.length}
       />
 
       {/* Floating Success Notification */}

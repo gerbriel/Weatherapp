@@ -32,7 +32,9 @@ interface CropETCChartsProps {
   weatherData?: any; // Optional weather data for current location
   className?: string;
   dateRange?: { startDate: string; endDate: string; };
-  reportMode?: 'current' | 'historical';
+  reportMode?: 'current' | 'historical' | 'future';
+  forecastPreset?: 'today' | '7day' | '14day';
+  reportDate?: string; // The specific date to center the report around
   showAIInsights?: boolean;
   insights?: { 
     precipitationChart: string;
@@ -109,6 +111,8 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
   className = "",
   dateRange,
   reportMode = 'current',
+  forecastPreset = '7day',
+  reportDate,
   showAIInsights = false,
   insights = { 
     precipitationChart: '', 
@@ -174,8 +178,9 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
     const targetLocations = location ? [location] : locations;
     const targetLocationIds = targetLocations.map(loc => loc.id);
     
-    cropInstances
-      .filter(crop => targetLocationIds.includes(crop.locationId))
+    const filteredCrops = cropInstances.filter(crop => targetLocationIds.includes(crop.locationId));
+    
+    filteredCrops
       .filter(crop => visibleCrops.has(crop.cropId)) // Filter by visible crops
       .forEach(crop => {
         const cropLocation = targetLocations.find(loc => loc.id === crop.locationId);
@@ -197,34 +202,48 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           fieldName: crop.fieldName
         });
       });
-    
+
     return data;
   }, [cropInstances, locations, location, visibleCrops]);
 
+  // Don't render anything if there are no crops for this location
+  if (etcData.length === 0) {
+    return null;
+  }
+
   // Prepare time-series data for individual crop water use comparison chart
   const cropWaterUseTimeSeriesData = useMemo(() => {
-    if (!dateRange?.startDate || !dateRange?.endDate) {
-      // Fallback to single point data if no date range
-      return etcData.map((item, index) => ({
-        date: new Date().toISOString().split('T')[0],
-        day: index + 1,
-        displayDate: new Date().toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric' 
-        }),
-        [`${item.cropName}_${item.location}_ETC`]: item.etc,
-        [`${item.cropName}_${item.location}_ETO`]: item.eto,
-        crops: [{
-          cropId: item.cropId,
-          cropName: item.cropName,
-          location: item.location,
-          key: `${item.cropName}_${item.location}`
-        }]
-      }));
+    // Determine the date range to use
+    let startDate: string;
+    let endDate: string;
+    
+    if (reportMode === 'historical' && dateRange?.startDate && dateRange?.endDate) {
+      // Use provided historical date range
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    } else {
+      // In current or future mode, generate date range based on forecastPreset and reportDate
+      // Format dates in local timezone
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      const daysToShow = forecastPreset === 'today' ? 1 : 
+                        forecastPreset === '7day' ? 7 : 14;
+      
+      // In future mode, use reportDate. In current mode, always use today
+      startDate = reportMode === 'future' ? reportDate! : formatDateLocal(new Date());
+      
+      const endDateObj = new Date(startDate);
+      endDateObj.setDate(endDateObj.getDate() + daysToShow - 1);
+      endDate = formatDateLocal(endDateObj);
     }
 
     // Generate comprehensive time-series data for crop water use
-    const dates = generateDateRange(dateRange.startDate, dateRange.endDate);
+    const dates = generateDateRange(startDate, endDate);
     const timeSeriesData: any[] = [];
     
     dates.forEach((date, dayIndex) => {
@@ -273,7 +292,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
     });
 
     return timeSeriesData;
-  }, [etcData, dateRange]);
+  }, [etcData, dateRange, reportMode, forecastPreset, reportDate]);
 
   // Get line configurations for individual crop water use chart
   const cropWaterUseLineConfigs = useMemo(() => {
@@ -281,7 +300,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
     const etcColors = ['#DC2626', '#7C3AED', '#059669', '#EA580C', '#0891B2', '#BE123C', '#7C2D12', '#581C87'];
     const etoColors = ['#16A34A', '#2563EB', '#CA8A04', '#C2410C', '#0E7490', '#BE185D', '#A16207', '#6D28D9'];
     
-    return etcData.map((item, index) => ({
+    const configs = etcData.map((item, index) => ({
       key: `${item.cropName}_${item.location}`,
       name: `${item.cropName} (${item.location})`,
       cropId: item.cropId,
@@ -292,6 +311,8 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
       etoKey: `${item.cropName}_${item.location}_ETO`,
       index: index
     }));
+    
+    return configs;
   }, [etcData]);
 
   // Prepare data for individual crop comparison chart (fallback bar chart view)
@@ -310,24 +331,37 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
 
   // Prepare time-series data for ETC vs ETO comparison chart
   const etcVsEtoData = useMemo(() => {
-    if (!dateRange?.startDate || !dateRange?.endDate) {
-      // Fallback to current day data if no date range
-      return etcData.map((item, index) => ({
-        date: new Date().toISOString().split('T')[0],
-        day: index + 1,
-        name: `${item.cropName} (${item.location.substring(0, 8)})`,
-        fullName: `${item.cropName} (${item.location})`,
-        ETC: item.etc,
-        ETO: item.eto,
-        KC: item.kc,
-        Stage: item.currentStage,
-        cropId: item.cropId,
-        location: item.location
-      }));
+    // Determine the date range to use
+    let startDate: string;
+    let endDate: string;
+    
+    if (reportMode === 'historical' && dateRange?.startDate && dateRange?.endDate) {
+      // Use provided historical date range
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    } else {
+      // In current or future mode, generate date range based on forecastPreset and reportDate
+      // Format dates in local timezone
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      const daysToShow = forecastPreset === 'today' ? 1 : 
+                        forecastPreset === '7day' ? 7 : 14;
+      
+      // In future mode, use reportDate. In current mode, always use today
+      startDate = reportMode === 'future' ? reportDate! : formatDateLocal(new Date());
+      
+      const endDateObj = new Date(startDate);
+      endDateObj.setDate(endDateObj.getDate() + daysToShow - 1);
+      endDate = formatDateLocal(endDateObj);
     }
 
     // Generate time-series data
-    const dates = generateDateRange(dateRange.startDate, dateRange.endDate);
+    const dates = generateDateRange(startDate, endDate);
     const timeSeriesData: any[] = [];
     
     dates.forEach((date, dayIndex) => {
@@ -373,7 +407,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
     });
 
     return timeSeriesData;
-  }, [etcData, dateRange]);
+  }, [etcData, dateRange, reportMode, forecastPreset, reportDate]);
 
   // Get individual crop line configurations for the comparison chart
   const cropLineConfigs = useMemo(() => {

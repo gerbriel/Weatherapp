@@ -70,16 +70,16 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-700">
+      <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-900 rounded-lg">
-                <Sprout className="w-5 h-5 text-green-400" />
+              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                <Sprout className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">Add {crop.name} Instance</h2>
-                <p className="text-sm text-gray-400">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add {crop.name} Instance</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
                   {crop.scientificName && <span className="italic">{crop.scientificName}</span>}
                   {crop.scientificName && ' • '}{crop.category}
                 </p>
@@ -87,7 +87,7 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -112,13 +112,13 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
           {/* Perennial Watering Cycles - Only show for perennial crops */}
           {crop.isPerennial && crop.wateringCycles && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Current Watering Cycle (Seasonal)
               </label>
               <select
                 value={currentWateringCycle || 0}
                 onChange={(e) => setCurrentWateringCycle(parseInt(e.target.value))}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+                className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
               >
                 {crop.wateringCycles.map((cycle, index) => (
                   <option key={index} value={index}>
@@ -128,23 +128,23 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
               </select>
               
               {crop.wateringCycles[currentWateringCycle || 0] && (
-                <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3">
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-lg p-3">
                   <div className="flex items-start space-x-3">
-                    <div className="p-1 bg-blue-900 rounded">
-                      <Info className="w-4 h-4 text-blue-400" />
+                    <div className="p-1 bg-blue-200 dark:bg-blue-900 rounded">
+                      <Info className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-blue-300 font-medium text-sm">
+                      <p className="text-blue-800 dark:text-blue-300 font-medium text-sm">
                         {crop.wateringCycles[currentWateringCycle || 0].name} - {crop.wateringCycles[currentWateringCycle || 0].season.charAt(0).toUpperCase() + crop.wateringCycles[currentWateringCycle || 0].season.slice(1)}
                       </p>
-                      <p className="text-blue-200 text-xs mt-1">
+                      <p className="text-blue-700 dark:text-blue-200 text-xs mt-1">
                         {crop.wateringCycles[currentWateringCycle || 0].description}
                       </p>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-blue-300">
+                      <div className="flex items-center space-x-4 mt-2 text-xs text-blue-700 dark:text-blue-300">
                         <span>Kc: {crop.wateringCycles[currentWateringCycle || 0].kc}</span>
                         <span>Duration: {crop.wateringCycles[currentWateringCycle || 0].duration} days</span>
                         {crop.wateringCycles[currentWateringCycle || 0].repeatsAnnually && (
-                          <span className="text-green-400">🔄 Annual</span>
+                          <span className="text-green-600 dark:text-green-400">🔄 Annual</span>
                         )}
                       </div>
                     </div>
@@ -161,7 +161,7 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
           {/* Monthly Kc Timeline */}
           {crop.monthlyKc && (
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-3">Monthly Kc Timeline</h3>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Monthly Kc Timeline</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                 {crop.monthlyKc.map((monthKc) => {
                   const currentMonth = new Date().getMonth() + 1; // JavaScript months are 0-based
@@ -172,8 +172,8 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
                       key={monthKc.month}
                       className={`p-2 rounded-lg border text-xs ${
                         isCurrentMonth
-                          ? 'bg-blue-900/50 border-blue-600 text-blue-200'
-                          : 'bg-gray-800 border-gray-700 text-gray-400'
+                          ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-200'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400'
                       }`}
                       title={monthKc.description}
                     >
@@ -185,10 +185,10 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
                   );
                 })}
               </div>
-              <div className="mt-2 text-xs text-gray-400">
+              <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
                 <span className="inline-block w-2 h-2 bg-blue-600 rounded-full mr-1"></span>
                 Current month
-                <span className="inline-block w-2 h-2 bg-gray-600 rounded-full mr-1 ml-3"></span>
+                <span className="inline-block w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full mr-1 ml-3"></span>
                 Other months
               </div>
             </div>
@@ -197,7 +197,7 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
           {/* Fallback to Growth Stages if no monthly data available */}
           {!crop.monthlyKc && (
             <div>
-              <h3 className="text-sm font-medium text-gray-300 mb-3">Growth Stage Timeline</h3>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Growth Stage Timeline</h3>
               <div className="space-y-2">
                 {crop.stages.map((stage, index) => {
                   let cumulativeDays = 0;
@@ -212,8 +212,8 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
                       key={index}
                       className={`p-2 rounded-lg border text-xs ${
                         isCurrentStage
-                          ? 'bg-blue-900/50 border-blue-600 text-blue-200'
-                          : 'bg-gray-800 border-gray-700 text-gray-400'
+                          ? 'bg-blue-50 dark:bg-blue-900/50 border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-200'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400'
                       }`}
                     >
                       <div className="flex justify-between items-center">
@@ -234,7 +234,7 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
           )}
 
           {/* Form Actions */}
-          <div className="flex items-center space-x-3 pt-4 border-t border-gray-700">
+          <div className="flex items-center space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
@@ -247,7 +247,7 @@ export const AddCropInstanceModal: React.FC<AddCropInstanceModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-colors"
+              className="bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-gray-900 dark:text-white px-6 py-2 rounded-lg transition-colors"
             >
               Cancel
             </button>

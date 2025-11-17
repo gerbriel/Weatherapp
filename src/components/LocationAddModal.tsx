@@ -193,10 +193,10 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-white flex items-center">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
               <MapPin className="w-5 h-5 mr-2" />
               Add New Location
             </h2>
@@ -219,23 +219,23 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                     placeholder="Search popular locations..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                    className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               {/* Popular Locations Grid */}
               <div className="mb-6">
-                <h3 className="text-lg font-medium text-white mb-3">Popular Agricultural Locations</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">Popular Agricultural Locations</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
                   {filteredLocations.map((location, index) => (
                     <button
                       key={index}
                       onClick={() => handlePopularLocationSelect(location)}
-                      className="text-left p-3 bg-gray-800 hover:bg-gray-700 rounded-lg border border-gray-700 hover:border-blue-500 transition-colors"
+                      className="text-left p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-700 hover:border-blue-500 transition-colors"
                     >
-                      <div className="font-medium text-white">{location.name}</div>
-                      <div className="text-sm text-gray-400">{location.region}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{location.name}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{location.region}</div>
                       <div className="text-xs text-gray-500 mt-1">
                         {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                       </div>
@@ -257,7 +257,7 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                 
                 <button
                   onClick={() => setIsManualEntry(true)}
-                  className="w-full flex items-center justify-center px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  className="w-full flex items-center justify-center px-4 py-3 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
                 >
                   <Globe className="w-5 h-5 mr-2" />
                   Enter Location Manually
@@ -268,7 +268,7 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
             /* Manual Entry Form */
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   Location Name *
                 </label>
                 <input
@@ -276,16 +276,16 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="e.g., Farm Name, City, CA"
-                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
-                    errors.name ? 'border-red-500' : 'border-gray-700'
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                    errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
                   }`}
                 />
-                {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
+                {errors.name && <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.name}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Latitude *
                   </label>
                   <input
@@ -294,15 +294,15 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                     value={formData.latitude}
                     onChange={(e) => setFormData({ ...formData, latitude: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     placeholder="e.g., 36.7378"
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
-                      errors.latitude ? 'border-red-500' : 'border-gray-700'
+                    className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                      errors.latitude ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
                     }`}
                   />
-                  {errors.latitude && <p className="text-red-400 text-sm mt-1">{errors.latitude}</p>}
+                  {errors.latitude && <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.latitude}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                     Longitude *
                   </label>
                   <input
@@ -311,23 +311,23 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                     value={formData.longitude}
                     onChange={(e) => setFormData({ ...formData, longitude: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     placeholder="e.g., -119.7871"
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
-                      errors.longitude ? 'border-red-500' : 'border-gray-700'
+                    className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                      errors.longitude ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
                     }`}
                   />
-                  {errors.longitude && <p className="text-red-400 text-sm mt-1">{errors.longitude}</p>}
+                  {errors.longitude && <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.longitude}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   State *
                 </label>
                 <select
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white focus:outline-none focus:border-blue-500 ${
-                    errors.state ? 'border-red-500' : 'border-gray-700'
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 ${
+                    errors.state ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
                   }`}
                 >
                   <option value="">Select a state</option>
@@ -335,11 +335,11 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                     <option key={state} value={state}>{state}</option>
                   ))}
                 </select>
-                {errors.state && <p className="text-red-400 text-sm mt-1">{errors.state}</p>}
+                {errors.state && <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.state}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
                   Region *
                 </label>
                 <input
@@ -347,44 +347,44 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                   value={formData.region}
                   onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                   placeholder="e.g., Central Valley, Willamette Valley"
-                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
-                    errors.region ? 'border-red-500' : 'border-gray-700'
+                  className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                    errors.region ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
                   }`}
                 />
-                {errors.region && <p className="text-red-400 text-sm mt-1">{errors.region}</p>}
+                {errors.region && <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.region}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Weather Station <span className="text-gray-400">(Optional)</span>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Weather Station <span className="text-gray-500 dark:text-gray-400">(Optional)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.weatherstation || ''}
                     onChange={(e) => setFormData({ ...formData, weatherstation: e.target.value })}
                     placeholder="e.g., Fresno State"
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
-                      errors.weatherstation ? 'border-red-500' : 'border-gray-700'
+                    className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                      errors.weatherstation ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
                     }`}
                   />
-                  {errors.weatherstation && <p className="text-red-400 text-sm mt-1">{errors.weatherstation}</p>}
+                  {errors.weatherstation && <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.weatherstation}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Weather Station ID <span className="text-gray-400">(Optional)</span>
+                  <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+                    Weather Station ID <span className="text-gray-500 dark:text-gray-400">(Optional)</span>
                   </label>
                   <input
                     type="text"
                     value={formData.weatherstationID || ''}
                     onChange={(e) => setFormData({ ...formData, weatherstationID: e.target.value })}
                     placeholder="e.g., 80"
-                    className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
-                      errors.weatherstationID ? 'border-red-500' : 'border-gray-700'
+                    className={`w-full px-4 py-3 bg-white dark:bg-gray-800 border rounded-lg text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-blue-500 ${
+                      errors.weatherstationID ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
                     }`}
                   />
-                  {errors.weatherstationID && <p className="text-red-400 text-sm mt-1">{errors.weatherstationID}</p>}
+                  {errors.weatherstationID && <p className="text-red-600 dark:text-red-400 text-sm mt-1">{errors.weatherstationID}</p>}
                 </div>
               </div>
 
@@ -392,7 +392,7 @@ export const LocationAddModal: React.FC<LocationAddModalProps> = ({ isOpen, onCl
                 <button
                   type="button"
                   onClick={() => setIsManualEntry(false)}
-                  className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  className="flex-1 px-4 py-3 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400 dark:hover:bg-gray-600 text-gray-900 dark:text-white rounded-lg transition-colors"
                 >
                   Back
                 </button>

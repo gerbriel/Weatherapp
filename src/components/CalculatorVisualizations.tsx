@@ -233,50 +233,50 @@ export const CalculatorVisualizations: React.FC<CalculatorVisualizationsProps> =
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-900 rounded-lg">
-              <Droplets className="h-5 w-5 text-blue-400" />
+            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+              <Droplets className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-400">Daily ETc</div>
-              <div className="text-xl font-bold text-white">{(etcValue * 0.0393701).toFixed(3)} in</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Daily ETc</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{(etcValue * 0.0393701).toFixed(3)} in</div>
             </div>
           </div>
         </div>
         
-        <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-green-900 rounded-lg">
-              <Calendar className="h-5 w-5 text-green-400" />
+            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <Calendar className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-400">Runtime</div>
-              <div className="text-xl font-bold text-white">{irrigationRuntime} min</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Runtime</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{irrigationRuntime} min</div>
             </div>
           </div>
         </div>
         
-        <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-purple-900 rounded-lg">
-              <Target className="h-5 w-5 text-purple-400" />
+            <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+              <Target className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-400">Efficiency</div>
-              <div className="text-xl font-bold text-white">{systemEfficiency}%</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Efficiency</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{systemEfficiency}%</div>
             </div>
           </div>
         </div>
         
-        <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-amber-900 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-amber-400" />
+            <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div>
-              <div className="text-sm text-gray-400">Infiltration</div>
-              <div className="text-xl font-bold text-white">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Infiltration</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
                 {((soilType?.characteristics.infiltrationRate || 10) * 0.0393701).toFixed(2)} in/h
               </div>
             </div>
@@ -287,44 +287,44 @@ export const CalculatorVisualizations: React.FC<CalculatorVisualizationsProps> =
       {/* Charts Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Soil Water Profile */}
-        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 xl:col-span-2">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 xl:col-span-2">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="p-2 bg-amber-900 rounded-lg">
-              <Info className="h-4 w-4 text-amber-400" />
+            <div className="p-2 bg-amber-100 dark:bg-amber-900 rounded-lg">
+              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <h4 className="text-lg font-semibold text-white">Soil Water Profile</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Soil Water Profile</h4>
           </div>
           <div style={{ height: '400px' }}>
             <Bar data={soilProfileData} options={soilChartOptions} />
           </div>
-          <div className="mt-4 text-sm text-gray-400">
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
             Shows water content at different soil depths. Green area indicates optimal irrigation range.
           </div>
         </div>
 
         {/* Weekly Schedule */}
-        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700 xl:col-span-2">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700 xl:col-span-2">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="p-2 bg-green-900 rounded-lg">
-              <Calendar className="h-4 w-4 text-green-400" />
+            <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+              <Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
             </div>
-            <h4 className="text-lg font-semibold text-white">Weekly Irrigation Schedule</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Weekly Irrigation Schedule</h4>
           </div>
           <div style={{ height: '400px' }}>
             <Bar data={scheduleData} options={chartOptions} />
           </div>
-          <div className="mt-4 text-sm text-gray-400">
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
             Optimized schedule based on soil type and crop water requirements.
           </div>
         </div>
 
         {/* Water Balance */}
-        <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="p-2 bg-blue-900 rounded-lg">
-              <Droplets className="h-4 w-4 text-blue-400" />
+            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+              <Droplets className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </div>
-            <h4 className="text-lg font-semibold text-white">Water Balance</h4>
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Water Balance</h4>
           </div>
           <div style={{ height: '300px' }}>
             <Doughnut 
@@ -345,65 +345,65 @@ export const CalculatorVisualizations: React.FC<CalculatorVisualizationsProps> =
               }} 
             />
           </div>
-          <div className="mt-4 text-sm text-gray-400">
+          <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
             Distribution of applied water showing system efficiency and losses.
           </div>
         </div>
 
         {/* Soil Characteristics */}
         {soilType && (
-          <div className="bg-gray-800 p-6 rounded-lg border border-gray-700">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-3 mb-4">
               <div 
-                className="w-6 h-6 rounded-full border-2 border-gray-600"
+                className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600"
                 style={{ backgroundColor: soilType.color }}
               />
-              <h4 className="text-lg font-semibold text-white">{soilType.name} Properties</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white">{soilType.name} Properties</h4>
             </div>
             
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-sm text-gray-400">Water Holding Capacity</div>
-                  <div className="text-lg font-semibold text-white">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Water Holding Capacity</div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
                     {soilType.characteristics.waterHoldingCapacity} mm/m
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Available Water</div>
-                  <div className="text-lg font-semibold text-white">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Available Water</div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
                     {soilType.characteristics.availableWaterCapacity} mm/m
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Field Capacity</div>
-                  <div className="text-lg font-semibold text-white">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Field Capacity</div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
                     {soilType.characteristics.fieldCapacity}%
                   </div>
                 </div>
                 <div>
-                  <div className="text-sm text-gray-400">Wilting Point</div>
-                  <div className="text-lg font-semibold text-white">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Wilting Point</div>
+                  <div className="text-lg font-semibold text-gray-900 dark:text-white">
                     {soilType.characteristics.wiltingPoint}%
                   </div>
                 </div>
               </div>
               
-              <div className="p-3 bg-gray-900 rounded border border-gray-600">
-                <div className="text-sm text-gray-400 mb-1">Texture</div>
-                <div className="text-white">{soilType.texture}</div>
+              <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Texture</div>
+                <div className="text-gray-900 dark:text-white">{soilType.texture}</div>
               </div>
               
-              <div className="p-3 bg-gray-900 rounded border border-gray-600">
-                <div className="text-sm text-gray-400 mb-1">Description</div>
-                <div className="text-white text-sm">{soilType.characteristics.description}</div>
+              <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Description</div>
+                <div className="text-gray-900 dark:text-white text-sm">{soilType.characteristics.description}</div>
               </div>
               
-              <div className="p-3 bg-gray-900 rounded border border-gray-600">
-                <div className="text-sm text-gray-400 mb-2">Suitable Crops</div>
+              <div className="p-3 bg-gray-100 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">Suitable Crops</div>
                 <div className="flex flex-wrap gap-2">
                   {soilType.commonCrops.map((crop, index) => (
-                    <span key={index} className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
+                    <span key={index} className="text-xs bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
                       {crop}
                     </span>
                   ))}
@@ -416,27 +416,27 @@ export const CalculatorVisualizations: React.FC<CalculatorVisualizationsProps> =
 
       {/* Recommendations */}
       {soilType && (
-        <div className="bg-gradient-to-r from-blue-900/50 to-green-900/50 p-6 rounded-lg border border-blue-700/50">
-          <h4 className="text-lg font-semibold text-white mb-4">Irrigation Recommendations</h4>
+        <div className="bg-gradient-to-r from-blue-100/50 to-green-100/50 dark:from-blue-900/50 dark:to-green-900/50 p-6 rounded-lg border border-blue-300/50 dark:border-blue-700/50">
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Irrigation Recommendations</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="bg-black/20 p-4 rounded">
-              <div className="text-blue-400 font-medium mb-2">Frequency</div>
-              <div className="text-white">
+            <div className="bg-white/60 dark:bg-black/20 p-4 rounded">
+              <div className="text-blue-600 dark:text-blue-400 font-medium mb-2">Frequency</div>
+              <div className="text-gray-900 dark:text-white">
                 {soilType.characteristics.infiltrationRate > 20 ? 'Daily' :
                  soilType.characteristics.infiltrationRate > 10 ? 'Every 2-3 days' :
                  soilType.characteristics.infiltrationRate > 5 ? 'Every 3-5 days' :
                  'Weekly or longer intervals'}
               </div>
             </div>
-            <div className="bg-black/20 p-4 rounded">
-              <div className="text-green-400 font-medium mb-2">Application Rate</div>
-              <div className="text-white">
+            <div className="bg-white/60 dark:bg-black/20 p-4 rounded">
+              <div className="text-green-600 dark:text-green-400 font-medium mb-2">Application Rate</div>
+              <div className="text-gray-900 dark:text-white">
                 Max {Math.min(soilType.characteristics.infiltrationRate * 0.8, 25).toFixed(1)} mm/hour
               </div>
             </div>
-            <div className="bg-black/20 p-4 rounded">
-              <div className="text-purple-400 font-medium mb-2">Runoff Risk</div>
-              <div className="text-white">
+            <div className="bg-white/60 dark:bg-black/20 p-4 rounded">
+              <div className="text-purple-600 dark:text-purple-400 font-medium mb-2">Runoff Risk</div>
+              <div className="text-gray-900 dark:text-white">
                 {soilType.characteristics.infiltrationRate > 10 ? 'Low' :
                  soilType.characteristics.infiltrationRate > 5 ? 'Medium' : 'High'}
               </div>
