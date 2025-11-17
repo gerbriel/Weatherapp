@@ -1662,6 +1662,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
         const isCollapsed = collapsedLocations.has(location.id);
 
+        console.log(`[REAL ${location.name}] Rendering with preset: ${forecastPreset}, startIdx: ${startIdx}, endIdx: ${endIdx}, forecastData length: ${forecastData.length}`);
+
         return (
           <div 
             key={`${location.id}-${reportMode}-${forecastPreset}-${futureStartDate}`}

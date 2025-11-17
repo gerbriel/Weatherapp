@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { weatherService } from '../services/weatherService';
+import type { LocationWithWeather } from '../types/weather';
 
 // Types for our authentication system
 export interface OrganizationCrop {
@@ -235,7 +237,7 @@ export interface UserProfile {
   organization?: Organization;
 }
 
-export interface UserLocation {
+export interface UserLocation extends Omit<LocationWithWeather, 'id' | 'isFavorite' | 'sortOrder'> {
   id: string;
   user_id: string;
   organization_id: string;
@@ -571,15 +573,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (savedLocations) {
         const parsedLocations = JSON.parse(savedLocations);
         setLocations(parsedLocations);
+        // Fetch weather data for the first location
+        if (parsedLocations.length > 0 && !parsedLocations[0].weatherData) {
+          fetchWeatherForLocation(parsedLocations[0]);
+        }
       } else {
         // Start with trial locations for new users to give them the full trial experience
         const defaultLocations = createDefaultUserLocations(userId);
         
         setLocations(defaultLocations);
         localStorage.setItem(`userLocations_${userId}`, JSON.stringify(defaultLocations));
+        // Fetch weather data for the first location
+        if (defaultLocations.length > 0) {
+          fetchWeatherForLocation(defaultLocations[0]);
+        }
       }
     } catch (error) {
       console.error('Error in fetchLocations:', error);
+    }
+  };
+
+  // Fetch weather data for a specific location
+  const fetchWeatherForLocation = async (location: UserLocation) => {
+    try {
+      // Mark as loading
+      setLocations(prev => prev.map(loc => 
+        loc.id === location.id ? { ...loc, loading: true } : loc
+      ));
+
+      // Create a compatible location object for the weather service
+      const weatherLocation = {
+        id: location.id,
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        isFavorite: location.is_favorite,
+        sortOrder: location.sort_order,
+        weatherstation: location.weatherstation,
+        weatherstationID: location.weatherstation_id
+      };
+
+      // Fetch weather data using weatherService
+      const weatherData = await weatherService.getWeatherData(weatherLocation);
+
+      // Update location with weather data
+      setLocations(prev => {
+        const updated = prev.map(loc => 
+          loc.id === location.id ? { ...loc, weatherData, loading: false, error: undefined } : loc
+        );
+        // Save to localStorage
+        if (user) {
+          localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(updated));
+        }
+        return updated;
+      });
+    } catch (error) {
+      console.error('Error fetching weather for location:', location.name, error);
+      setLocations(prev => prev.map(loc => 
+        loc.id === location.id ? { ...loc, loading: false, error: 'Failed to load weather data' } : loc
+      ));
     }
   };
 
@@ -762,6 +814,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshLocations = async () => {
     if (user) {
       await fetchLocations(user.id);
+      // Also fetch weather for all locations that don't have data yet
+      locations.forEach(loc => {
+        if (!loc.weatherData && !loc.loading) {
+          fetchWeatherForLocation(loc);
+        }
+      });
     }
   };
 
