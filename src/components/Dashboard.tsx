@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut, FileText, Users } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut, FileText, Users, Building2 } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { useLocations } from '../contexts/LocationsContext';
 import { weatherService } from '../services/weatherService';
@@ -7,8 +7,11 @@ import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
 import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
 import { EmailNotifications } from './EmailNotifications';
+import { SuperUserDashboard } from './SuperUserDashboard';
+import { CreateOrganizationModal } from './CreateOrganizationModal';
 import { supabase } from '../lib/supabase';
 import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
+import { useAuth } from '../contexts/AuthContextSimple';
 
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { ReportView } from './ReportView';
@@ -114,8 +117,11 @@ export const Dashboard: React.FC = () => {
 
   const removeLocation = removeUserLocation;
   
-  // Super user status - can be enabled via environment variable
-  const isSuperUser = import.meta.env.VITE_SUPER_USER_ENABLED === 'true';  // State for enhanced trial locations with weather data - only for display enhancement
+  // Get auth context for user role
+  const { profile } = useAuth();
+  const isSuperUser = profile?.role === 'superuser';
+  
+  // State for enhanced trial locations with weather data - only for display enhancement
   const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>([]);
   
   const [selectedLocation, setSelectedLocation] = useState(availableLocations[0] || null);
@@ -123,6 +129,8 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSuperUserDashboard, setShowSuperUserDashboard] = useState(false);
+  const [showCreateOrgModal, setShowCreateOrgModal] = useState(false);
   const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
@@ -1149,11 +1157,9 @@ export const Dashboard: React.FC = () => {
                   <div className="flex items-center space-x-3">
                     {isSuperUser && (
                       <button
-                        onClick={() => {
-                          console.log('[SuperAdmin] Feature coming soon');
-                        }}
+                        onClick={() => setShowSuperUserDashboard(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg"
-                        title="Super Admin Panel - User Management"
+                        title="Super Admin Panel - System Management"
                       >
                         <Users className="h-4 w-4" />
                         <span>Super Admin</span>
@@ -2714,7 +2720,34 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
       
-      {/* Floating Super Admin Button removed - feature coming soon */}
+      {/* SuperUser Dashboard Modal */}
+      {showSuperUserDashboard && (
+        <SuperUserDashboard onClose={() => setShowSuperUserDashboard(false)} />
+      )}
+
+      {/* Create Organization Modal */}
+      {showCreateOrgModal && (
+        <CreateOrganizationModal
+          onClose={() => setShowCreateOrgModal(false)}
+          onSuccess={(orgId) => {
+            console.log('Organization created:', orgId);
+            setShowCreateOrgModal(false);
+            // Refresh the page to load new org data
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Create Organization Button (for users without an org) */}
+      {profile && !profile.primary_organization_id && (
+        <button
+          onClick={() => setShowCreateOrgModal(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full shadow-2xl transition-all transform hover:scale-105"
+        >
+          <Building2 className="h-5 w-5" />
+          <span className="font-medium">Create Organization</span>
+        </button>
+      )}
     </div>
   );
 };

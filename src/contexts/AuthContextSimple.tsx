@@ -10,6 +10,7 @@ export interface UserProfile {
   company: string | null;
   phone: string | null;
   role: 'superuser' | 'admin' | 'user';
+  primary_organization_id: string | null;
   created_at: string;
   updated_at: string;
 }
