@@ -8,41 +8,48 @@ The database migrations reference `current_setting('app.admin_email', true)` to 
 
 Your local setup is already configured in `supabase/.env.local` (which is gitignored).
 
-## Production Deployment on Supabase
+## Production Deployment - SIMPLE METHOD ✅
 
-### Option 1: Using Supabase Vault (Recommended for Hosted Supabase)
-
-1. Go to your Supabase Dashboard: https://app.supabase.com
-2. Select your project
-3. Navigate to **Settings** → **Vault**
-4. Click **New Secret**
-5. Create a secret with:
-   - **Name**: `app.admin_email`
-   - **Value**: `your-admin-email@example.com`
-6. Click **Create Secret**
-
-### Option 2: Using SQL (For Self-Hosted or Manual Setup)
-
-Run this SQL in the Supabase SQL Editor:
+**The easiest way is to just run this SQL in your Supabase SQL Editor:**
 
 ```sql
--- Set the admin email as a database configuration parameter
-ALTER DATABASE postgres SET app.admin_email = 'your-admin-email@example.com';
+-- Simply set your user as superuser
+UPDATE public.user_profiles 
+SET role = 'superuser' 
+WHERE email = 'your-admin-email@example.com';
 
--- Reload the configuration
-SELECT pg_reload_conf();
+-- OR if the profile doesn't exist yet, create it:
+INSERT INTO public.user_profiles (id, email, role)
+SELECT 
+  id,
+  email,
+  'superuser'
+FROM auth.users
+WHERE email = 'your-admin-email@example.com'
+ON CONFLICT (id) 
+DO UPDATE SET role = 'superuser';
+
+-- Verify it worked:
+SELECT email, role FROM public.user_profiles WHERE email = 'your-admin-email@example.com';
 ```
 
-### Verifying It Works
+That's it! The migrations only use `current_setting()` for **initial setup**. Once you're deployed, just run the SQL above once.
 
-After setting the secret, run this query to verify:
+## Alternative: Using Supabase Vault (Optional)
+
+If you want to use Vault for secret management:
+
+1. Go to your Supabase Dashboard
+2. Navigate to **Integrations** → **Vault** (in the left sidebar)
+3. Click the **Secrets** tab
+4. Use the SQL Editor to create a secret:
 
 ```sql
--- This should return your admin email
-SELECT current_setting('app.admin_email', true);
-
--- This should show your user with 'superuser' role
-SELECT email, role FROM public.user_profiles WHERE role = 'superuser';
+SELECT vault.create_secret(
+  'your-admin-email@example.com',
+  'admin_email',
+  'Admin email for superuser'
+);
 ```
 
 ## Running Migrations in Production

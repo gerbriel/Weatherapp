@@ -283,14 +283,14 @@ export const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ sele
     
     // Determine which organizations this user has access to based on their profile
     const userEmail = profile.email;
-    const userRole = profile.role;
+    const userRole = profile.role as string;
     
     // Demo logic for user assignments:
-    if (userEmail === 'admin@cvgrowers.com' || userRole === 'org_admin') {
-      // Cooperative admin can see both personal and cooperative
+    if (userEmail === 'admin@cvgrowers.com' || userRole === 'superuser' || userRole === 'admin') {
+      // Admins can see both personal and cooperative
       return [allOrganizations[0], allOrganizations[1]];
-    } else if (userEmail === 'manager@agritech.com' || userRole === 'manager') {
-      // Enterprise manager can see personal and enterprise
+    } else if (userEmail === 'manager@agritech.com' || userRole === 'user') {
+      // Regular users can see personal and enterprise
       return [allOrganizations[0], allOrganizations[2]];
     } else if (userEmail?.includes('cvgrowers.com')) {
       // Cooperative members can see personal and cooperative

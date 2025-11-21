@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut, FileText, Users } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { SuperAdminPanel } from './SuperAdminPanel';
 import { useLocations } from '../contexts/LocationsContext';
 import { weatherService } from '../services/weatherService';
 import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
@@ -124,7 +123,6 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showSuperAdminPanel, setShowSuperAdminPanel] = useState(false);
   const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
@@ -1152,8 +1150,7 @@ export const Dashboard: React.FC = () => {
                     {isSuperUser && (
                       <button
                         onClick={() => {
-                          console.log('[SuperAdmin] Header button clicked');
-                          setShowSuperAdminPanel(true);
+                          console.log('[SuperAdmin] Feature coming soon');
                         }}
                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg"
                         title="Super Admin Panel - User Management"
@@ -2717,25 +2714,7 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
       
-      {/* Super Admin Panel Modal */}
-      {showSuperAdminPanel && (
-        <SuperAdminPanel onClose={() => setShowSuperAdminPanel(false)} />
-      )}
-      
-      {/* Floating Super Admin Button (only for super user) */}
-      {isSuperUser && (
-        <button
-          onClick={() => {
-            console.log('[SuperAdmin] Floating button clicked in TrialDashboard');
-            setShowSuperAdminPanel(true);
-          }}
-          className="fixed bottom-6 right-6 z-50 p-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-2xl transition-all transform hover:scale-110 flex items-center gap-2"
-          title="Super Admin Panel - User Management"
-        >
-          <Users className="h-6 w-6" />
-          <span className="font-medium">Super Admin</span>
-        </button>
-      )}
+      {/* Floating Super Admin Button removed - feature coming soon */}
     </div>
   );
 };
