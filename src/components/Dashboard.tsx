@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut, FileText } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Wind, Sprout, Gauge, Menu, X, Calculator, Plus, Trash2, Mail, Edit, Star, LogOut, FileText, Users } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { useTrial } from '../contexts/TrialContext';
-import { useAuth } from '../contexts/AuthContextSimple';
+import { SuperAdminPanel } from './SuperAdminPanel';
 import { useLocations } from '../contexts/LocationsContext';
 import { weatherService } from '../services/weatherService';
 import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
 import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
 import { EmailNotifications } from './EmailNotifications';
+import { supabase } from '../lib/supabase';
 import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
 
 import { OrganizationSwitcher } from './OrganizationSwitcher';
@@ -89,56 +89,34 @@ interface RuntimeResult {
   etc: number; // ETc value in mm/day
 }
 
-export const TrialDashboard: React.FC = () => {
-  const { 
-    user, 
-    profile,
-    loading: authLoading,
-    signOut, 
-    organization,
-    locations: authLocations,
-    addLocation,
-    deleteLocation: authDeleteLocation
-  } = useAuth();
-  
-  // Show loading spinner while auth is initializing
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-  
-  const { disableTrialMode } = useTrial();
+export const Dashboard: React.FC = () => {
   const { 
     locations: locationsContextLocations, 
     removeLocation: removeUserLocation,
     refreshLocation
   } = useLocations();
   
-  // Use same location source as EnhancedLocationsList for consistency
-  const rawAvailableLocations = user ? authLocations : locationsContextLocations;
+  // Use locations from context (no authentication)
+  const rawAvailableLocations = locationsContextLocations;
   
   // Deduplicate locations by ID (safeguard against any duplication issues)
   const availableLocations = React.useMemo(() => {
     const seen = new Set<string>();
-    return rawAvailableLocations.filter(loc => {
+    const filtered = rawAvailableLocations.filter(loc => {
       if (seen.has(loc.id)) {
         return false;
       }
       seen.add(loc.id);
       return true;
     });
+    console.log('🗺️ Dashboard availableLocations:', filtered.length, 'locations');
+    return filtered;
   }, [rawAvailableLocations]);
-  
-  const removeLocation = user ? authDeleteLocation : removeUserLocation;
 
+  const removeLocation = removeUserLocation;
   
-  // State for enhanced trial locations with weather data - only for display enhancement
+  // Super user status - can be enabled via environment variable
+  const isSuperUser = import.meta.env.VITE_SUPER_USER_ENABLED === 'true';  // State for enhanced trial locations with weather data - only for display enhancement
   const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>([]);
   
   const [selectedLocation, setSelectedLocation] = useState(availableLocations[0] || null);
@@ -146,6 +124,7 @@ export const TrialDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showSuperAdminPanel, setShowSuperAdminPanel] = useState(false);
   const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
@@ -197,36 +176,147 @@ export const TrialDashboard: React.FC = () => {
   const [weatherFetched, setWeatherFetched] = useState(false);
   const weatherFetchedRef = React.useRef(false); // Use ref to prevent re-fetches across renders
 
-  // Update selectedLocation when availableLocations changes
-  useEffect(() => {
-    if (availableLocations.length > 0 && !selectedLocation) {
-      setSelectedLocation(availableLocations[0]);
-    }
-  }, [availableLocations, selectedLocation]);
+  // ============================================================================
+  // DATABASE SYNC FUNCTIONS - Load and save crops from/to Supabase
+  // ============================================================================
 
-  // Update selectedLocation with weather data when trialLocationsWithWeather is populated
-  useEffect(() => {
-    if (selectedLocation && trialLocationsWithWeather.length > 0) {
-      const locationWithWeather = trialLocationsWithWeather.find(loc => loc.id === selectedLocation.id);
-      if (locationWithWeather && locationWithWeather.weatherData) {
-        setSelectedLocation(locationWithWeather);
+  // Load crops from database for all user locations
+  const loadCropsFromDatabase = async () => {
+    if (availableLocations.length === 0) {
+      setCropInstances([]);
+      return;
+    }
+
+    try {
+      const locationIds = availableLocations.map(loc => loc.id);
+      
+      const { data, error } = await supabase
+        .from('location_crops')
+        .select('*')
+        .in('location_id', locationIds);
+
+      if (error) throw error;
+
+      // Convert database format to CropInstance format
+      const instances: CropInstance[] = (data || []).map(dbCrop => ({
+        id: dbCrop.crop_id,
+        cropId: COMPREHENSIVE_CROP_DATABASE.find(c => c.name === dbCrop.crop_name)?.id || dbCrop.crop_name,
+        plantingDate: dbCrop.planting_date,
+        currentStage: 0, // Default to first stage
+        locationId: dbCrop.location_id,
+        notes: dbCrop.notes || undefined,
+        fieldName: undefined, // Can be added later if needed
+      }));
+
+      setCropInstances(instances);
+      console.log(`Loaded ${instances.length} crops from database`);
+    } catch (error) {
+      console.error('Error loading crops from database:', error);
+    }
+  };
+
+  // Save a crop instance to the database
+  const saveCropToDatabase = async (cropInstance: CropInstance, locationId: string) => {
+    try {
+      const crop = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropInstance.cropId);
+      if (!crop) {
+        console.error('Crop not found:', cropInstance.cropId);
+        return;
       }
-    }
-  }, [trialLocationsWithWeather, selectedLocation?.id]);
 
-  // Fetch real weather data for all locations (trial and authenticated users)
+      const { error } = await supabase
+        .from('location_crops')
+        .insert({
+          location_id: locationId,
+          crop_id: cropInstance.id,
+          crop_name: crop.name,
+          crop_variety: null,
+          planting_date: cropInstance.plantingDate,
+          harvest_date: null,
+          area_acres: null,
+          irrigation_method: 'drip',
+          soil_type: null,
+          notes: cropInstance.notes || `${crop.category} - ${crop.stages.length} growth stages`,
+          status: 'active'
+        });
+
+      if (error) throw error;
+      console.log('Crop saved to database:', crop.name);
+    } catch (error) {
+      console.error('Error saving crop to database:', error);
+    }
+  };
+
+  // Delete a crop instance from the database
+  const deleteCropFromDatabase = async (cropInstanceId: string) => {
+    try {
+      const { error } = await supabase
+        .from('location_crops')
+        .delete()
+        .eq('crop_id', cropInstanceId);
+
+      if (error) throw error;
+      console.log('Crop deleted from database:', cropInstanceId);
+    } catch (error) {
+      console.error('Error deleting crop from database:', error);
+    }
+  };
+
+  // ============================================================================
+  // REAL-TIME DATABASE SUBSCRIPTION
+  // ============================================================================
+
+  // Load crops from database on mount and set up real-time subscription
   useEffect(() => {
-    //  Fetch if we have locations
-    const locationsToFetch = user ? authLocations : locationsContextLocations;
-    
-    if (locationsToFetch.length > 0) {
-      const fetchWeatherForAllLocations = async () => {
+    if (availableLocations.length === 0) {
+      console.log('⚠️ No locations available, skipping crop load');
+      return;
+    }
+
+    console.log('🔄 Setting up realtime subscription for location_crops...');
+    console.log('📍 Watching locations:', availableLocations.map(l => l.id));
+
+    // Initial load
+    loadCropsFromDatabase();
+
+    // Subscribe to real-time changes
+    // Note: Supabase real-time doesn't support filtering by multiple IDs in postgres_changes
+    // We'll listen to all changes and filter on the client side
+    const subscription = supabase
+      .channel('location_crops_changes_dashboard')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'location_crops'
+        },
+        (payload) => {
+          console.log('🎉 Database change detected on Dashboard:', payload);
+          loadCropsFromDatabase(); // Reload all crops when any change occurs
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Realtime subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔌 Unsubscribing from realtime...');
+      subscription.unsubscribe();
+    };
+  }, [availableLocations.length]); // Re-subscribe when locations change
+
+  // Fetch real weather data for locations (for enhanced display only)
+  useEffect(() => {
+    // Only fetch if we have locations and haven't fetched yet
+    if (locationsContextLocations.length > 0 && !weatherFetchedRef.current) {
+      const fetchWeatherForTrialLocations = async () => {
         weatherFetchedRef.current = true; // Set ref immediately to prevent duplicate calls
         setWeatherFetched(true);
         
         // Initialize with loading state for all locations
         setTrialLocationsWithWeather(
-          locationsToFetch.map(loc => ({
+          locationsContextLocations.map(loc => ({
             ...loc,
             loading: true,
             error: undefined
@@ -235,8 +325,8 @@ export const TrialDashboard: React.FC = () => {
         
         // Process locations sequentially to respect rate limiting
         // Update state progressively as each location loads
-        for (let i = 0; i < locationsToFetch.length; i++) {
-          const location = locationsToFetch[i];
+        for (let i = 0; i < locationsContextLocations.length; i++) {
+          const location = locationsContextLocations[i];
           try {
             const weatherData = await weatherService.getWeatherData({
               id: location.id,
@@ -258,6 +348,7 @@ export const TrialDashboard: React.FC = () => {
               return updated;
             });
           } catch (error) {
+            // Silently handle errors without console.error (already handled in service)
             setTrialLocationsWithWeather(prev => {
               const updated = [...prev];
               updated[i] = {
@@ -271,11 +362,9 @@ export const TrialDashboard: React.FC = () => {
         }
       };
       
-      // Reset the ref before fetching
-      weatherFetchedRef.current = false;
-      fetchWeatherForAllLocations();
+      fetchWeatherForTrialLocations();
     }
-  }, [user, authLocations.map(l => l.id).join(','), locationsContextLocations.map(l => l.id).join(',')]); // Depend on location IDs string
+  }, [locationsContextLocations.length]); // Only depend on length, not the array itself
 
   // Mock weather data for trial overview card
   useEffect(() => {
@@ -303,11 +392,12 @@ export const TrialDashboard: React.FC = () => {
       
       setLoading(false);
     }, 1000);
-  }, [selectedLocation, organization]);
+  }, [selectedLocation]);
 
   // Fetch weather data on-demand when a location is selected (if it doesn't have data yet)
   useEffect(() => {
     if (selectedLocation && !(selectedLocation as any)?.weatherData && !(selectedLocation as any)?.loading) {
+      console.log('Fetching weather data for selected location:', selectedLocation.name);
       refreshLocation(selectedLocation.id);
     }
   }, [selectedLocation?.id]); // Only trigger when the selected location ID changes
@@ -336,7 +426,7 @@ export const TrialDashboard: React.FC = () => {
     : [];
 
 
-  const handleCropToggle = (cropId: string, isManualToggle: boolean = true) => {
+  const handleCropToggle = async (cropId: string, isManualToggle: boolean = true) => {
     if (!selectedLocation) {
       // No location selected - just toggle global selection
       setSelectedCrops(prev => {
@@ -356,6 +446,8 @@ export const TrialDashboard: React.FC = () => {
 
     if (existingInstance) {
       // Remove instance from THIS location only
+      await deleteCropFromDatabase(existingInstance.id);
+      
       setCropInstances(prevInstances => 
         prevInstances.filter(instance => 
           !(instance.cropId === cropId && instance.locationId === selectedLocation.id)
@@ -382,6 +474,9 @@ export const TrialDashboard: React.FC = () => {
           locationId: selectedLocation.id,
           notes: 'Quick added crop - edit for more details'
         };
+        
+        // Save to database first
+        await saveCropToDatabase(newInstance, selectedLocation.id);
         
         setCropInstances(prev => [...prev, newInstance]);
         
@@ -429,12 +524,19 @@ export const TrialDashboard: React.FC = () => {
     }
   };
 
-  const removeAllCrops = () => {
+  const removeAllCrops = async () => {
     // Clear All should only remove instances from current location
     if (selectedLocation) {
-      const removedCropIds = cropInstances
-        .filter(instance => instance.locationId === selectedLocation.id)
-        .map(instance => instance.cropId);
+      const instancesToRemove = cropInstances.filter(
+        instance => instance.locationId === selectedLocation.id
+      );
+      
+      // Delete all from database
+      for (const instance of instancesToRemove) {
+        await deleteCropFromDatabase(instance.id);
+      }
+      
+      const removedCropIds = instancesToRemove.map(instance => instance.cropId);
       
       setCropInstances(prevInstances => 
         prevInstances.filter(instance => instance.locationId !== selectedLocation.id)
@@ -465,7 +567,7 @@ export const TrialDashboard: React.FC = () => {
     let skippedCount = 0;
     const skippedCropNames: string[] = [];
 
-    cropIds.forEach(cropId => {
+    cropIds.forEach(async (cropId) => {
       const crop = availableCrops.find(c => c.id === cropId);
       if (!crop) {
         return;
@@ -490,6 +592,9 @@ export const TrialDashboard: React.FC = () => {
           locationId: locationId,
           notes: `Applied to ${location.name} - edit for more details`
         };
+        
+        // Save to database
+        await saveCropToDatabase(newInstance, locationId);
         
         newInstances.push(newInstance);
         appliedCount++;
@@ -914,7 +1019,7 @@ export const TrialDashboard: React.FC = () => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
-          <p className="text-gray-700 dark:text-gray-300">Loading {user ? 'your' : 'trial'} data...</p>
+          <p className="text-gray-700 dark:text-gray-300">Loading data...</p>
         </div>
       </div>
     );
@@ -927,16 +1032,14 @@ export const TrialDashboard: React.FC = () => {
           <MapPin className="h-16 w-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Locations Available</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {user ? 'Add your first location to get started' : 'Please try refreshing the page'}
+            Add your first location to get started
           </p>
-          {user && (
-            <button
-              onClick={() => setShowLocationModal(true)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Add Location
-            </button>
-          )}
+          <button
+            onClick={() => setShowLocationModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Add Location
+          </button>
         </div>
       </div>
     );
@@ -972,7 +1075,6 @@ export const TrialDashboard: React.FC = () => {
             <EnhancedLocationsList
               onLocationSelect={setSelectedLocation}
               selectedLocationId={selectedLocation?.id}
-              locationsWithWeather={trialLocationsWithWeather.length > 0 ? trialLocationsWithWeather : undefined}
             />
           </div>
         </div>
@@ -1046,58 +1148,23 @@ export const TrialDashboard: React.FC = () => {
                     </button>
                   </div>
                   
-                  {user ? (
-                    <div className="flex items-center space-x-3">
-                      <ThemeToggle />
-                      <OrganizationSwitcher selectedCropsCount={selectedCrops.length} />
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">
-                        {user.email}
-                      </span>
+                  <div className="flex items-center space-x-3">
+                    {isSuperUser && (
                       <button
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          try {
-                            await signOut();
-                            setTimeout(() => {
-                              window.location.href = '/';
-                            }, 100);
-                          } catch (error) {
-                            console.error('Sign out error:', error);
-                            window.location.href = '/';
-                          }
+                        onClick={() => {
+                          console.log('[SuperAdmin] Header button clicked');
+                          setShowSuperAdminPanel(true);
                         }}
-                        className="flex items-center space-x-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-lg"
+                        title="Super Admin Panel - User Management"
                       >
-                        <LogOut className="h-4 w-4" />
-                        <span>Sign Out</span>
+                        <Users className="h-4 w-4" />
+                        <span>Super Admin</span>
                       </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-3">
-                      <ThemeToggle />
-                      <OrganizationSwitcher selectedCropsCount={selectedCrops.length} />
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          try {
-                            disableTrialMode();
-                            // Redirect to home page
-                            setTimeout(() => {
-                              window.location.href = '/';
-                            }, 100);
-                          } catch (error) {
-                            console.error('Error calling disableTrialMode:', error);
-                            window.location.href = '/';
-                          }
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
-                      >
-                        Exit Trial
-                      </button>
-                    </div>
-                  )}
+                    )}
+                    <ThemeToggle />
+                    <OrganizationSwitcher />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1117,7 +1184,7 @@ export const TrialDashboard: React.FC = () => {
                 )}
                 
                 <div className="flex items-center space-x-2">
-                  <OrganizationSwitcher selectedCropsCount={selectedCrops.length} />
+                  <OrganizationSwitcher />
                   <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -1189,37 +1256,7 @@ export const TrialDashboard: React.FC = () => {
                     </button>
                   </div>
                   
-                  {/* Mobile user actions */}
-                  <div className="border-t border-gray-200 dark:border-gray-700 px-2 py-3">
-                    {user ? (
-                      <div className="space-y-2">
-                        <div className="px-3 py-2">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Signed in as</p>
-                          <p className="text-sm text-gray-900 dark:text-gray-300 truncate">{user.email}</p>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            await signOut();
-                            window.location.href = '/';
-                          }}
-                          className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-gray-700 rounded-md transition-colors"
-                        >
-                          <LogOut className="h-4 w-4 mr-3" />
-                          Sign Out
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          disableTrialMode();
-                          setMobileMenuOpen(false);
-                        }}
-                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                      >
-                        Exit Trial
-                      </button>
-                    )}
-                  </div>
+                  {/* Mobile user actions - removed since no auth */}
                 </div>
               )}
             </div>
@@ -1240,6 +1277,10 @@ export const TrialDashboard: React.FC = () => {
                           <span className="text-green-600 dark:text-green-400 flex items-center space-x-1">
                             <Sprout className="h-4 w-4" />
                             <span>{selectedCrops.length} crops</span>
+                          </span>
+                          <span className="text-yellow-600 dark:text-yellow-400 flex items-center space-x-1">
+                            <Plus className="h-4 w-4" />
+                            <span>{getLocationCropInstances().length} plantings</span>
                           </span>
                           {calculatorInputs.crop && (
                             <span className="text-blue-400 flex items-center space-x-1">
@@ -1875,19 +1916,7 @@ export const TrialDashboard: React.FC = () => {
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Irrigation Runtime Calculator</h2>
-                    <div className="flex items-center space-x-3">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
-                      {!user && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-600">
-                          <button 
-                            onClick={disableTrialMode}
-                            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          >
-                            Create account for saved calculations
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
                   </div>
 
                   {/* Saved Profiles Section */}
@@ -2295,6 +2324,10 @@ export const TrialDashboard: React.FC = () => {
                         <Sprout className="h-3 w-3" />
                         <span>{selectedCrops.length} crops tracked</span>
                       </span>
+                      <span className="flex items-center space-x-1">
+                        <Plus className="h-3 w-3" />
+                        <span>{getLocationCropInstances().length} plantings</span>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -2304,7 +2337,7 @@ export const TrialDashboard: React.FC = () => {
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   selectedLocation={null}
-                  availableLocations={trialLocationsWithWeather.length > 0 ? trialLocationsWithWeather : availableLocations}
+                  availableLocations={availableLocations}
                   onDisplayLocationsChange={setDisplayedLocations}
                   reportSelectedLocationIds={reportSelectedLocationIds}
                   onReportSelectedLocationIdsChange={setReportSelectedLocationIds}
@@ -2682,6 +2715,26 @@ export const TrialDashboard: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+      
+      {/* Super Admin Panel Modal */}
+      {showSuperAdminPanel && (
+        <SuperAdminPanel onClose={() => setShowSuperAdminPanel(false)} />
+      )}
+      
+      {/* Floating Super Admin Button (only for super user) */}
+      {isSuperUser && (
+        <button
+          onClick={() => {
+            console.log('[SuperAdmin] Floating button clicked in TrialDashboard');
+            setShowSuperAdminPanel(true);
+          }}
+          className="fixed bottom-6 right-6 z-50 p-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-full shadow-2xl transition-all transform hover:scale-110 flex items-center gap-2"
+          title="Super Admin Panel - User Management"
+        >
+          <Users className="h-6 w-6" />
+          <span className="font-medium">Super Admin</span>
+        </button>
       )}
     </div>
   );

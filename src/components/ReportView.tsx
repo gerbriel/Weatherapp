@@ -423,9 +423,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   if (response.success) {
                     newCmisData.set(location.id, response.data);
                   } else if (!response.isCaliforniaLocation) {
-                    // Store empty array for non-CA locations with error flag
+                    // Store empty array for non-CA locations
                     newCmisData.set(location.id, []);
-                    console.log(`CMIS not available for ${location.name}: ${response.error}`);
                   }
                 } else {
                   // No station found (likely non-CA location)
@@ -1241,8 +1240,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
           const todayData = mockForecastData[0];
           const isCollapsed = collapsedLocations.has(location.id);
 
-          console.log(`[TRIAL ${location.name}] Rendering with preset: ${forecastPreset}, mockData length: ${mockForecastData.length}`);
-
           // Render trial location with forecast table and charts
           return (
             <div 
@@ -1661,8 +1658,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
         }
 
         const isCollapsed = collapsedLocations.has(location.id);
-
-        console.log(`[REAL ${location.name}] Rendering with preset: ${forecastPreset}, startIdx: ${startIdx}, endIdx: ${endIdx}, forecastData length: ${forecastData.length}`);
 
         return (
           <div 

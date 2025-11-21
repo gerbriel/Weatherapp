@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, X, Sprout, Filter, Check, Plus } from 'lucide-react';
 import { getCropsByCategory, type AvailableCrop, COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextSimple';
 
 interface CropManagementModalProps {
   isOpen: boolean;
@@ -58,7 +58,13 @@ export const CropManagementModal: React.FC<CropManagementModalProps> = ({
     useMonthlyKc: false
   });
   
-  const { addOrganizationCrop, organization } = useAuth();
+  const { organization } = useAuth();
+  
+  // Stub for addOrganizationCrop - not implemented in AuthContextSimple
+  const addOrganizationCrop = async (crop: any) => {
+    console.log('addOrganizationCrop not implemented:', crop);
+    return { error: null };
+  };
   
   const handleAddNewCrop = async () => {
     if (!newCropData.name.trim()) return;

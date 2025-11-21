@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MarketingLayout } from './MarketingLayout';
 import { 
   Droplets, 
@@ -21,12 +22,13 @@ import { AuthModal } from '../auth/AuthModal';
 import { useTrial } from '../../contexts/TrialContext';
 
 export const HomePage: React.FC = () => {
+  const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const { enableTrialMode } = useTrial();
 
   const handleStartTrial = () => {
     enableTrialMode();
-    // The AppRouter will automatically redirect to /trial
+    navigate('/trial');
   };
 
   const features = [

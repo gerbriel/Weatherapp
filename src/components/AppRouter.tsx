@@ -1,15 +1,16 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTrial } from '../contexts/TrialContext';
+import { useAuth } from '../contexts/AuthContextSimple';
 import { TrialDashboard } from './TrialDashboard';
 import { HomePage } from './marketing/HomePage';
 import { ProductPage } from './marketing/ProductPage';
 import { PricingPage } from './marketing/PricingPage';
+import { ResetPasswordPage } from '../pages/ResetPasswordPage';
+import { SimpleAuthTestPage } from '../pages/SimpleAuthTestPage';
+import { SimpleDashboard } from '../pages/SimpleDashboard';
 
 export const AppRouter: React.FC = () => {
   const { user, loading } = useAuth();
-  const { isTrialMode } = useTrial();
 
   // Show loading state while checking authentication
   if (loading) {
@@ -25,10 +26,14 @@ export const AppRouter: React.FC = () => {
   return (
     <Router basename={basename}>
       <Routes>
-        {/* Trial Mode Route - Accessible without authentication */}
-        {isTrialMode && (
-          <Route path="/trial" element={<TrialDashboard />} />
-        )}
+        {/* Public password reset route */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        
+        {/* Public Trial Route */}
+        <Route path="/trial" element={<TrialDashboard />} />
+        
+        {/* Simple Auth Test Page - For testing new auth system */}
+        <Route path="/auth-test" element={<SimpleAuthTestPage />} />
 
         {/* Protected Routes - Only accessible when authenticated */}
         {user ? (
@@ -39,23 +44,21 @@ export const AppRouter: React.FC = () => {
             <Route path="/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/product" element={<Navigate to="/dashboard" replace />} />
             <Route path="/pricing" element={<Navigate to="/dashboard" replace />} />
-            {/* Redirect trial to dashboard for authenticated users */}
-            <Route path="/trial" element={<Navigate to="/dashboard" replace />} />
           </>
         ) : (
           <>
             {/* Public Marketing Routes - Only accessible when not authenticated */}
-            <Route path="/" element={isTrialMode ? <Navigate to="/trial" replace /> : <HomePage />} />
-            <Route path="/home" element={isTrialMode ? <Navigate to="/trial" replace /> : <HomePage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/home" element={<HomePage />} />
             <Route path="/product" element={<ProductPage />} />
             <Route path="/pricing" element={<PricingPage />} />
-            {/* Redirect dashboard route to home for unauthenticated users (unless in trial mode) */}
-            <Route path="/dashboard" element={<Navigate to={isTrialMode ? "/trial" : "/"} replace />} />
+            {/* Redirect dashboard route to home for unauthenticated users */}
+            <Route path="/dashboard" element={<Navigate to="/" replace />} />
           </>
         )}
         
         {/* Catch-all route */}
-        <Route path="*" element={<Navigate to={user ? "/dashboard" : (isTrialMode ? "/trial" : "/")} replace />} />
+        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
       </Routes>
     </Router>
   );

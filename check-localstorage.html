@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head><title>Check LocalStorage</title></head>
+<body>
+<h1>LocalStorage Checker</h1>
+<pre id="output"></pre>
+<script>
+  const userId = 'e7951d2c-1fb9-4295-b295-9932b58cf7eb';
+  const key = `userLocations_${userId}`;
+  const data = localStorage.getItem(key);
+  document.getElementById('output').textContent = JSON.stringify(JSON.parse(data || '[]'), null, 2);
+</script>
+</body>
+</html>

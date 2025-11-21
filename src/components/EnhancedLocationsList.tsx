@@ -18,13 +18,14 @@ import {
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { useLocations } from '../contexts/LocationsContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContextSimple';
 import { DEFAULT_CALIFORNIA_LOCATIONS } from '../constants/defaultLocations';
 import type { LocationWithWeather } from '../types/weather';
 
 interface EnhancedLocationsListProps {
   onLocationSelect?: (location: LocationWithWeather) => void;
   selectedLocationId?: string;
+  locationsWithWeather?: any[]; // Optional prop to pass locations with pre-fetched weather data
 }
 
 interface EditingLocation {
@@ -38,7 +39,8 @@ interface EditingLocation {
 
 export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({ 
   onLocationSelect, 
-  selectedLocationId 
+  selectedLocationId,
+  locationsWithWeather
 }) => {
   const { 
     user, 
@@ -48,7 +50,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     deleteLocation: authDeleteLocation,
     toggleLocationFavorite: authToggleFavorite,
     reorderLocations: authReorderLocations,
-    resetToTrialLocations
+    resetToTrialLocations: authResetToTrialLocations,
   } = useAuth();
   
   const {
@@ -63,20 +65,36 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     loading: globalLoading
   } = useLocations();
 
-  // Use auth locations for authenticated users, trial locations for trial users
-  const rawLocations = user ? authLocations : trialLocations;
+  // Always use fresh auth/trial locations (this updates immediately when locations are added/deleted)
+  // Then merge in weather data from locationsWithWeather if available
+  const baseLocations = user ? authLocations : trialLocations;
   
-  // Deduplicate locations by ID (safeguard against any duplication issues)
+  // Deduplicate and merge weather data
   const locations = React.useMemo(() => {
     const seen = new Set<string>();
-    return rawLocations.filter(loc => {
+    
+    // Create a map of weather data by location ID for quick lookup
+    const weatherDataMap = new Map();
+    if (locationsWithWeather) {
+      locationsWithWeather.forEach(loc => {
+        if (loc.weatherData) {
+          weatherDataMap.set(loc.id, loc.weatherData);
+        }
+      });
+    }
+    
+    // Use base locations (always fresh), merge in weather data if available
+    return baseLocations.filter(loc => {
       if (seen.has(loc.id)) {
         return false;
       }
       seen.add(loc.id);
       return true;
+    }).map(loc => {
+      const weatherData = weatherDataMap.get(loc.id);
+      return weatherData ? { ...loc, weatherData } : loc;
     });
-  }, [rawLocations]);
+  }, [baseLocations, locationsWithWeather]);
   
   // State management
   const [showAddForm, setShowAddForm] = useState(false);
@@ -338,9 +356,10 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
       try {
         if (user) {
           // For authenticated users, use the auth context reset
-          const result = await resetToTrialLocations();
+          const result = await authResetToTrialLocations();
           if (result.error) {
-            alert('Failed to reset locations: ' + result.error.message);
+            const errorMessage = (result.error as any)?.message || 'Unknown error';
+            alert('Failed to reset locations: ' + errorMessage);
           } else {
             alert('✅ Successfully reset to CIMIS agricultural weather stations!');
           }
@@ -362,15 +381,24 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     location: LocationWithWeather | any; 
     index: number;
     isDragging: boolean;
-  }> = ({ location, index, isDragging }) => {
+    dragHandleProps?: any;
+  }> = ({ location, index, isDragging, dragHandleProps }) => {
     const isSelected = selectedLocationId === location.id;
     const isFavorite = user ? (location as any).is_favorite : location.isFavorite;
     const isEditing = editingLocation?.id === location.id;
 
-    const todayData = location.weatherData?.daily ? {
-      precipitation: location.weatherData.daily.precipitation_sum[0] || 0,
-      et0: location.weatherData.daily.et0_fao_evapotranspiration[0] || 0,
-    } : null;
+    // Get today's weather data by finding today's date in the time array (same logic as Current Weather section)
+    const todayData = (() => {
+      if (!location.weatherData?.daily?.time) return null;
+      const today = new Date().toISOString().split('T')[0];
+      const todayIndex = location.weatherData.daily.time.findIndex((date: string) => date === today);
+      if (todayIndex < 0) return null;
+      
+      return {
+        precipitation: location.weatherData.daily.precipitation_sum[todayIndex] || 0,
+        et0: location.weatherData.daily.et0_fao_evapotranspiration[todayIndex] || 0,
+      };
+    })();
 
     const weatherStationName = location.weatherstation || '';
     const weatherStationId = location.weatherstation_id || location.weatherstationID || '';
@@ -465,8 +493,10 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
         {/* Icons Row - Above Content */}
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-600">
           <div className="flex items-center gap-2">
-            {/* Drag Handle */}
-            <GripVertical className="h-4 w-4 text-gray-400 cursor-grab active:cursor-grabbing" />
+            {/* Drag Handle - Only this element can be used to drag */}
+            <div {...dragHandleProps}>
+              <GripVertical className="h-4 w-4 text-gray-400 cursor-grab active:cursor-grabbing" />
+            </div>
             {/* Map Pin */}
             <MapPin className="h-4 w-4 text-gray-500" />
           </div>
@@ -572,7 +602,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
             <div className="flex flex-col">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ET₀</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                {(todayData.et0 * 0.0393701).toFixed(3)} inches
+                {(todayData.et0 * 0.0393701).toFixed(2)} inches
               </p>
             </div>
           </div>
@@ -659,12 +689,12 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          {...provided.dragHandleProps}
                         >
                           <LocationCard 
                             location={location} 
                             index={index}
                             isDragging={snapshot.isDragging}
+                            dragHandleProps={provided.dragHandleProps}
                           />
                         </div>
                       )}

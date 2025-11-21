@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
-import { LoginForm } from './LoginForm';
-import { SignupForm } from './SignupForm';
+import { SimpleLoginForm } from './SimpleLoginForm';
+import { SimpleSignupForm } from './SimpleSignupForm';
+import { ForgotPasswordForm } from './ForgotPasswordForm';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialMode?: 'login' | 'signup';
+  initialMode?: 'login' | 'signup' | 'forgot-password';
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ 
@@ -14,7 +15,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose, 
   initialMode = 'login' 
 }) => {
-  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot-password'>(initialMode);
 
   if (!isOpen) return null;
 
@@ -42,14 +43,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         </button>
         
         {mode === 'login' ? (
-          <LoginForm
+          <SimpleLoginForm
             onSuccess={handleSuccess}
             onSwitchToSignup={() => setMode('signup')}
+            onSwitchToForgotPassword={() => setMode('forgot-password')}
           />
-        ) : (
-          <SignupForm
+        ) : mode === 'signup' ? (
+          <SimpleSignupForm
             onSuccess={handleSuccess}
             onSwitchToLogin={() => setMode('login')}
+          />
+        ) : (
+          <ForgotPasswordForm
+            onBack={() => setMode('login')}
           />
         )}
       </div>
