@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContextSimple';
 import { supabase } from '../lib/supabase';
 import { ProfileManager } from './ProfileManager';
 import { UserManagementPanel } from './UserManagementPanel';
+import { SuperUserDashboard } from './SuperUserDashboard';
 
 interface OrganizationStandards {
   id: string;
@@ -68,6 +69,7 @@ export const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ sele
   const [showOrgModal, setShowOrgModal] = useState(false);
   const [showProfileManager, setShowProfileManager] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showSuperUserDashboard, setShowSuperUserDashboard] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<string>(organization?.id || '');
   const [activeTab, setActiveTab] = useState<'overview' | 'locations' | 'crops' | 'users'>('overview');
   const [editingLocationId, setEditingLocationId] = useState<string | null>(null);
@@ -753,7 +755,8 @@ export const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ sele
                   {profile?.role === 'superuser' && (
                     <button 
                       onClick={() => {
-                        alert('Superuser Panel - Full system access: Manage ALL organizations, users & settings');
+                        setShowSuperUserDashboard(true);
+                        setShowDropdown(false);
                       }}
                       className="w-full flex flex-col items-start bg-gradient-to-br from-pink-600 via-purple-600 to-indigo-600 hover:from-pink-700 hover:via-purple-700 hover:to-indigo-700 text-white p-4 rounded-lg transition-colors group relative overflow-hidden"
                     >
@@ -803,6 +806,11 @@ export const OrganizationSwitcher: React.FC<OrganizationSwitcherProps> = ({ sele
           setShowOrgModal(true);
         }}
       />
+
+      {/* SuperUser Dashboard Modal */}
+      {showSuperUserDashboard && (
+        <SuperUserDashboard onClose={() => setShowSuperUserDashboard(false)} />
+      )}
     </>
   );
 };
