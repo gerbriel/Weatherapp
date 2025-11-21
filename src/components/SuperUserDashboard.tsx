@@ -90,43 +90,87 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
   };
 
   const loadOrganizations = async () => {
-    const { data, error } = await supabase
-      .from('organizations')
-      .select(`
-        *,
-        organization_members(count),
-        locations(count)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('organizations')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error loading organizations:', error);
+        // If table doesn't exist, just set empty array
+        setOrganizations([]);
+        return;
+      }
 
-    const orgsWithCounts = data.map((org: any) => ({
-      ...org,
-      member_count: org.organization_members?.[0]?.count || 0,
-      location_count: org.locations?.[0]?.count || 0
-    }));
+      // Get counts separately for each org
+      const orgsWithCounts = await Promise.all(
+        (data || []).map(async (org: any) => {
+          // Get member count
+          const { count: memberCount } = await supabase
+            .from('organization_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('organization_id', org.id);
 
-    setOrganizations(orgsWithCounts);
+          return {
+            ...org,
+            member_count: memberCount || 0,
+            location_count: 0
+          };
+        })
+      );
+
+      setOrganizations(orgsWithCounts);
+    } catch (err) {
+      console.error('Failed to load organizations:', err);
+      setOrganizations([]);
+    }
   };
 
   const loadUsers = async () => {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select(`
-        *,
-        organizations(name)
-      `)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error loading users:', error);
+        setUsers([]);
+        return;
+      }
 
-    const usersWithOrg = data.map((user: any) => ({
-      ...user,
-      organization_name: user.organizations?.name || 'No Organization'
-    }));
+      // Get org names separately to avoid query errors
+      const usersWithOrg = await Promise.all(
+        (data || []).map(async (user: any) => {
+          let organizationName = 'No Organization';
+          
+          if (user.primary_organization_id) {
+            try {
+              const { data: orgData } = await supabase
+                .from('organizations')
+                .select('name')
+                .eq('id', user.primary_organization_id)
+                .single();
+              
+              if (orgData) organizationName = orgData.name;
+            } catch (err) {
+              // Org table might not exist yet
+            }
+          }
+          
+          return {
+            ...user,
+            organization_name: organizationName
+          };
+        })
+      );
 
-    setUsers(usersWithOrg);
+      setUsers(usersWithOrg);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+      setUsers([]);
+    }
   };
 
   const loadOrgMembers = async (orgId: string) => {
@@ -150,18 +194,59 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
   };
 
   const loadStats = async () => {
-    const [orgsData, usersData, locationsData] = await Promise.all([
-      supabase.from('organizations').select('id, is_active', { count: 'exact' }),
-      supabase.from('user_profiles').select('id', { count: 'exact' }),
-      supabase.from('locations').select('id', { count: 'exact' })
-    ]);
+    try {
+      // Try to load stats, but handle if tables don't exist
+      let totalOrgs = 0;
+      let activeOrgs = 0;
+      let totalUsers = 0;
+      let totalLocations = 0;
 
-    setStats({
-      totalOrgs: orgsData.count || 0,
-      totalUsers: usersData.count || 0,
-      totalLocations: locationsData.count || 0,
-      activeOrgs: orgsData.data?.filter(org => org.is_active).length || 0
-    });
+      // Organizations
+      try {
+        const { count, data } = await supabase
+          .from('organizations')
+          .select('id, is_active', { count: 'exact' });
+        totalOrgs = count || 0;
+        activeOrgs = data?.filter((org: any) => org.is_active).length || 0;
+      } catch (err) {
+        console.warn('Organizations table not available yet');
+      }
+
+      // Users
+      try {
+        const { count } = await supabase
+          .from('user_profiles')
+          .select('id', { count: 'exact' });
+        totalUsers = count || 0;
+      } catch (err) {
+        console.warn('User profiles table issue');
+      }
+
+      // Locations
+      try {
+        const { count } = await supabase
+          .from('locations')
+          .select('id', { count: 'exact' });
+        totalLocations = count || 0;
+      } catch (err) {
+        console.warn('Locations table issue');
+      }
+
+      setStats({
+        totalOrgs,
+        totalUsers,
+        totalLocations,
+        activeOrgs
+      });
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+      setStats({
+        totalOrgs: 0,
+        totalUsers: 0,
+        totalLocations: 0,
+        activeOrgs: 0
+      });
+    }
   };
 
   const toggleOrgStatus = async (orgId: string, currentStatus: boolean) => {
@@ -316,8 +401,22 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
               </div>
 
               {/* Organizations List */}
-              <div className="grid gap-4">
-                {filteredOrgs.map(org => (
+              {filteredOrgs.length === 0 && !loading ? (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-dashed border-yellow-300 dark:border-yellow-700 rounded-lg p-8 text-center">
+                  <Building2 className="h-16 w-16 text-yellow-600 dark:text-yellow-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-yellow-900 dark:text-yellow-100 mb-2">
+                    No Organizations Yet
+                  </h3>
+                  <p className="text-yellow-800 dark:text-yellow-200 mb-4">
+                    Run the organization system migration in Supabase to enable multi-tenant features.
+                  </p>
+                  <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                    Check <code className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/50 rounded">QUICK_SETUP_ORGS.sql</code> in your project root
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {filteredOrgs.map(org => (
                   <div
                     key={org.id}
                     className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -377,8 +476,9 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
