@@ -658,19 +658,55 @@ export async function exportChartsAsHTML(
           line-height: 1.6;
           color: #353750;
           font-size: 16px;
+          max-width: 100%;
+          margin: 0;
+          padding: 0;
+          background: #F9FAFB;
+        }
+        .hero {
+          background: linear-gradient(135deg, #0A7DD6 0%, #353750 100%);
+          padding: 60px 40px;
+          margin: 0;
+          text-align: center;
+          color: #FFFFFF;
+        }
+        .hero h2 {
+          font-size: 32px;
+          font-weight: 700;
+          margin: 0 0 12px 0;
+          padding: 0;
+          color: #FFFFFF;
+          letter-spacing: -0.5px;
+        }
+        .hero p {
+          font-size: 18px;
+          font-weight: 400;
+          margin: 0;
+          color: rgba(255,255,255,0.95);
+          line-height: 1.5;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .content-wrapper {
           max-width: 800px;
           margin: 0 auto;
           padding: 30px 20px;
-          background: #F9FAFB;
         }
-        .header {
-          text-align: center;
-          margin-bottom: 40px;
-          padding: 30px;
+        .metadata {
           background: #FFFFFF;
+          padding: 25px 30px;
           border-radius: 12px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          margin: -30px auto 40px;
+          max-width: 760px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
           border: 1px solid #E5E7EB;
+          font-size: 14px;
+          position: relative;
+          z-index: 2;
+        }
+        .metadata p {
+          margin: 8px 0;
+          color: #414042;
         }
         .location-section {
           margin-bottom: 50px;
@@ -866,196 +902,142 @@ export async function exportChartsAsHTML(
       </style>
     </head>
     <body>
-      <div class="header">
-        <h1>📊 Comprehensive Weather Charts Report</h1>
-        <div class="metadata">
-          <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-          <p><strong>Locations:</strong> ${locations.map(loc => loc.name).join(', ')}</p>
-          <p><strong>Report Period:</strong> 14-Day Forecast</p>
-          ${selectedCrops.length > 0 ? `<p><strong>Selected Crops:</strong> ${selectedCrops.join(', ')}</p>` : ''}
-        </div>
+      <div class="hero">
+        <h2>Weekly Snapshot</h2>
       </div>
+      <div style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
+        <h2 style="font-size: 24px; font-weight: 600; color: #1F2937; margin: 0 0 12px 0;">Week of ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h2>
+        <p style="font-size: 16px; color: #4B5563; margin: 0; line-height: 1.6;">Today's Weather Stats, ET trends and irrigation updates for ${selectedCrops.length > 0 ? selectedCrops.join(', ') : 'selected crops'} across ${locations.map(loc => loc.name).join(', ')}</p>
+      </div>
+      <div class="content-wrapper">
   `;
 
-  // Data Sources Information Panel
+  // Add comprehensive ET Summary - SEPARATE TABLE FOR EACH CROP
   htmlContent += `
-    <div class="data-sources-panel">
-      <h4 style="color: #0A7DD6; margin-bottom: 15px; font-weight: bold;">📡 Data Sources & APIs</h4>
-      <div class="data-sources-grid">
-        <div class="data-source-card">
-          <div style="font-weight: bold; color: #0A7DD6; margin-bottom: 8px; font-size: 17px;">🌤️ Weather Data</div>
-          <div style="font-size: 16px; color: #414042;">
-            <strong>API:</strong> Open-Meteo Forecast<br/>
-            <strong>Data:</strong> Temperature, precipitation, wind, humidity<br/>
-            <strong>Coverage:</strong> GFS Global forecast
-          </div>
-        </div>
-        <div class="data-source-card">
-          <div style="font-weight: bold; color: #FF7D5E; margin-bottom: 8px; font-size: 17px;">💧 Evapotranspiration</div>
-          <div style="font-size: 16px; color: #414042;">
-            <strong>API:</strong> Open-Meteo ET₀<br/>
-            <strong>Method:</strong> FAO-56 Penman-Monteith<br/>
-            <strong>Type:</strong> Reference evapotranspiration
-          </div>
-        </div>
-        <div class="data-source-card">
-          <div style="font-weight: bold; color: #075FA6; margin-bottom: 8px; font-size: 17px;">🌾 Crop Coefficients</div>
-          <div style="font-size: 16px; color: #414042;">
-            <strong>Source:</strong> FAO-56 Guidelines<br/>
-            <strong>Enhancement:</strong> CMIS API (CA only)<br/>
-            <strong>Analysis:</strong> ETC = ET₀ × Kc
-          </div>
-        </div>
-      </div>
-    </div>
+    <h2 style="text-align: center; margin: 0 0 30px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 22px; color: #353750;">📊 Comprehensive ET Summary</h2>
   `;
 
-  // Crop Management Summary (if any crop data exists)
-  if (selectedCrops.length > 0 || cropInstances.length > 0 || additionalData?.calculatorResult || (additionalData?.fieldBlocks && additionalData.fieldBlocks.length > 0)) {
+  // Get unique crops
+  const uniqueCrops = Array.from(new Set(cropInstances.map(c => c.cropId)));
+  
+  // Helper function to get crop color from palette
+  const getCropColor = (cropName: string, index: number) => {
+    const colors = [
+      '#0A7DD6',  // Primary Blue
+      '#5C9D6D',  // Green (Pantone 333 U)
+      '#E97B6E',  // Coral (Pantone 2024 U)
+      '#F4B942',  // Yellow (Pantone 135 U)
+      '#C94D4A',  // Red (Pantone 1797 U)
+      '#E6AAB8',  // Pink (Pantone 639 U)
+      '#353750'   // Dark Navy
+    ];
+    return colors[index % colors.length];
+  };
+  
+  // Helper function to get crop SVG icon
+  const getCropSVG = (cropName: string) => {
+    return `<svg viewBox="0 0 100 60" style="width: 26px; height: auto; display: inline-block; vertical-align: middle;">
+      <path d="M15 30 Q30 5 55 10 Q45 35 25 50 Q15 40 15 30 Z"
+            fill="none" stroke="#fff" stroke-width="2.5"/>
+      <path d="M55 10 Q75 20 82 35 Q70 50 50 52 Q45 35 55 10 Z"
+            fill="none" stroke="#fff" stroke-width="2.5"/>
+    </svg>`;
+  };
+  
+  // Create a separate table for each crop
+  uniqueCrops.forEach((cropId, cropIndex) => {
+    const cropName = cropId.charAt(0).toUpperCase() + cropId.slice(1);
+    const cropSVG = getCropSVG(cropName);
+    const cropColor = getCropColor(cropName, cropIndex);
+    
+    // Get locations that have this crop
+    const cropsForThisCrop = cropInstances.filter(c => c.cropId === cropId);
+    const locationsWithCrop = locations.filter(loc => 
+      cropsForThisCrop.some(c => c.locationId === loc.id)
+    );
+    
+    if (locationsWithCrop.length === 0) return;
+    
     htmlContent += `
-      <div class="crop-summary">
-        <h4 style="color: #FF7D5E; margin-bottom: 15px; font-weight: bold; font-size: 21px; text-align: center;">🌱 Crop Management Summary</h4>
-        <div class="crop-summary-grid">
+      <div style="margin: ${cropIndex > 0 ? '40px' : '0'} 0 20px 0;">
+        <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px 8px 12px; background: ${cropColor}; color: #fff; font-weight: 600; border-radius: 2px; clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 18px;">
+          ${cropSVG}
+          <span>${cropName}</span>
+        </div>
+      </div>
+      
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 30px;">
+        <tr>
+          <td>
+            <table width="100%" cellpadding="12" cellspacing="0" border="0" style="border: 1px solid #E5E7EB; border-collapse: collapse;">
+              <!-- Header Row -->
+              <tr style="background-color: #353750;">
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: left; font-weight: 600; text-transform: uppercase;">Location</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: left; font-weight: 600; text-transform: uppercase;">Date</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Kc</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ (in)</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc (in)</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Water Need</th>
+              </tr>
+              <!-- Data Rows for this crop -->
+              ${locationsWithCrop.map((loc, locIdx) => {
+                const locForecast = generate14DayForecast(loc);
+                const cropInstance = cropsForThisCrop.find(c => c.locationId === loc.id);
+                
+                if (!cropInstance) return '';
+                
+                const kc = cropInstance.currentStage === 2 ? 1.15 : 
+                          cropInstance.currentStage === 1 ? 0.70 : 0.50;
+                
+                // Show next 7 days
+                const daysToShow = locForecast.slice(0, 7);
+                
+                return daysToShow.map((day, dayIdx) => {
+                  const et0_inches = Number(day.et0) || 0;
+                  const etc_inches = et0_inches * kc;
+                  
+                  let waterNeedCategory = 'Low';
+                  let waterNeedColor = '#10B981';
+                  let waterNeedBg = '#D1FAE5';
+                  
+                  if (etc_inches > 0.25) {
+                    waterNeedCategory = 'High';
+                    waterNeedColor = '#EF4444';
+                    waterNeedBg = '#FEE2E2';
+                  } else if (etc_inches >= 0.15) {
+                    waterNeedCategory = 'Med';
+                    waterNeedColor = '#F59E0B';
+                    waterNeedBg = '#FEF3C7';
+                  }
+                  
+                  return `
+                    <tr style="background-color: ${(locIdx * daysToShow.length + dayIdx) % 2 === 0 ? '#FFFFFF' : '#F3F4F6'};">
+                      ${dayIdx === 0 ? `
+                        <td rowspan="${daysToShow.length}" style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD; vertical-align: top;">
+                          📍 ${loc.name}
+                        </td>
+                      ` : ''}
+                      <td style="color: #4B5563; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: left;">
+                        ${day.formattedDate}
+                      </td>
+                      <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${kc.toFixed(2)}</td>
+                      <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${et0_inches.toFixed(2)}</td>
+                      <td style="color: #0A7DD6; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${etc_inches.toFixed(2)}</td>
+                      <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
+                        <span style="background-color: ${waterNeedBg}; color: ${waterNeedColor}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
+                          ${waterNeedCategory}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('');
+              }).join('')}
+            </table>
+          </td>
+        </tr>
+      </table>
     `;
-
-    if (selectedCrops.length > 0) {
-      htmlContent += `
-        <div>
-          <h5 style="margin-bottom: 10px;">Active Crops (${selectedCrops.length})</h5>
-          <ul style="margin: 0; padding-left: 20px;">
-            ${selectedCrops.slice(0, 10).map(crop => `<li>${crop}</li>`).join('')}
-            ${selectedCrops.length > 10 ? `<li><em>+${selectedCrops.length - 10} more crops</em></li>` : ''}
-          </ul>
-        </div>
-      `;
-    }
-
-    if (cropInstances.length > 0) {
-      htmlContent += `
-        <div>
-          <h5 style="margin-bottom: 10px;">Active Plantings (${cropInstances.length})</h5>
-          <ul style="margin: 0; padding-left: 20px;">
-            ${cropInstances.slice(0, 5).map(instance => `
-              <li>
-                <strong>${instance.cropId}</strong><br/>
-                <small>Planted: ${new Date(instance.plantingDate).toLocaleDateString()}</small>
-                ${instance.fieldName ? `<br/><small>Field: ${instance.fieldName}</small>` : ''}
-              </li>
-            `).join('')}
-            ${cropInstances.length > 5 ? `<li><em>+${cropInstances.length - 5} more plantings</em></li>` : ''}
-          </ul>
-        </div>
-      `;
-    }
-
-    if (additionalData?.fieldBlocks && additionalData.fieldBlocks.length > 0) {
-      const fieldBlocks = additionalData.fieldBlocks;
-      htmlContent += `
-        <div>
-          <h5 style="margin-bottom: 10px;">Field Blocks (${fieldBlocks.length})</h5>
-          <ul style="margin: 0; padding-left: 20px;">
-            ${fieldBlocks.slice(0, 5).map(block => `
-              <li>
-                <strong>${block.name}</strong><br/>
-                <small>${block.crop_name} • ${block.acres} acres • ${block.status}</small>
-                ${block.address ? `<br/><small>${block.address}</small>` : ''}
-              </li>
-            `).join('')}
-            ${fieldBlocks.length > 5 ? `<li><em>+${fieldBlocks.length - 5} more blocks</em></li>` : ''}
-          </ul>
-        </div>
-      `;
-    }
-
-    if (additionalData?.calculatorResult) {
-      const calc = additionalData.calculatorResult;
-      htmlContent += `
-        <div>
-          <h5 style="margin-bottom: 10px;">Current Calculation</h5>
-          <div style="font-size: 0.875rem;">
-            <div><strong>Daily Water Need:</strong> ${calc.dailyWaterNeed?.toFixed(1) || 'N/A'} gal</div>
-            <div><strong>Runtime:</strong> ${calc.runtimeHours || 0}h ${calc.runtimeMinutes || 0}m</div>
-            <div><strong>Efficiency:</strong> ${calc.efficiency || 'N/A'}%</div>
-            ${additionalData.calculatorInputs?.crop ? `<div><strong>Crop:</strong> ${additionalData.calculatorInputs.crop}</div>` : ''}
-          </div>
-        </div>
-      `;
-    }
-
-    htmlContent += '</div></div>';
-  }
-
-  // Add comprehensive ET Summary for ALL locations (appears once before individual sections)
-  htmlContent += `
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 40px;">
-      <tr>
-        <td>
-          <h2 style="text-align: center; margin: 0 0 25px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 20px; color: #353750;">📊 Comprehensive ET Summary - All Locations</h2>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <!-- ET Chart Header -->
-          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 0;">
-            <tr>
-              <td style="background-color: #0A7DD6; color: #ffffff; padding: 12px 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-weight: bold; font-size: 17px;">
-                14-Day Summary
-              </td>
-            </tr>
-          </table>
-          
-          <!-- Summary Table -->
-          <table width="100%" cellpadding="12" cellspacing="0" border="0" style="border: 1px solid #E5E7EB; border-top: none; border-collapse: collapse;">
-            <!-- Header Row -->
-            <tr style="background-color: #F9FAFB;">
-              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: left; font-weight: 600;">Location</th>
-              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">CIMIS Station</th>
-              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Last 7 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Total Precip (in)</span></th>
-              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Last 7 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Total ETo (in)</span></th>
-              <th style="background-color: #DBEAFE; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 2px solid #0A7DD6; text-align: center; font-weight: 600;">Today<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Precip / ETo (in)</span></th>
-              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Next 6 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Forecast Precip (in)</span></th>
-              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Next 6 Days<br/><span style="font-size: 11px; font-weight: 400; color: #6B7280;">Forecast ETo (in)</span></th>
-              <th style="background-color: #F9FAFB; color: #353750; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">Active Crops</th>
-            </tr>
-            <!-- Data Rows -->
-            ${locations.map((loc, idx) => {
-              const locForecast = generate14DayForecast(loc);
-              const locationCropCount = cropInstances.filter(c => c.locationId === loc.id).length;
-              
-              // Calculate summaries
-              const last7Days = locForecast.slice(0, 7);
-              const today = locForecast[7];
-              const next6Days = locForecast.slice(8, 14);
-              
-              const last7Precip = last7Days.reduce((sum, day) => sum + parseFloat(day.precipitation || '0'), 0).toFixed(2);
-              const last7ETo = last7Days.reduce((sum, day) => sum + Number(day.et0), 0).toFixed(2);
-              
-              const todayPrecip = parseFloat(today?.precipitation || '0').toFixed(2);
-              const todayETo = Number(today?.et0 || 0).toFixed(2);
-              
-              const next6Precip = next6Days.reduce((sum, day) => sum + parseFloat(day.precipitation || '0'), 0).toFixed(2);
-              const next6ETo = next6Days.reduce((sum, day) => sum + Number(day.et0), 0).toFixed(2);
-              
-              return `
-                <tr style="background-color: ${idx % 2 === 0 ? '#FFFFFF' : '#F9FAFB'};">
-                  <td style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB;">${loc.name}</td>
-                  <td style="color: #6B7280; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center;">--</td>
-                  <td style="color: #3B82F6; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${last7Precip}</td>
-                  <td style="color: #10B981; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${last7ETo}</td>
-                  <td style="color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 2px solid #0A7DD6; background-color: #F0F9FF; text-align: center; font-weight: 600;">
-                    <span style="color: #3B82F6;">${todayPrecip}</span> / <span style="color: #10B981;">${todayETo}</span>
-                  </td>
-                  <td style="color: #3B82F6; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${next6Precip}</td>
-                  <td style="color: #10B981; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${next6ETo}</td>
-                  <td style="color: ${locationCropCount > 0 ? '#10B981' : '#6B7280'}; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${locationCropCount > 0 ? `✓ (${locationCropCount})` : '--'}</td>
-                </tr>
-              `;
-            }).join('')}
-          </table>
-        </td>
-      </tr>
-    </table>
-  `;
+  });
 
   // Now iterate through each location for detailed charts
   chartDataMap.forEach((data, locationId) => {
@@ -1244,6 +1226,7 @@ export async function exportChartsAsHTML(
   }
 
   htmlContent += `
+      </div>
     </body>
     </html>
   `;

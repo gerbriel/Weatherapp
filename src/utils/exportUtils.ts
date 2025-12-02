@@ -372,61 +372,61 @@ export function prepareCropExportData(
 ): CropExportData[] {
   const exportData: CropExportData[] = [];
   
-  locations.forEach(location => {
-    if (!location.weatherData) return;
+  // GROUP BY CROP: Iterate through crops first, then locations and dates
+  selectedCrops.forEach(cropName => {
+    locations.forEach(location => {
+      if (!location.weatherData) return;
 
-    const weatherData = location.weatherData;
-    const dates = weatherData.daily?.time || [];
-    const et0Values = weatherData.daily?.et0_fao_evapotranspiration || [];
-    
-    // Process up to 14 days
-    const daysToExport = Math.min(14, dates.length);
-    
-    for (let i = 0; i < daysToExport; i++) {
-      const date = dates[i];
-      if (!date) continue;
+      const weatherData = location.weatherData;
+      const dates = weatherData.daily?.time || [];
+      const et0Values = weatherData.daily?.et0_fao_evapotranspiration || [];
       
-      let formattedDate = '—';
-      try {
-        formattedDate = new Date(date).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
-      } catch (e) {
-        formattedDate = date;
-      }
+      // Process up to 14 days
+      const daysToExport = Math.min(14, dates.length);
+      
+      // Find crop instance for this location if exists
+      const cropInstance = cropInstances.find(instance => 
+        instance.cropId === cropName && instance.locationId === location.id
+      );
+      
+      for (let i = 0; i < daysToExport; i++) {
+        const date = dates[i];
+        if (!date) continue;
+        
+        let formattedDate = '—';
+        try {
+          formattedDate = new Date(date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
+        } catch (e) {
+          formattedDate = date;
+        }
 
-      const et0 = et0Values[i] ? Number(et0Values[i] * 0.0393701) : 0;
-      
-      // Export data for selected crops
-      selectedCrops.forEach(cropName => {
-        // Find crop instance for this location if exists
-        const cropInstance = cropInstances.find(instance => 
-          instance.cropId === cropName && instance.locationId === location.id
-        );
+        const et0 = et0Values[i] ? Number(et0Values[i] * 0.0393701) : 0;
         
         // Use a default Kc of 1.0 if no specific crop instance is found
         const kcValue = 1.0; // This should be determined by crop stage and type
         const etcCalculated = et0 * kcValue;
         
         exportData.push({
-          location: location.name,
-          date: formattedDate,
-          crop_name: cropName,
+          crop_name: cropName, // CROP NAME FIRST for grouping
           crop_category: 'General', // This should come from crop database
+          location: location.name,
+          field_name: cropInstance?.fieldName || '—',
+          date: formattedDate,
           crop_stage: cropInstance?.currentStage ? `Stage ${cropInstance.currentStage}` : 'Unknown',
-          kc_value: kcValue.toFixed(2),
-          etc_calculated_inches: etcCalculated.toFixed(3),
-          et0_source: 'weather-station',
           planting_date: cropInstance?.plantingDate || '—',
           days_since_planting: cropInstance?.plantingDate ? 
             Math.floor((new Date(date).getTime() - new Date(cropInstance.plantingDate).getTime()) / (1000 * 60 * 60 * 24)) : '—',
-          field_name: cropInstance?.fieldName || '—',
+          kc_value: kcValue.toFixed(2),
+          et0_source: 'weather-station',
+          etc_calculated_inches: etcCalculated.toFixed(3),
           notes: cropInstance?.notes || '—'
         });
-      });
-    }
+      }
+    });
   });
 
   return exportData;

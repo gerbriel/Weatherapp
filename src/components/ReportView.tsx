@@ -1116,10 +1116,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                         {row.kc.toFixed(2)}
                                       </td>
                                       <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                        {row.et0.toFixed(3)}
+                                        {row.et0.toFixed(2)}
                                       </td>
                                       <td className="px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
-                                        {row.etc.toFixed(3)}
+                                        {row.etc.toFixed(2)}
                                       </td>
                                       <td className="px-4 py-2 text-sm text-center font-semibold">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

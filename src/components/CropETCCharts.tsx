@@ -1140,62 +1140,136 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
       </div>
       )}
 
-      {/* Detailed Crop Table */}
+      {/* Detailed Crop Table - Comprehensive ET Summary */}
       {etcData.length > 0 && (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-          📋 Detailed Water Use Data
-          {location && <span className="text-sm font-normal text-gray-500">• {location.name}</span>}
+          � Comprehensive ET Summary - All Locations
         </h4>
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-          📊 Real-time calculations using current weather conditions and scientifically-validated crop coefficients
+          Real-time calculations using current weather conditions and scientifically-validated crop coefficients
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-2 text-gray-700 dark:text-gray-300">Crop</th>
-                <th className="text-left py-2 text-gray-700 dark:text-gray-300">Location</th>
-                <th className="text-left py-2 text-gray-700 dark:text-gray-300">Stage</th>
-                <th className="text-right py-2 text-gray-700 dark:text-gray-300">Kc</th>
-                <th className="text-right py-2 text-gray-700 dark:text-gray-300">ETO</th>
-                <th className="text-right py-2 text-gray-700 dark:text-gray-300">ETC</th>
-                <th className="text-right py-2 text-gray-700 dark:text-gray-300">Water Need</th>
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r border-gray-300 dark:border-gray-600">
+                  Location
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Kc
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  ET₀ (in)
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  ETc (in)
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Water Need
+                </th>
               </tr>
             </thead>
-            <tbody>
-              {etcData.map((item, index) => (
-                <tr key={index} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="py-2">
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {item.cropName}
-                    </span>
-                    {item.fieldName && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {item.fieldName}
-                      </div>
-                    )}
-                  </td>
-                  <td className="py-2 text-gray-600 dark:text-gray-400">{item.location}</td>
-                  <td className="py-2">
-                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">
-                      {item.currentStage}
-                    </span>
-                  </td>
-                  <td className="py-2 text-right text-gray-600 dark:text-gray-400">{item.kc}</td>
-                  <td className="py-2 text-right text-gray-600 dark:text-gray-400">{item.eto}</td>
-                  <td className="py-2 text-right font-medium text-gray-900 dark:text-white">{item.etc}</td>
-                  <td className="py-2 text-right">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      item.etc > item.eto 
-                        ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' 
-                        : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                    }`}>
-                      {item.etc > item.eto ? 'High' : 'Moderate'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {(() => {
+                const targetLocations = location ? [location] : locations;
+                const filteredCrops = cropInstances.filter(crop => 
+                  targetLocations.some(loc => loc.id === crop.locationId) &&
+                  visibleCrops.has(crop.cropId)
+                );
+
+                return targetLocations.map((loc, locIdx) => {
+                  const weather = loc.weatherData;
+                  if (!weather || !weather.daily) return null;
+
+                  const locationCrops = filteredCrops.filter(crop => crop.locationId === loc.id);
+                  if (locationCrops.length === 0) return null;
+
+                  // Use the first crop's data (assuming same dates for all crops at location)
+                  const crop = locationCrops[0];
+                  const kc = getCropCoefficient(crop.cropId, crop.currentStage);
+
+                  // Get date range (show next 7 days)
+                  const today = new Date().toISOString().split('T')[0];
+                  const startIdx = weather.daily.time.findIndex((d: string) => d >= today);
+                  const dateRows = [];
+
+                  for (let i = startIdx; i < Math.min(startIdx + 7, weather.daily.time.length); i++) {
+                    const date = weather.daily.time[i];
+                    const et0_mm = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
+                    const et0_inches = et0_mm * 0.0393701;
+                    const etc_inches = et0_inches * kc;
+
+                    let waterNeedCategory = 'Low';
+                    if (etc_inches > 0.25) waterNeedCategory = 'High';
+                    else if (etc_inches >= 0.15) waterNeedCategory = 'Med';
+
+                    dateRows.push({
+                      date,
+                      kc,
+                      et0: et0_inches,
+                      etc: etc_inches,
+                      waterNeed: waterNeedCategory
+                    });
+                  }
+
+                  return (
+                    <React.Fragment key={loc.id}>
+                      {dateRows.map((row, dateIdx) => (
+                        <tr 
+                          key={`${loc.id}-${row.date}`}
+                          className={locIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}
+                        >
+                          {dateIdx === 0 ? (
+                            <td 
+                              rowSpan={dateRows.length}
+                              className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white sticky left-0 bg-blue-50 dark:bg-blue-900/20 border-r border-gray-300 dark:border-gray-600 align-top"
+                            >
+                              <div className="flex items-center">
+                                <svg className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span>{loc.name}</span>
+                              </div>
+                            </td>
+                          ) : null}
+                          
+                          <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                            {new Date(row.date + 'T12:00:00').toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              weekday: 'short'
+                            })}
+                          </td>
+                          
+                          <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
+                            {row.kc.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
+                            {row.et0.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
+                            {row.etc.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-center font-semibold">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              row.waterNeed === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                              row.waterNeed === 'Med' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            }`}>
+                              {row.waterNeed}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                });
+              })()}
             </tbody>
           </table>
         </div>
