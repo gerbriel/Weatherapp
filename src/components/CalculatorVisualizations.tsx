@@ -63,7 +63,7 @@ export const CalculatorVisualizations: React.FC<CalculatorVisualizationsProps> =
       schedule.push({
         day: days[i],
         runtime: shouldIrrigate ? irrigationRuntime : 0,
-        etc: shouldIrrigate ? (etcValue * 0.0393701) : 0 // Convert mm to inches
+        etc: shouldIrrigate ? etcValue : 0 // etcValue is already in inches
       });
     }
     
@@ -240,7 +240,7 @@ export const CalculatorVisualizations: React.FC<CalculatorVisualizationsProps> =
             </div>
             <div>
               <div className="text-sm text-gray-600 dark:text-gray-400">Daily ETc</div>
-              <div className="text-xl font-bold text-gray-900 dark:text-white">{(etcValue * 0.0393701).toFixed(3)} in</div>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">{etcValue.toFixed(3)} in</div>
             </div>
           </div>
         </div>

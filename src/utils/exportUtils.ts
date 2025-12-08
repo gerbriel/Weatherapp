@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { LocationWithWeather } from '../types/weather';
 import { exportChartsToExcel, exportChartsAsHTML } from './chartExportUtils';
+import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 
 // Basic weather export data (existing)
 export interface DetailedExportData {
@@ -39,6 +40,7 @@ export interface CropExportData {
   crop_category: string;
   crop_stage: string;
   kc_value: number | string;
+  et0_inches: number | string; // ET0 reference evapotranspiration
   etc_calculated_inches: number | string; // ETc = ET0 * Kc
   et0_source: string; // 'weather-station' | 'cimis' | 'manual'
   planting_date?: string;
@@ -90,6 +92,9 @@ export interface ComprehensiveExportOptions {
     startDate: string;
     endDate: string;
   };
+  reportMode?: 'current' | 'future' | 'historical';
+  futureStartDate?: string;
+  forecastPreset?: 'today' | '7day';
   fileFormat: 'csv' | 'excel' | 'html' | 'charts-excel';
   separateSheets: boolean; // For Excel exports
 }
@@ -137,7 +142,7 @@ export function prepareWeatherExportData(locations: LocationWithWeather[]): Deta
         low_temp_f: tempMin[i] !== undefined ? Number(tempMin[i]).toFixed(0) : '—',
         wind_speed_mph: windSpeed[i] !== undefined ? Number(windSpeed[i]).toFixed(1) : '—',
         precipitation_in: precipitation[i] !== undefined ? Number(precipitation[i]).toFixed(2) : '—',
-        et0_inches: et0[i] !== undefined ? Number(et0[i] * 0.0393701).toFixed(3) : '—'
+        et0_inches: et0[i] !== undefined ? Number(et0[i]).toFixed(3) : '—' // API already returns in inches
       });
     }
   });
@@ -164,8 +169,8 @@ export function prepareTodayExportData(locations: LocationWithWeather[]): TodayE
       low_temp_f: daily.temperature_2m_min?.[0] !== undefined ? Number(daily.temperature_2m_min[0]).toFixed(0) : '—',
       wind_speed_mph: daily.wind_speed_10m_max?.[0] !== undefined ? Number(daily.wind_speed_10m_max[0]).toFixed(1) : '—',
       precipitation_in: daily.precipitation_sum?.[0] !== undefined ? Number(daily.precipitation_sum[0]).toFixed(2) : '—',
-      et0_inches: daily.et0_fao_evapotranspiration?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration[0] * 0.0393701).toFixed(3) : '—',
-      et0_sum_inches: daily.et0_fao_evapotranspiration_sum?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration_sum[0] * 0.0393701).toFixed(3) : '—'
+      et0_inches: daily.et0_fao_evapotranspiration?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration[0]).toFixed(3) : '—', // API already returns in inches
+      et0_sum_inches: daily.et0_fao_evapotranspiration_sum?.[0] !== undefined ? Number(daily.et0_fao_evapotranspiration_sum[0]).toFixed(3) : '—'
     });
   });
 
@@ -336,7 +341,7 @@ export function prepareComprehensiveWeatherData(
         }
       });
 
-      const et0Value = et0[i] !== undefined ? Number(et0[i] * 0.0393701) : null;
+      const et0Value = et0[i] !== undefined ? Number(et0[i]) : null; // API already returns in inches
       const etcActual = cmisEntry?.etc_actual;
       const etcDifference = (etcActual !== undefined && et0Value !== null) 
         ? Number((etcActual - et0Value).toFixed(3)) 
@@ -374,6 +379,9 @@ export function prepareCropExportData(
   
   // GROUP BY CROP: Iterate through crops first, then locations and dates
   selectedCrops.forEach(cropName => {
+    // Get crop data for monthly Kc lookup
+    const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropName);
+    
     locations.forEach(location => {
       if (!location.weatherData) return;
 
@@ -381,15 +389,28 @@ export function prepareCropExportData(
       const dates = weatherData.daily?.time || [];
       const et0Values = weatherData.daily?.et0_fao_evapotranspiration || [];
       
-      // Process up to 14 days
-      const daysToExport = Math.min(14, dates.length);
+      // Match ReportView date range logic: previous 7 days + next 7 days
+      let startIdx = 0;
+      let endIdx = dates.length;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayIdx = dates.findIndex((d: string) => d >= today);
+      if (todayIdx !== -1) {
+        // Start from 7 days before today
+        startIdx = Math.max(0, todayIdx - 7);
+        // Show 14 days total (7 before + 7 after)
+        endIdx = Math.min(startIdx + 14, dates.length);
+      } else {
+        // Fallback to first 14 days if today not found
+        endIdx = Math.min(14, dates.length);
+      }
       
       // Find crop instance for this location if exists
       const cropInstance = cropInstances.find(instance => 
         instance.cropId === cropName && instance.locationId === location.id
       );
       
-      for (let i = 0; i < daysToExport; i++) {
+      for (let i = startIdx; i < endIdx; i++) {
         const date = dates[i];
         if (!date) continue;
         
@@ -404,10 +425,28 @@ export function prepareCropExportData(
           formattedDate = date;
         }
 
-        const et0 = et0Values[i] ? Number(et0Values[i] * 0.0393701) : 0;
+        const et0 = Number(et0Values[i] || 0); // API already returns in inches
         
-        // Use a default Kc of 1.0 if no specific crop instance is found
-        const kcValue = 1.0; // This should be determined by crop stage and type
+        // Get month from date (1-12)
+        const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
+        
+        // Calculate Kc - check custom values first, then monthly, then stage-based fallback
+        let kcValue = 1.0; // Default fallback
+        
+        // Priority 1: Check if this crop instance has custom Kc for this month
+        const customKc = cropInstance?.customKcValues?.[dateMonth];
+        if (customKc !== undefined) {
+          kcValue = customKc;
+        } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
+          // Priority 2: Use monthly Kc values from crop database
+          const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
+          kcValue = monthData?.kc || 1.0;
+        } else if (cropInstance) {
+          // Priority 3: Fallback to stage-based Kc (old method)
+          kcValue = cropInstance.currentStage === 2 ? 1.15 : 
+                    cropInstance.currentStage === 1 ? 0.70 : 0.50;
+        }
+        
         const etcCalculated = et0 * kcValue;
         
         exportData.push({
@@ -421,8 +460,9 @@ export function prepareCropExportData(
           days_since_planting: cropInstance?.plantingDate ? 
             Math.floor((new Date(date).getTime() - new Date(cropInstance.plantingDate).getTime()) / (1000 * 60 * 60 * 24)) : '—',
           kc_value: kcValue.toFixed(2),
+          et0_inches: et0.toFixed(2), // Match ReportView decimal places
           et0_source: 'weather-station',
-          etc_calculated_inches: etcCalculated.toFixed(3),
+          etc_calculated_inches: etcCalculated.toFixed(2), // Match ReportView decimal places
           notes: cropInstance?.notes || '—'
         });
       }
@@ -459,7 +499,7 @@ export function prepareCalculatorExportData(
     daily_runtime_hours: calculatorResult.runtimeHours || '—',
     daily_runtime_minutes: calculatorResult.runtimeMinutes || '—',
     weekly_runtime_hours: calculatorResult.weeklyHours ? calculatorResult.weeklyHours.toFixed(1) : '—',
-    etc_inches: calculatorResult.etc ? (calculatorResult.etc * 0.0393701).toFixed(3) : '—',
+    etc_inches: calculatorResult.etc ? calculatorResult.etc.toFixed(3) : '—', // Calculator already returns in inches
     calculation_formula: calculatorResult.formula || '—'
   }];
 }
@@ -502,6 +542,8 @@ export function exportComprehensiveData(
       crop?: string;
       general?: string;
     };
+    cropWeeklySummaries?: Record<string, string>;
+    waterUseNotes?: string;
   } = {}
 ) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -513,7 +555,9 @@ export function exportComprehensiveData(
     calculatorInputs,
     selectedLocation,
     fieldBlocks = [],
-    insights
+    insights,
+    cropWeeklySummaries,
+    waterUseNotes
   } = additionalData;
 
   // Handle special chart export formats
@@ -527,7 +571,14 @@ export function exportComprehensiveData(
       calculatorResult,
       calculatorInputs,
       fieldBlocks,
-      insights
+      insights,
+      cropWeeklySummaries,
+      waterUseNotes,
+      reportMode: options.reportMode,
+      futureStartDate: options.futureStartDate,
+      forecastPreset: options.forecastPreset,
+      dateRange: options.dateRange,
+      cmisData
     });
     return;
   }

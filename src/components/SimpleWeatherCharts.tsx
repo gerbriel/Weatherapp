@@ -76,7 +76,7 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({
         date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         fullDate: date, // Keep full date for finding today
         precipitation: precipitation[index] || 0,
-        et0: (et0[index] * 0.0393701) || 0 // Convert mm to inches
+        et0: et0[index] || 0 // API already returns in inches
       };
     });
     
@@ -176,20 +176,6 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({
           </ResponsiveContainer>
         </div>
         
-        {/* Manual Weather Insights */}
-                {/* Manual Weather Insights */}
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-gray-700/30 rounded-lg border border-blue-200 dark:border-gray-600">
-          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-            Precipitation Chart Analysis
-          </label>
-          <textarea
-            value={insights.precipitationChart}
-            onChange={(e) => onInsightsChange?.({ ...insights, precipitationChart: e.target.value })}
-            placeholder="Add your analysis and insights about precipitation patterns and their impact on irrigation needs..."
-            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-          />
-        </div>
-        
         {/* AI Insights for Precipitation - Centered */}
         {showAIInsights && (
           <ChartAIInsights
@@ -237,19 +223,6 @@ export const SimpleWeatherCharts: React.FC<SimpleWeatherChartsProps> = ({
               <Line type="monotone" dataKey="et0" stroke="#f97316" strokeWidth={2} name="Daily ET₀" dot={{ fill: '#f97316', strokeWidth: 2, r: 4 }} activeDot={{ r: 6, fill: '#f97316' }} />
             </LineChart>
           </ResponsiveContainer>
-        </div>
-        
-        {/* Manual Temperature/ET0 Chart Insights */}
-        <div className="mt-4 p-4 bg-purple-50 dark:bg-gray-700/30 rounded-lg border border-purple-200 dark:border-gray-600">
-          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-            Temperature/ET₀ Chart Analysis
-          </label>
-          <textarea
-            value={insights.temperatureChart}
-            onChange={(e) => onInsightsChange?.({ ...insights, temperatureChart: e.target.value })}
-            placeholder="Add your analysis of evapotranspiration patterns and temperature-driven water demand..."
-            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-          />
         </div>
         
         {/* AI Insights for Evapotranspiration - Centered */}

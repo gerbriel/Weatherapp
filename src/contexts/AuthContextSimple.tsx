@@ -527,7 +527,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ...location,
       id: `loc-${Date.now()}`,
       user_id: user.id,
-      organization_id: organization?.id || 'default',
+      organization_id: organization?.id || null,
       sort_order: locations.length,
       is_active: true,
       is_favorite: false,
@@ -536,13 +536,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       country: location.country || 'US',
     };
 
-    // Save to database
+    // Save to database without organization_id (keep it simple)
     const { error: dbError } = await supabase
       .from('user_locations')
       .insert({
         id: newLocation.id,
         user_id: newLocation.user_id,
-        organization_id: newLocation.organization_id,
         name: newLocation.name,
         description: newLocation.description,
         latitude: newLocation.latitude,

@@ -226,7 +226,7 @@ class CMISService {
             if (record.DayAsceEto && record.DayAsceEto.Value !== null) {
               data.push({
                 date: record.Date,
-                etc_actual: Number((record.DayAsceEto.Value * 0.0393701).toFixed(3)), // Convert mm to inches
+                etc_actual: Number((record.DayAsceEto.Value * 0.0393701).toFixed(3)), // CIMIS API returns mm, convert to inches
                 station_id: provider.StationNbr?.toString() || 'unknown',
                 crop_type: 'Reference Crop (Grass)'
               });

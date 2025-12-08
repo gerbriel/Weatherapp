@@ -57,7 +57,7 @@ export const RechartsWeatherCharts: React.FC<RechartsWeatherChartsProps> = ({ lo
       date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       precipitation: daily.precipitation_sum[index] || 0,
       rain: daily.rain_sum[index] || 0,
-      et0: (daily.et0_fao_evapotranspiration[index] * 0.0393701) || 0, // Convert mm to inches
+      et0: daily.et0_fao_evapotranspiration[index] || 0, // API already returns in inches
     }));
   }
 

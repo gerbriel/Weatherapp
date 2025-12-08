@@ -302,7 +302,7 @@ export const LocationsList: React.FC<LocationsListProps> = ({
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">ET₀</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                {(todayData.et0 * 0.0393701).toFixed(3)} inches
+                {todayData.et0.toFixed(3)} inches
               </p>
             </div>
           </div>

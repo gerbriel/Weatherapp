@@ -505,8 +505,8 @@ export const CropManagement: React.FC = () => {
                         
                         <div className="grid grid-cols-1 gap-2 text-sm">
                           {coefficients.map(coeff => {
-                            const todayEt0 = selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[0] || 0;
-                            const et0Inches = todayEt0 * 0.0393701;
+                            const todayEt0 = selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[0] || 0; // API already returns inches
+                            const et0Inches = todayEt0;
                             const etcInches = calculateETc(et0Inches, coeff.kc_value);
                             
                             return (

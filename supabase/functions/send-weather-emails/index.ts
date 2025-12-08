@@ -24,8 +24,8 @@ function generateEmailChartUrls(location: any, weather: any) {
   const dates = daily.time?.slice(0, 14) || [];
   const precipitation = daily.precipitation_sum?.slice(0, 14) || [];
   const rain = daily.rain_sum?.slice(0, 14) || [];
-  // Convert ET₀ from mm to inches (1 mm = 0.0393701 inches)
-  const et0 = (daily.et0_fao_evapotranspiration?.slice(0, 14) || []).map((value: number) => value * 0.0393701);
+  // API already returns ET₀ in inches (precipitation_unit: 'inch' in weatherService)
+  const et0 = daily.et0_fao_evapotranspiration?.slice(0, 14) || [];
 
   // Format dates for chart labels (Oct 21, Oct 22, etc.)
   const labels = dates.map((date: string) => {
@@ -484,9 +484,9 @@ function createConsolidatedEmailContent(userName: string, weatherData: WeatherLo
     const todayMin = safe((tempMinArr[0] !== undefined) ? Number(tempMinArr[0]).toFixed(1) : null, 'N/A')
     const todayWind = safe((windArr[0] !== undefined) ? Number(windArr[0]).toFixed(1) : null, 'N/A')
     const todayPrecip = safe((precipArr[0] !== undefined) ? Number(precipArr[0]).toFixed(2) : null, 'N/A')
-    // Convert ET₀ values from mm to inches for display
-    const todayET0Daily = safe((et0Daily[0] !== undefined) ? Number(et0Daily[0] * 0.0393701).toFixed(3) : null, 'N/A')
-    const todayET0Sum = safe((et0Sum[0] !== undefined) ? Number(et0Sum[0] * 0.0393701).toFixed(3) : null, 'N/A')
+    // API already returns ET₀ values in inches (precipitation_unit: 'inch')
+    const todayET0Daily = safe((et0Daily[0] !== undefined) ? Number(et0Daily[0]).toFixed(3) : null, 'N/A')
+    const todayET0Sum = safe((et0Sum[0] !== undefined) ? Number(et0Sum[0]).toFixed(3) : null, 'N/A')
 
     emailHTML += `
         <!-- Location Section -->
@@ -605,7 +605,7 @@ function createConsolidatedEmailContent(userName: string, weatherData: WeatherLo
       const low = (tempMinArr[dayIndex] !== undefined) ? Number(tempMinArr[dayIndex]).toFixed(0) + '°' : '—'
       const wind = (windArr[dayIndex] !== undefined) ? Number(windArr[dayIndex]).toFixed(1) : '—'
       const precip = (precipArr[dayIndex] !== undefined) ? Number(precipArr[dayIndex]).toFixed(2) : '—'
-      const et0 = (et0Daily[dayIndex] !== undefined) ? Number(et0Daily[dayIndex] * 0.0393701).toFixed(3) : '—'
+      const et0 = (et0Daily[dayIndex] !== undefined) ? Number(et0Daily[dayIndex]).toFixed(3) : '—' // API already returns in inches
 
       emailHTML += `
                   <tr style="${rowStyle}">
@@ -757,7 +757,7 @@ function createConsolidatedFooterSections(weatherData: WeatherLocationData[]): s
     // Add ET₀ data for each location
     for (const { weather } of weatherData) {
       const et0 = weather?.daily?.et0_fao_evapotranspiration?.[dayIndex]
-      const et0Value = (et0 !== undefined) ? Number(et0 * 0.0393701).toFixed(3) + ' inches' : '—'
+      const et0Value = (et0 !== undefined) ? Number(et0).toFixed(3) + ' inches' : '—' // API already returns in inches
       footerHTML += `<td style="padding: 6px 8px; color: #cbd5e0; border-bottom: 1px solid rgba(255,255,255,0.08);">${et0Value}</td>`
     }
 

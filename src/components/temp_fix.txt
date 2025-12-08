@@ -1,0 +1,23 @@
+                            {/* Weekly Summary Input Field */}
+                            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+                              <label 
+                                htmlFor={`weekly-summary-${cropId}`}
+                                className="block text-sm font-medium text-gray-900 dark:text-white mb-2"
+                              >
+                                Weekly Summary
+                              </label>
+                              <textarea
+                                id={`weekly-summary-${cropId}`}
+                                defaultValue={cropWeeklySummaries?.[cropId] ?? ''}
+                                onBlur={(e) => {
+                                  const updatedSummaries = {
+                                    ...cropWeeklySummaries,
+                                    [cropId]: e.target.value
+                                  };
+                                  onCropWeeklySummariesChange(updatedSummaries);
+                                }}
+                                placeholder={`Add your weekly insights and observations for ${cropName}...`}
+                                className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
+                                rows={4}
+                              />
+                            </div>

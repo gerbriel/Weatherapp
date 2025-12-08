@@ -387,16 +387,15 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     const isFavorite = user ? (location as any).is_favorite : location.isFavorite;
     const isEditing = editingLocation?.id === location.id;
 
-    // Get today's weather data by finding today's date in the time array (same logic as Current Weather section)
+    // Get today's weather data
+    // Since forecast API is configured with past_days=0, index 0 is always today
     const todayData = (() => {
-      if (!location.weatherData?.daily?.time) return null;
-      const today = new Date().toISOString().split('T')[0];
-      const todayIndex = location.weatherData.daily.time.findIndex((date: string) => date === today);
-      if (todayIndex < 0) return null;
+      if (!location.weatherData?.daily?.time || !location.weatherData?.daily?.time[0]) return null;
       
       return {
-        precipitation: location.weatherData.daily.precipitation_sum[todayIndex] || 0,
-        et0: location.weatherData.daily.et0_fao_evapotranspiration[todayIndex] || 0,
+        precipitation: location.weatherData.daily.precipitation_sum?.[0] || 0,
+        et0: location.weatherData.daily.et0_fao_evapotranspiration?.[0] || 0,
+        et0Sum: location.weatherData.daily.et0_fao_evapotranspiration_sum?.[0] || 0,
       };
     })();
 
@@ -600,9 +599,15 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
               </p>
             </div>
             <div className="flex flex-col">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ET₀</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ET₀ (Daily)</p>
               <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                {(todayData.et0 * 0.0393701).toFixed(2)} inches
+                {todayData.et0.toFixed(3)} in
+              </p>
+            </div>
+            <div className="flex flex-col col-span-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ET₀ Sum (Cumulative)</p>
+              <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                {todayData.et0Sum.toFixed(3)} in
               </p>
             </div>
           </div>

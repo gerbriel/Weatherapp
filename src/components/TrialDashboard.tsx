@@ -193,6 +193,66 @@ export const TrialDashboard: React.FC = () => {
     cropInstances
   );
 
+  // Track if we've cleaned up custom Kc values to prevent infinite loops
+  const hasCleanedKcRef = React.useRef(false);
+  const lastCleanedCountRef = React.useRef(0);
+
+  // Clean up custom Kc values that match defaults
+  useEffect(() => {
+    // Only run if we have instances
+    if (cropInstances.length === 0) {
+      return;
+    }
+    
+    // If we've already cleaned and the count hasn't changed, skip
+    if (hasCleanedKcRef.current && lastCleanedCountRef.current === cropInstances.length) {
+      return;
+    }
+
+    const needsCleaning = cropInstances.some(instance => 
+      instance.customKcValues && Object.keys(instance.customKcValues).length > 0
+    );
+    
+    if (!needsCleaning) {
+      hasCleanedKcRef.current = true;
+      lastCleanedCountRef.current = cropInstances.length;
+      return;
+    }
+
+    setCropInstances(prevInstances => 
+      prevInstances.map(instance => {
+        if (!instance.customKcValues || Object.keys(instance.customKcValues).length === 0) {
+          return instance;
+        }
+
+        const crop = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === instance.cropId);
+        if (!crop?.monthlyKc) {
+          return instance;
+        }
+
+        // Filter out custom Kc values that match the defaults
+        const filteredCustomKcValues: {[key: number]: number} = {};
+        
+        Object.entries(instance.customKcValues).forEach(([monthStr, kcValue]) => {
+          const month = parseInt(monthStr);
+          const defaultKc = crop.monthlyKc?.find(m => m.month === month)?.kc;
+          // Only keep if different from default
+          if (defaultKc !== undefined && Math.abs(kcValue - defaultKc) > 0.001) {
+            filteredCustomKcValues[month] = kcValue;
+          }
+        });
+
+        return {
+          ...instance,
+          customKcValues: Object.keys(filteredCustomKcValues).length > 0 ? filteredCustomKcValues : undefined
+        };
+      })
+    );
+
+    hasCleanedKcRef.current = true;
+    lastCleanedCountRef.current = cropInstances.length;
+  }, [cropInstances.length]); // Watch for instances being loaded
+
   // Track if weather has been fetched to prevent duplicate API calls
   const [weatherFetched, setWeatherFetched] = useState(false);
   const weatherFetchedRef = React.useRef(false); // Use ref to prevent re-fetches across renders
@@ -851,10 +911,10 @@ export const TrialDashboard: React.FC = () => {
   ];
 
   const calculateRuntime = (inputs: CalculatorInputs): RuntimeResult => {
-    // Get ET0 value (convert to mm for internal calculations)
-    let et0 = weatherData?.et0 || 5;
+    // Get ET0 value - API already returns in inches
+    let et0 = weatherData?.et0 || 0.2; // inches/day (mock data or default)
     if (inputs.etSource === 'manual' && inputs.manualET) {
-      et0 = inputs.manualET / 0.0393701; // Convert inches to mm for calculations
+      et0 = inputs.manualET; // Already in inches
     }
 
     // Get Kc value
@@ -877,8 +937,8 @@ export const TrialDashboard: React.FC = () => {
     // Convert area to square feet
     const areaInSqFt = inputs.areaUnit === 'acres' ? inputs.area * 43560 : inputs.area;
 
-    // Convert ETc from mm/day to inches/day, then to gallons/day
-    const etcInches = etc * 0.0393701; // mm to inches
+    // ETc is already in inches/day - calculate gallons/day
+    const etcInches = etc; // Already in inches/day
     const dailyWaterNeedGallons = areaInSqFt * etcInches * 0.623; // sq ft * inches * 0.623 = gallons
 
     // Get system efficiency
@@ -1254,10 +1314,9 @@ export const TrialDashboard: React.FC = () => {
                           <div className="text-2xl font-bold text-red-400">
                             {(() => {
                               const weatherData = (selectedLocation as any)?.weatherData;
-                              if (!weatherData?.daily?.time) return '--';
-                              const today = new Date().toISOString().split('T')[0];
-                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
-                              return todayIndex >= 0 ? weatherData.daily.temperature_2m_max[todayIndex]?.toFixed(0) : '--';
+                              if (!weatherData?.daily?.temperature_2m_max?.[0]) return '--';
+                              // Index 0 is always today since forecast API uses past_days=0
+                              return weatherData.daily.temperature_2m_max[0]?.toFixed(0);
                             })()}°F
                           </div>
                           <div className="text-gray-400">High Temp</div>
@@ -1266,10 +1325,9 @@ export const TrialDashboard: React.FC = () => {
                           <div className="text-2xl font-bold text-blue-400">
                             {(() => {
                               const weatherData = (selectedLocation as any)?.weatherData;
-                              if (!weatherData?.daily?.time) return '--';
-                              const today = new Date().toISOString().split('T')[0];
-                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
-                              return todayIndex >= 0 ? weatherData.daily.temperature_2m_min[todayIndex]?.toFixed(0) : '--';
+                              if (!weatherData?.daily?.temperature_2m_min?.[0]) return '--';
+                              // Index 0 is always today since forecast API uses past_days=0
+                              return weatherData.daily.temperature_2m_min[0]?.toFixed(0);
                             })()}°F
                           </div>
                           <div className="text-gray-400">Low Temp</div>
@@ -1278,10 +1336,10 @@ export const TrialDashboard: React.FC = () => {
                           <div className="text-2xl font-bold text-green-400">
                             {(() => {
                               const weatherData = (selectedLocation as any)?.weatherData;
-                              if (!weatherData?.daily?.time) return '--';
-                              const today = new Date().toISOString().split('T')[0];
-                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
-                              return todayIndex >= 0 ? (weatherData.daily.et0_fao_evapotranspiration[todayIndex] * 0.0393701)?.toFixed(2) : '--';
+                              if (!weatherData?.daily?.et0_fao_evapotranspiration?.[0]) return '--';
+                              // Index 0 is always today since forecast API uses past_days=0
+                              // API already returns in inches (precipitation_unit: 'inch')
+                              return weatherData.daily.et0_fao_evapotranspiration[0]?.toFixed(2);
                             })()}
                           </div>
                           <div className="text-gray-400">ET₀ (in/day)</div>
@@ -1381,10 +1439,8 @@ export const TrialDashboard: React.FC = () => {
                           <div className="flex space-x-3 pb-2">
                             {(() => {
                               const weatherData = (selectedLocation as any).weatherData;
-                              const today = new Date().toISOString().split('T')[0];
-                              const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
-                              
-                              if (todayIndex < 0) return null;
+                              // Index 0 is always today since forecast API uses past_days=0
+                              const todayIndex = 0;
                               
                               // Get next 7 days starting from today
                               return weatherData.daily.time.slice(todayIndex, todayIndex + 7).map((date: string, index: number) => {
@@ -1448,7 +1504,7 @@ export const TrialDashboard: React.FC = () => {
                                     )}
                                     <div className="flex items-center justify-center text-[10px] text-green-600 dark:text-green-400">
                                       <span className="mr-0.5">🌱</span>
-                                      <span>{(et0 * 0.0393701).toFixed(2)}"</span>
+                                      <span>{et0.toFixed(2)}"</span>
                                     </div>
                                   </div>
                                 );
@@ -1562,10 +1618,9 @@ export const TrialDashboard: React.FC = () => {
                         <span className="text-2xl font-bold text-gray-900 dark:text-white">
                           {(() => {
                             const weatherData = (selectedLocation as any)?.weatherData;
-                            if (!weatherData?.daily?.time) return '0.00';
-                            const today = new Date().toISOString().split('T')[0];
-                            const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
-                            const precip = todayIndex >= 0 ? weatherData.daily.precipitation_sum[todayIndex] : 0;
+                            if (!weatherData?.daily?.precipitation_sum?.[0]) return '0.00';
+                            // Index 0 is always today since forecast API uses past_days=0
+                            const precip = weatherData.daily.precipitation_sum[0];
                             return precip ? precip.toFixed(2) : '0.00';
                           })()}
                         </span>
@@ -1583,20 +1638,41 @@ export const TrialDashboard: React.FC = () => {
                           <h3 className="text-base font-semibold text-gray-900 dark:text-white">Reference ET₀</h3>
                         </div>
                       </div>
-                      <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {(() => {
-                            const weatherData = (selectedLocation as any)?.weatherData;
-                            if (!weatherData?.daily?.time) return '--';
-                            const today = new Date().toISOString().split('T')[0];
-                            const todayIndex = weatherData.daily.time.findIndex((date: string) => date === today);
-                            const et0Raw = todayIndex >= 0 ? weatherData.daily.et0_fao_evapotranspiration[todayIndex] : null;
-                            return et0Raw ? (et0Raw * 0.0393701).toFixed(2) : '--';
-                          })()}
-                        </span>
-                        <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in/day</span>
+                      <div className="space-y-2">
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Daily</p>
+                          <div className="flex items-baseline space-x-2">
+                            <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {(() => {
+                                const weatherData = (selectedLocation as any)?.weatherData;
+                                if (!weatherData?.daily?.et0_fao_evapotranspiration?.[0]) return '--';
+                                // Index 0 is always today since forecast API uses past_days=0
+                                // API already returns in inches (precipitation_unit: 'inch')
+                                const et0Raw = weatherData.daily.et0_fao_evapotranspiration[0];
+                                return et0Raw.toFixed(2);
+                              })()}
+                            </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in/day</span>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cumulative Sum</p>
+                          <div className="flex items-baseline space-x-2">
+                            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                              {(() => {
+                                const weatherData = (selectedLocation as any)?.weatherData;
+                                if (!weatherData?.daily?.et0_fao_evapotranspiration_sum?.[0]) return '--';
+                                // Index 0 is always today since forecast API uses past_days=0
+                                // API already returns in inches (precipitation_unit: 'inch')
+                                const et0Sum = weatherData.daily.et0_fao_evapotranspiration_sum[0];
+                                return et0Sum.toFixed(2);
+                              })()}
+                            </span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in</span>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Base for Kc calculations</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Base for Kc calculations</p>
                     </div>
                   </div>
                 </div>
@@ -1692,18 +1768,18 @@ export const TrialDashboard: React.FC = () => {
                         // Find monthly Kc data for current month
                         const currentMonthData = crop.monthlyKc?.find(m => m.month === currentMonth);
                         // Use custom Kc value if available, otherwise use default monthly Kc
-                        const displayKc = instance.customKcValues?.[currentMonth] || currentMonthData?.kc || crop.stages[0]?.kc || 0.4;
+                        const displayKc = instance.customKcValues?.[currentMonth] ?? currentMonthData?.kc ?? crop.stages[0]?.kc ?? 0.4;
                         const displayMonth = currentMonthData?.monthName || new Date().toLocaleString('default', { month: 'long' });
                         const isCustomKc = instance.customKcValues?.[currentMonth] !== undefined;
                         
-                        // Get ET₀ from selected location's weather data - same logic as System Overview (find today's index)
+                        // Get ET₀ from selected location's weather data
+                        // Index 0 is always today since forecast API uses past_days=0
+                        // API already returns in inches (precipitation_unit: 'inch')
                         const weatherDataForCrop = (selectedLocation as any)?.weatherData;
-                        const today = new Date().toISOString().split('T')[0];
-                        const todayIndex = weatherDataForCrop?.daily?.time?.findIndex((date: string) => date === today) ?? -1;
-                        const et0Value = todayIndex >= 0 ? weatherDataForCrop.daily.et0_fao_evapotranspiration[todayIndex] : 5;
+                        const et0Value = weatherDataForCrop?.daily?.et0_fao_evapotranspiration?.[0] || 0.2; // inches/day
                         
-                        const etc = displayKc * et0Value; // mm/day
-                        const etcInches = etc * 0.0393701; // Convert to inches/day
+                        const etc = displayKc * et0Value; // inches/day
+                        const etcInches = etc; // Already in inches
 
                         return (
                           <div key={instance.id} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
@@ -1762,7 +1838,7 @@ export const TrialDashboard: React.FC = () => {
                                 <div>
                                   <p className="text-xs text-gray-400">Location ET₀ (in/day)</p>
                                   <p className="text-lg font-bold text-purple-400">
-                                    {(et0Value * 0.0393701).toFixed(2)}
+                                    {et0Value.toFixed(2)}
                                   </p>
                                 </div>
                                 <div>
@@ -1786,7 +1862,7 @@ export const TrialDashboard: React.FC = () => {
                                   Formula: ETc = ET₀ × Kc
                                 </div>
                                 <div className="text-xs text-gray-600 dark:text-gray-300 font-mono">
-                                  {etcInches.toFixed(2)} = {(et0Value * 0.0393701).toFixed(2)} × {displayKc.toFixed(2)}
+                                  {etcInches.toFixed(2)} = {et0Value.toFixed(2)} × {displayKc.toFixed(2)}
                                 </div>
                               </div>
                             </div>
@@ -1826,6 +1902,10 @@ export const TrialDashboard: React.FC = () => {
                                   <div className="grid grid-cols-4 gap-1.5">
                                     {crop.monthlyKc.map((monthData) => {
                                       const isCurrentMonth = monthData.month === currentMonth;
+                                      // Use custom Kc if available, otherwise use default from crop database
+                                      const displayMonthKc = instance.customKcValues?.[monthData.month] ?? monthData.kc;
+                                      const isCustom = instance.customKcValues?.[monthData.month] !== undefined;
+                                      
                                       return (
                                         <div 
                                           key={monthData.month} 
@@ -1833,13 +1913,14 @@ export const TrialDashboard: React.FC = () => {
                                             isCurrentMonth 
                                               ? 'bg-blue-600/30 border border-blue-500' 
                                               : 'bg-gray-800/50'
-                                          }`}
+                                          } ${isCustom ? 'ring-1 ring-orange-500/50' : ''}`}
+                                          title={isCustom ? 'Custom Kc value' : 'Default Kc value'}
                                         >
                                           <p className={`text-xs ${isCurrentMonth ? 'text-blue-300 font-semibold' : 'text-gray-400'}`}>
                                             {monthData.monthName.substring(0, 3)}
                                           </p>
-                                          <p className={`text-xs font-bold ${isCurrentMonth ? 'text-blue-200' : 'text-white'}`}>
-                                            {monthData.kc.toFixed(2)}
+                                          <p className={`text-xs font-bold ${isCurrentMonth ? 'text-blue-200' : isCustom ? 'text-orange-300' : 'text-white'}`}>
+                                            {displayMonthKc.toFixed(2)}
                                           </p>
                                         </div>
                                       );
@@ -2115,14 +2196,14 @@ export const TrialDashboard: React.FC = () => {
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ET₀ Source</label>
                           <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
                             <div className="text-xs text-gray-600 dark:text-gray-400">Current Location: {selectedLocation.name}</div>
-                            <div className="text-xs text-blue-600 dark:text-blue-400">Live ET₀: {((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day</div>
+                            <div className="text-xs text-blue-600 dark:text-blue-400">Live ET₀: {(weatherData?.et0 || 0).toFixed(3)} in/day</div>
                           </div>
                           <select 
                             value={calculatorInputs.etSource}
                             onChange={(e) => setCalculatorInputs({...calculatorInputs, etSource: e.target.value as 'weather-station' | 'cimis' | 'manual'})}
                             className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                           >
-                            <option value="weather-station">Use Current Location Data ({((weatherData?.et0 || 0) * 0.0393701).toFixed(3)} in/day)</option>
+                            <option value="weather-station">Use Current Location Data ({(weatherData?.et0 || 0).toFixed(3)} in/day)</option>
                             <option value="cimis">CIMIS Data</option>
                             <option value="manual">Manual Entry</option>
                           </select>
@@ -2548,13 +2629,28 @@ export const TrialDashboard: React.FC = () => {
                 const formData = new FormData(e.target as HTMLFormElement);
                 const notes = formData.get('notes') as string;
                 
-                // Update the crop instance with notes and custom Kc values
+                // Filter out Kc values that match the default - only save actual custom values
+                const crop = availableCrops.find(c => c.id === editingCropInstance.cropId);
+                const filteredCustomKcValues: {[key: number]: number} = {};
+                
+                if (crop?.monthlyKc) {
+                  Object.entries(editingKcValues).forEach(([monthStr, kcValue]) => {
+                    const month = parseInt(monthStr);
+                    const defaultKc = crop.monthlyKc?.find(m => m.month === month)?.kc;
+                    // Only save if different from default
+                    if (defaultKc !== undefined && Math.abs(kcValue - defaultKc) > 0.001) {
+                      filteredCustomKcValues[month] = kcValue;
+                    }
+                  });
+                }
+                
+                // Update the crop instance with notes and filtered custom Kc values
                 setCropInstances(prev => prev.map(instance => 
                   instance.id === editingCropInstance.id 
                     ? { 
                         ...instance, 
                         notes: notes || instance.notes,
-                        customKcValues: Object.keys(editingKcValues).length > 0 ? editingKcValues : instance.customKcValues
+                        customKcValues: Object.keys(filteredCustomKcValues).length > 0 ? filteredCustomKcValues : undefined
                       }
                     : instance
                 ));

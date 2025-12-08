@@ -758,19 +758,6 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           )}
         </div>
         
-        {/* Manual Crop Insights */}
-        <div className="mt-4 p-4 bg-green-50 dark:bg-gray-700/30 rounded-lg border border-green-200 dark:border-gray-600">
-          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-            Crop Coefficients Chart Analysis
-          </label>
-          <textarea
-            value={insights.cropCoefficientsChart}
-            onChange={(e) => onInsightsChange({ ...insights, cropCoefficientsChart: e.target.value })}
-            placeholder="Add your analysis of crop coefficient data, irrigation needs, and agricultural insights for this chart..."
-            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-          />
-        </div>
-        
         {/* Centered AI Insights for Individual Crop Water Use */}
         {showAIInsights && (
           <div className="mt-6 mb-4">
@@ -1100,19 +1087,6 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
           )}
         </div>
         
-        {/* Manual Crop ETC Analysis */}
-        <div className="mt-4 p-4 bg-orange-50 dark:bg-gray-700/30 rounded-lg border border-orange-200 dark:border-gray-600">
-          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-            ETC vs ETO Comparison Chart Analysis
-          </label>
-          <textarea
-            value={insights.etcEtoComparisonChart}
-            onChange={(e) => onInsightsChange({ ...insights, etcEtoComparisonChart: e.target.value })}
-            placeholder="Add your analysis of the ETC vs ETO comparison chart, crop coefficients, and irrigation timing insights..."
-            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-          />
-        </div>
-        
         {/* AI Insights - Full Width */}
         {showAIInsights && (
           <div className="mt-6 mb-4">
@@ -1199,8 +1173,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
 
                   for (let i = startIdx; i < Math.min(startIdx + 7, weather.daily.time.length); i++) {
                     const date = weather.daily.time[i];
-                    const et0_mm = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
-                    const et0_inches = et0_mm * 0.0393701;
+                    const et0_inches = weather.daily.et0_fao_evapotranspiration?.[i] || 0; // API already returns in inches
                     const etc_inches = et0_inches * kc;
 
                     let waterNeedCategory = 'Low';
@@ -1272,19 +1245,6 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
               })()}
             </tbody>
           </table>
-        </div>
-        
-        {/* Manual Data Table Insights */}
-        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-200 dark:border-gray-600">
-          <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-            Data Table Analysis
-          </label>
-          <textarea
-            value={insights.dataTable}
-            onChange={(e) => onInsightsChange({ ...insights, dataTable: e.target.value })}
-            placeholder="Add your analysis of the crop data table, ETC calculations, and irrigation recommendations..."
-            className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-          />
         </div>
       </div>
       )}

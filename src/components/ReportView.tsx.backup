@@ -13,7 +13,6 @@ import ChartAIInsights from './ChartAIInsights';
 import { cmisService } from '../services/cmisService';
 import { weatherService } from '../services/weatherService';
 import { isLocationInCalifornia } from '../utils/locationUtils';
-import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 import type { CMISETCData } from '../services/cmisService';
 
 interface CropInstance {
@@ -25,7 +24,6 @@ interface CropInstance {
   fieldName?: string;
   notes?: string;
   locationId?: string;
-  customKcValues?: {[key: number]: number}; // Custom Kc values by month (1-12)
 }
 
 interface RuntimeResult {
@@ -126,7 +124,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
   // State for dynamic reports
   const [reportMode, setReportMode] = useState<'current' | 'historical' | 'future'>('current');
-  const [forecastPreset, setForecastPreset] = useState<'today' | '7day'>('7day');
+  const [forecastPreset, setForecastPreset] = useState<'today' | '7day' | '14day'>('7day');
   const [futureStartDate, setFutureStartDate] = useState('');
   const [dateRange, setDateRange] = useState({
     startDate: '',
@@ -136,9 +134,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const [historicalWeatherData, setHistoricalWeatherData] = useState<Map<string, any>>(new Map());
   const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  
-  // State for water use data notes
-  const [waterUseNotes, setWaterUseNotes] = useState('');
   
   // State for collapsible location sections
   const [collapsedLocations, setCollapsedLocations] = useState<Set<string>>(new Set());
@@ -501,16 +496,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   const handleExportCSV = () => {
-    // Capture any unsaved textarea values before exporting
-    const textareas = document.querySelectorAll('textarea[id^="weekly-summary-"]');
-    const updatedSummaries = { ...cropWeeklySummaries };
-    textareas.forEach((textarea: any) => {
-      const cropId = textarea.id.replace('weekly-summary-', '');
-      if (textarea.value) {
-        updatedSummaries[cropId] = textarea.value;
-      }
-    });
-    
     // Quick export with weather data and crop calculations
     const quickOptions: ComprehensiveExportOptions = {
       includeWeatherData: true,
@@ -521,11 +506,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       includeHistoricalData: false,
       includeCharts: false,
       fileFormat: 'csv',
-      separateSheets: false,
-      reportMode,
-      futureStartDate,
-      forecastPreset,
-      dateRange: reportMode === 'historical' ? dateRange : undefined
+      separateSheets: false
     };
     
     exportComprehensiveData(displayLocations, quickOptions, {
@@ -537,22 +518,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
       selectedLocation,
       fieldBlocks: [],
       insights: getCombinedInsights(),
-      cropWeeklySummaries: updatedSummaries,
-      waterUseNotes
+      cropWeeklySummaries
     });
   };
 
   const handleExportExcel = () => {
-    // Capture any unsaved textarea values before exporting
-    const textareas = document.querySelectorAll('textarea[id^="weekly-summary-"]');
-    const updatedSummaries = { ...cropWeeklySummaries };
-    textareas.forEach((textarea: any) => {
-      const cropId = textarea.id.replace('weekly-summary-', '');
-      if (textarea.value) {
-        updatedSummaries[cropId] = textarea.value;
-      }
-    });
-    
     // Quick export with weather data and crop calculations
     const quickOptions: ComprehensiveExportOptions = {
       includeWeatherData: true,
@@ -563,11 +533,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       includeHistoricalData: false,
       includeCharts: false,
       fileFormat: 'excel',
-      separateSheets: true,
-      reportMode,
-      futureStartDate,
-      forecastPreset,
-      dateRange: reportMode === 'historical' ? dateRange : undefined
+      separateSheets: true
     };
     
     exportComprehensiveData(displayLocations, quickOptions, {
@@ -579,32 +545,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
       selectedLocation,
       fieldBlocks: [],
       insights: getCombinedInsights(),
-      cropWeeklySummaries: updatedSummaries,
-      waterUseNotes
+      cropWeeklySummaries
     });
   };
 
   const handleComprehensiveExport = (options: ComprehensiveExportOptions) => {
-    // Capture any unsaved textarea values before exporting
-    const textareas = document.querySelectorAll('textarea[id^="weekly-summary-"]');
-    const updatedSummaries = { ...cropWeeklySummaries };
-    textareas.forEach((textarea: any) => {
-      const cropId = textarea.id.replace('weekly-summary-', '');
-      if (textarea.value) {
-        updatedSummaries[cropId] = textarea.value;
-      }
-    });
-    
-    // Merge report mode settings into options
-    const exportOptions: ComprehensiveExportOptions = {
-      ...options,
-      reportMode,
-      futureStartDate,
-      forecastPreset,
-      dateRange: reportMode === 'historical' ? dateRange : undefined
-    };
-    
-    exportComprehensiveData(displayLocations, exportOptions, {
+    exportComprehensiveData(displayLocations, options, {
       cmisData,
       cropInstances,
       selectedCrops,
@@ -613,8 +559,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       selectedLocation,
       fieldBlocks: [], // Field blocks are managed by FieldBlocksManager
       insights: getCombinedInsights(),
-      cropWeeklySummaries: updatedSummaries,
-      waterUseNotes
+      cropWeeklySummaries
     });
   };
 
@@ -813,7 +758,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
                   <TrendingUp className="h-3 w-3 text-green-500" />
-                  Using <strong className="text-gray-900 dark:text-white mx-1">7-day</strong> forecast preset
+                  Using <strong className="text-gray-900 dark:text-white mx-1">{forecastPreset === '7day' ? '7-day' : '14-day'}</strong> forecast preset
                 </div>
                 {futureStartDate && (
                   <div className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded">
@@ -828,7 +773,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
                 <div className="text-sm font-medium">Live Data Mode</div>
                 <div className="text-xs mt-1">
-                  Showing {forecastPreset === 'today' ? "today's" : '14-day (7 past + 7 forward)'} forecast
+                  Showing {forecastPreset === 'today' ? "today's" : forecastPreset === '7day' ? '7-day' : '14-day'} forecast
                 </div>
               </div>
             </div>
@@ -1025,21 +970,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
             
             {!collapsedSections.has('waterUseData') && (
               <div className="p-6 space-y-8">
-              {/* Notes input field */}
-              <div className="mb-6">
-                <label htmlFor="waterUseNotes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  id="waterUseNotes"
-                  value={waterUseNotes}
-                  onChange={(e) => setWaterUseNotes(e.target.value)}
-                  placeholder="Add notes about water use data, observations, or recommendations..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-vertical"
-                />
-              </div>
-              
               {/* Group crop instances by crop */}
               {(() => {
                 const cropGroups = new Map<string, typeof cropInstances>();
@@ -1083,16 +1013,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 Kc
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ET₀ Actual (in)
+                                ET₀ (in)
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ET₀ Forecast (in)
-                              </th>
-                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ETc Actual (in)
-                              </th>
-                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ETc Forecast (in)
+                                ETc (in)
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 Water Need
@@ -1116,48 +1040,38 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               
                               if (reportMode === 'current') {
                                 // Current mode: Show previous 7 days + next 7 days (14 days total)
-                                // With past_days: 7 in OpenMeteo, the data array includes past 7 days
-                                // So the array is: [day-7, day-6, ..., today, day+1, ..., day+7]
                                 const today = new Date().toISOString().split('T')[0];
                                 const todayIdx = weather.daily.time.findIndex((d: string) => d >= today);
-                                
                                 if (todayIdx === -1) {
-                                  // Today not found, use beginning of array
                                   startIdx = 0;
                                 } else {
-                                  // Start from 7 days before today (which should be around index 0 with past_days: 7)
+                                  // Start from 7 days before today
                                   startIdx = Math.max(0, todayIdx - 7);
                                 }
-                                
-                                // Show 14 days total (7 before + 7 after) or just today
-                                const daysToShow = forecastPreset === 'today' ? 1 : 14;
+                                // End at 7 days after today (or use preset for different ranges)
+                                const daysToShow = forecastPreset === 'today' ? 1 : forecastPreset === '7day' ? 14 : 21; // 7 days before + 7 days after = 14 total
                                 endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
                               } else if (reportMode === 'future') {
-                                // Future mode: Show 7 days before selected date + 7 days after (14 days total)
-                                let futureTargetDate: string;
+                                // Future mode: Start from selected date or 7 days out, use preset
+                                let futureStart: string;
                                 if (futureStartDate) {
                                   // Use the exact date from the picker - it's already in YYYY-MM-DD format
-                                  futureTargetDate = futureStartDate;
+                                  futureStart = futureStartDate;
                                 } else {
                                   const future = new Date();
                                   future.setDate(future.getDate() + 7);
-                                  futureTargetDate = future.toISOString().split('T')[0];
+                                  futureStart = future.toISOString().split('T')[0];
                                 }
-                                
-                                // Find the target date index
-                                const targetIdx = weather.daily.time.findIndex((d: string) => d >= futureTargetDate);
-                                
-                                if (targetIdx === -1) {
-                                  // Target date not found, use a reasonable default
-                                  startIdx = Math.min(7, weather.daily.time.length - 14);
-                                  endIdx = Math.min(startIdx + 14, weather.daily.time.length);
-                                } else {
-                                  // Start from 7 days before target date
-                                  startIdx = Math.max(0, targetIdx - 7);
-                                  // Show 14 days total (7 before + 7 after target) or just the target day
-                                  const daysToShow = forecastPreset === 'today' ? 1 : 14;
-                                  endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
+                                // Find the exact matching date or the next available date
+                                startIdx = weather.daily.time.findIndex((d: string) => d === futureStart);
+                                // If exact match not found, find the next date
+                                if (startIdx === -1) {
+                                  startIdx = weather.daily.time.findIndex((d: string) => d > futureStart);
                                 }
+                                // Fallback to a reasonable default
+                                if (startIdx === -1) startIdx = Math.min(7, weather.daily.time.length - 7);
+                                const daysToShow = forecastPreset === '7day' ? 7 : 14;
+                                endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
                               } else if (reportMode === 'historical') {
                                 // Historical mode: Use custom date range
                                 if (dateRange.startDate && dateRange.endDate) {
@@ -1170,83 +1084,31 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               
                               const dateRows = [];
                               
-                              // Get crop data for monthly Kc lookup
-                              const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
-                              
-                              // Check if this is a California location for CIMIS data
-                              const locationInfo = {
-                                latitude: location.latitude,
-                                longitude: location.longitude,
-                                state: (location as any).state,
-                                region: (location as any).region,
-                                name: location.name
-                              };
-                              const isCalifornia = isLocationInCalifornia(locationInfo);
-                              const locationCmisData = cmisData.get(location.id) || [];
-                              const today = new Date().toISOString().split('T')[0];
-                              
                               for (let i = startIdx; i < endIdx; i++) {
                                 const date = weather.daily.time[i];
+                                const et0_mm = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
+                                const et0_inches = et0_mm * 0.0393701;
                                 
-                                // Get OpenMeteo forecast data (always available)
-                                const et0_forecast = weather.daily.et0_fao_evapotranspiration?.[i] || 0; // API already returns in inches
+                                // Calculate Kc based on crop stage (simplified - using mid-season Kc)
+                                const kc = locationInstances[0].currentStage === 2 ? 1.15 : 
+                                          locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
                                 
-                                // For California locations, try to get CIMIS actual data for past/current dates
-                                // This works for ALL report modes (current, future, historical)
-                                let et0_actual = null; // null means no actual data available
-                                let hasActualData = false;
+                                const etc_inches = et0_inches * kc;
                                 
-                                if (isCalifornia && date <= today) {
-                                  // Try to get CIMIS actual data for past and current dates
-                                  const cimisDay = locationCmisData.find(d => d.date === date);
-                                  if (cimisDay && cimisDay.etc_actual !== undefined && cimisDay.etc_actual !== null) {
-                                    // CIMIS provides ETo in inches (already converted in cmisService)
-                                    et0_actual = cimisDay.etc_actual;
-                                    hasActualData = true;
-                                  }
-                                }
-                                
-                                // Get month from date (1-12)
-                                const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
-                                
-                                // Calculate Kc - check custom values first, then monthly, then stage-based fallback
-                                let kc = 1.0; // Default fallback
-                                
-                                // Priority 1: Check if this location has a crop instance with custom Kc for this month
-                                const customKc = locationInstances[0]?.customKcValues?.[dateMonth];
-                                if (customKc !== undefined) {
-                                  kc = customKc;
-                                } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                                  // Priority 2: Use monthly Kc values from crop database
-                                  const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                                  kc = monthData?.kc || 1.0;
-                                } else {
-                                  // Priority 3: Fallback to stage-based Kc (old method)
-                                  kc = locationInstances[0].currentStage === 2 ? 1.15 : 
-                                       locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
-                                }
-                                
-                                // Calculate ETc for both actual and forecast
-                                const etc_actual = hasActualData && et0_actual !== null ? et0_actual * kc : null;
-                                const etc_forecast = et0_forecast * kc;
-                                
-                                // Categorize water need based on ETc (use actual if available, otherwise forecast)
-                                const etc_for_need = etc_actual !== null ? etc_actual : etc_forecast;
+                                // Categorize water need based on ETc
+                                // Low: < 0.15 in/day, Med: 0.15-0.25 in/day, High: > 0.25 in/day
                                 let waterNeedCategory = 'Low';
-                                if (etc_for_need > 0.25) {
+                                if (etc_inches > 0.25) {
                                   waterNeedCategory = 'High';
-                                } else if (etc_for_need >= 0.15) {
+                                } else if (etc_inches >= 0.15) {
                                   waterNeedCategory = 'Med';
                                 }
 
                                 dateRows.push({
                                   date,
                                   kc,
-                                  et0_actual,
-                                  et0_forecast,
-                                  etc_actual,
-                                  etc_forecast,
-                                  hasActualData,
+                                  et0: et0_inches,
+                                  etc: etc_inches,
                                   waterNeed: waterNeedCategory
                                 });
                               }
@@ -1281,32 +1143,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                         })}
                                       </td>
                                       
-                                      {/* Kc cell */}
+                                      {/* Metric cells */}
                                       <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
                                         {row.kc.toFixed(2)}
                                       </td>
-                                      
-                                      {/* ET₀ Actual cell - only show if CIMIS data available */}
                                       <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                        {row.et0_actual !== null ? row.et0_actual.toFixed(2) : '—'}
+                                        {row.et0.toFixed(2)}
                                       </td>
-                                      
-                                      {/* ET₀ Forecast cell - show OpenMeteo forecast for all dates */}
-                                      <td className="px-4 py-2 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                        {row.et0_forecast.toFixed(2)}
-                                      </td>
-                                      
-                                      {/* ETc Actual cell - only show if CIMIS data available */}
                                       <td className="px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
-                                        {row.etc_actual !== null ? row.etc_actual.toFixed(2) : '—'}
+                                        {row.etc.toFixed(2)}
                                       </td>
-                                      
-                                      {/* ETc Forecast cell - show calculated ETc from forecast data */}
-                                      <td className="px-4 py-2 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
-                                        {row.etc_forecast.toFixed(2)}
-                                      </td>
-                                      
-                                      {/* Water Need cell */}
                                       <td className="px-4 py-2 text-sm text-center font-semibold">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                           row.waterNeed === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
@@ -1342,7 +1188,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           let endIdx = weather.daily.time.length;
                           
                           if (reportMode === 'current') {
-                            // Current mode: With past_days: 7, array includes past 7 days
                             const today = new Date().toISOString().split('T')[0];
                             const todayIdx = weather.daily.time.findIndex((d: string) => d >= today);
                             if (todayIdx === -1) {
@@ -1350,7 +1195,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                             } else {
                               startIdx = Math.max(0, todayIdx - 7);
                             }
-                            const daysToShow = forecastPreset === 'today' ? 1 : 14; // 7 days before + 7 days after
+                            const daysToShow = forecastPreset === 'today' ? 1 : forecastPreset === '7day' ? 14 : 21;
                             endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
                           } else if (reportMode === 'future') {
                             let futureStart: string;
@@ -1377,30 +1222,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
                             }
                           }
                           
-                          // Get crop data for monthly Kc lookup
-                          const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
-                          
                           // Aggregate ETc values by date
                           for (let i = startIdx; i < endIdx; i++) {
                             const date = weather.daily.time[i];
-                            const et0_inches = weather.daily.et0_fao_evapotranspiration?.[i] || 0; // API already returns in inches
-                            
-                            // Get month from date (1-12)
-                            const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
-                            
-                            // Calculate Kc - check custom values first, then monthly, then stage-based fallback
-                            let kc = 1.0;
-                            const customKc = locationInstances[0]?.customKcValues?.[dateMonth];
-                            if (customKc !== undefined) {
-                              kc = customKc;
-                            } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                              const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                              kc = monthData?.kc || 1.0;
-                            } else {
-                              kc = locationInstances[0].currentStage === 2 ? 1.15 : 
-                                   locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
-                            }
-                            
+                            const et0_mm = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
+                            const et0_inches = et0_mm * 0.0393701;
+                            const kc = locationInstances[0].currentStage === 2 ? 1.15 : 
+                                      locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
                             const etc_inches = et0_inches * kc;
                             
                             const existing = dateMap.get(date) || { totalEtc: 0, count: 0 };
@@ -1581,9 +1409,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
               const highTemp = Math.round(baseTemp + tempVariation + 5);
               const lowTemp = Math.round(baseTemp + tempVariation - 10);
               
-              // Generate ET0 values (0.15-0.27 inches/day range) - API returns inches
-              const et0_inches = 0.15 + Math.random() * 0.12; // Realistic inch range
-              const et0_sum_inches = (i + 1) * 0.2; // Cumulative sum, average ~0.2 in/day
+              // Generate ET0 values similar to main dashboard (4-7 mm/day range)
+              const et0_mm = 4 + Math.random() * 3; // Same range as main dashboard
+              const et0_inches = et0_mm * 0.0393701; // Convert mm to inches
+              const et0_sum_inches = ((i + 1) * et0_mm * 0.0393701); // Cumulative sum
               
               mockDays.push({
                 date: date.toISOString().split('T')[0],
@@ -1804,9 +1633,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     <div className="flex items-center gap-1">
                       <TrendingUp className="h-4 w-4" />
                       {reportMode === 'current' 
-                        ? `Current Period Data (${forecastPreset === 'today' ? 'Today' : '7 Days (Past)'})`
-                        : reportMode === 'future'
-                        ? `Future Period Data (7 Days)`
+                        ? `Current Period Data (${forecastPreset === 'today' ? 'Today' : forecastPreset === '7day' ? '7 Days' : '14 Days'})`
+                        : reportMode === 'future' 
+                        ? `Future Period Data (${forecastPreset === '7day' ? '7 Days' : '14 Days'})`
                         : "Historical Period Data"}
                     </div>
                   </h4>
@@ -1953,17 +1782,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
         let endIdx = weather.daily.time.length;
         
         if (reportMode === 'current') {
-          // Current mode: Show past 7 days + future days based on preset
-          // With past_days: 7, the array includes 7 days of past data
+          // Current mode: Use preset (today, 7 days, or 14 days)
           const today = new Date().toISOString().split('T')[0];
-          const todayIdx = weather.daily.time.findIndex((d: string) => d >= today);
-          if (todayIdx === -1) {
-            startIdx = 0;
-          } else {
-            // Start from 7 days before today
-            startIdx = Math.max(0, todayIdx - 7);
-          }
-          const daysToShow = forecastPreset === 'today' ? 1 : 14; // 7 before + 7 after
+          startIdx = weather.daily.time.findIndex((d: string) => d >= today);
+          if (startIdx === -1) startIdx = 0;
+          const daysToShow = forecastPreset === 'today' ? 1 : forecastPreset === '7day' ? 7 : 14;
           endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
         } else if (reportMode === 'future') {
           // Future mode: Start from selected date or 7 days out, use preset
@@ -2002,15 +1825,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
           tempMax: safe(weather.daily.temperature_2m_max?.[startIdx]?.toFixed(0)),
           tempMin: safe(weather.daily.temperature_2m_min?.[startIdx]?.toFixed(0)),
           precipitation: safe(weather.daily.precipitation_sum?.[startIdx]?.toFixed(2)),
-          et0: weather.daily.et0_fao_evapotranspiration?.[startIdx] || 0, // API already returns in inches
-          et0_sum: weather.daily.et0_fao_evapotranspiration_sum?.[startIdx] || 0,
+          et0: weather.daily.et0_fao_evapotranspiration?.[startIdx] * 0.0393701 || 0,
+          et0_sum: weather.daily.et0_fao_evapotranspiration_sum?.[startIdx] * 0.0393701 || 0,
         };
         
         // Generate forecast data array for the table
         const forecastData = [];
         let cumulativeET0 = 0;
         for (let i = startIdx; i < endIdx; i++) {
-          const et0_inches = weather.daily.et0_fao_evapotranspiration?.[i] || 0; // API already returns in inches
+          const et0_mm = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
+          const et0_inches = et0_mm * 0.0393701;
           cumulativeET0 += et0_inches;
           
           forecastData.push({
@@ -2227,9 +2051,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   <div className="flex items-center gap-1">
                     <TrendingUp className="h-4 w-4" />
                     {reportMode === 'current' 
-                      ? `Current Period Data (${forecastPreset === 'today' ? 'Today' : '7 Days (Past)'})`
-                      : reportMode === 'future'
-                      ? `Future Period Data (7 Days)`
+                      ? `Current Period Data (${forecastPreset === 'today' ? 'Today' : forecastPreset === '7day' ? '7 Days' : '14 Days'})`
+                      : reportMode === 'future' 
+                      ? `Future Period Data (${forecastPreset === '7day' ? '7 Days' : '14 Days'})`
                       : "Historical Period Data"}
                   </div>
                 </h4>

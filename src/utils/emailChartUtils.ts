@@ -8,8 +8,8 @@ export const generateEmailChartUrls = (location: LocationWithWeather) => {
   const dates = daily.time.slice(0, 14);
   const precipitation = daily.precipitation_sum.slice(0, 14);
   const rain = daily.rain_sum.slice(0, 14);
-  // Convert ET₀ from mm to inches (1 mm = 0.0393701 inches)
-  const et0 = daily.et0_fao_evapotranspiration.slice(0, 14).map((value: number) => value * 0.0393701);
+  // API already returns ET₀ in inches (precipitation_unit: 'inch' in weatherService)
+  const et0 = daily.et0_fao_evapotranspiration.slice(0, 14);
 
   // Format dates for chart labels (Oct 21, Oct 22, etc.)
   const labels = dates.map(date => {
@@ -176,7 +176,7 @@ export const generateTextChart = (location: LocationWithWeather): string => {
     const date = new Date(daily.time[index]).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const barLength = Math.round((value / Math.max(maxEt0, 1)) * 20);
     const bar = '▓'.repeat(barLength) + '░'.repeat(20 - barLength);
-    textChart += `${date.padEnd(6)} │${bar}│ ${(value * 0.0393701).toFixed(3)} inches\n`;
+    textChart += `${date.padEnd(6)} │${bar}│ ${value.toFixed(3)} inches\n`;
   });
 
   return textChart + '\n';

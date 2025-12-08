@@ -4,15 +4,15 @@ import { Calendar, TrendingUp, Clock, BarChart3, Sun, CloudRain, CalendarCheck }
 interface ReportModeToggleProps {
   mode: 'current' | 'historical' | 'future';
   onModeChange: (mode: 'current' | 'historical' | 'future') => void;
-  forecastPreset?: 'today' | '7day' | '14day';
-  onPresetChange?: (preset: 'today' | '7day' | '14day') => void;
+  forecastPreset?: 'today' | '7day';
+  onPresetChange?: (preset: 'today' | '7day') => void;
   className?: string;
 }
 
 export const ReportModeToggle: React.FC<ReportModeToggleProps> = ({
   mode,
   onModeChange,
-  forecastPreset = '14day',
+  forecastPreset = '7day',
   onPresetChange,
   className = ""
 }) => {
@@ -41,8 +41,7 @@ export const ReportModeToggle: React.FC<ReportModeToggleProps> = ({
           </div>
           <div className="text-[11px] opacity-80">
             {forecastPreset === 'today' ? 'Today\'s forecast' : 
-             forecastPreset === '7day' ? '7-day forecast from today' : 
-             '14-day forecast from today'}
+             '14 days (7 past + 7 forward)'}
           </div>
           {mode === 'current' && (
             <div className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 mt-1">
@@ -95,7 +94,7 @@ export const ReportModeToggle: React.FC<ReportModeToggleProps> = ({
           <h4 className="text-[11px] font-medium text-gray-700 dark:text-gray-300 mb-1.5">
             {mode === 'current' ? 'Forecast Period' : 'Future Period Length'}
           </h4>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5">
             {mode === 'current' && (
               <button
                 onClick={() => onPresetChange('today')}
@@ -119,17 +118,6 @@ export const ReportModeToggle: React.FC<ReportModeToggleProps> = ({
             >
               <CloudRain className="h-2.5 w-2.5 inline mr-1" />
               7 Days
-            </button>
-            <button
-              onClick={() => onPresetChange('14day')}
-              className={`px-2 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-                forecastPreset === '14day'
-                  ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-600'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <TrendingUp className="h-2.5 w-2.5 inline mr-1" />
-              14 Days
             </button>
           </div>
         </div>

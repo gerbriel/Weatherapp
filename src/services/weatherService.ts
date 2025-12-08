@@ -17,7 +17,7 @@ interface DateRange {
 class WeatherService {
   private cache = new Map<string, { data: WeatherApiResponse; timestamp: number }>();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30 minutes cache (increased to reduce API calls)
-  private readonly CACHE_VERSION = '2'; // Increment this to invalidate all caches
+  private readonly CACHE_VERSION = '4'; // Increment this to invalidate all caches (updated for past_days: 7)
   private requestQueue: Promise<any> = Promise.resolve();
   private readonly REQUEST_DELAY = 5000; // 5 second delay between requests to avoid rate limits (increased from 3s)
   private lastRequestTime = 0;
@@ -149,16 +149,30 @@ class WeatherService {
       ].join(','),
       forecast_days: 16, // Increased to support 14-day future reports
       forecast_hours: 24, // Get 24 hours of hourly forecast data
-      past_days: 0, // No past data needed - focus on upcoming forecasts
+      past_days: 7, // Include 7 days of past data for current mode reports (fallback for non-CA locations)
       models: 'gfs_global', // Use NOAA GFS Global model for reliable US weather data
       timezone: 'America/Los_Angeles',
       temperature_unit: 'fahrenheit',
       wind_speed_unit: 'mph',
+      
+      // CRITICAL: precipitation_unit: 'inch' means ALL precipitation-related values are returned in INCHES
+      // This includes: precipitation_sum, rain_sum, snowfall_sum, AND et0_fao_evapotranspiration
+      // Do NOT convert et0_fao_evapotranspiration values - they are ALREADY in inches
       precipitation_unit: 'inch'
     };
 
     try {
       const response = await axios.get<WeatherApiResponse>(FORECAST_URL, { params });
+      
+      // Debug: Log the date range received from API
+      if (response.data?.daily?.time) {
+        console.log('🔍 OpenMeteo API Response - Date Range:', {
+          firstDate: response.data.daily.time[0],
+          lastDate: response.data.daily.time[response.data.daily.time.length - 1],
+          totalDays: response.data.daily.time.length,
+          allDates: response.data.daily.time.slice(0, 20) // First 20 dates
+        });
+      }
       
       // Cache the successful response
       this.cache.set(cacheKey, {

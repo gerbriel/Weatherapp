@@ -21,6 +21,13 @@ export const WeatherDashboard: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [currentView, setCurrentView] = useState<'location' | 'report' | 'emails' | 'crops' | 'profile'>('location');
+  const [cropWeeklySummaries, setCropWeeklySummaries] = useState<Record<string, string>>({});
+  
+  console.log('🔴 WeatherDashboard state:', {
+    cropWeeklySummaries,
+    setterType: typeof setCropWeeklySummaries
+  });
+  
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Fetch weather data on-demand when a location is selected (if it doesn't have data yet)
@@ -272,7 +279,10 @@ export const WeatherDashboard: React.FC = () => {
           {/* Content */}
           <main className="flex-1 overflow-y-auto p-6 w-full">
             {currentView === 'report' ? (
-              <ReportView />
+              <ReportView 
+                cropWeeklySummaries={cropWeeklySummaries}
+                onCropWeeklySummariesChange={setCropWeeklySummaries}
+              />
             ) : currentView === 'emails' ? (
               <EmailNotifications />
             ) : currentView === 'crops' ? (
@@ -429,7 +439,7 @@ export const WeatherDashboard: React.FC = () => {
                                 )}
                                 <div className="flex items-center justify-center text-[10px] text-green-600 dark:text-green-400">
                                   <span className="mr-0.5">🌱</span>
-                                  <span>{(et0 * 0.0393701).toFixed(2)}"</span>
+                                  <span>{et0.toFixed(2)}"</span>
                                 </div>
                               </div>
                             );
@@ -477,7 +487,7 @@ export const WeatherDashboard: React.FC = () => {
                     
                     <WeatherCard
                       title="ET₀ (Daily)"
-                      value={todayData.et0 * 0.0393701}
+                      value={todayData.et0}
                       unit="inches"
                       icon={<Gauge className="h-6 w-6" />}
                       description="Daily evapotranspiration"
@@ -485,7 +495,7 @@ export const WeatherDashboard: React.FC = () => {
                     
                     <WeatherCard
                       title="ET₀ (Sum)"
-                      value={todayData.et0_sum * 0.0393701}
+                      value={todayData.et0_sum}
                       unit="inches"
                       icon={<Gauge className="h-6 w-6" />}
                       description="Cumulative evapotranspiration"
@@ -551,7 +561,7 @@ export const WeatherDashboard: React.FC = () => {
                                   {selectedLocation.weatherData?.daily.precipitation_sum[index]?.toFixed(2) || '0.00'}
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-200">
-                                  {selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index] ? (selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index] * 0.0393701).toFixed(3) : '0.000'}
+                                  {selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index] ? selectedLocation.weatherData?.daily.et0_fao_evapotranspiration[index].toFixed(3) : '0.000'}
                                 </td>
                               </tr>
                             );
