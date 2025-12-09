@@ -1136,7 +1136,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 Location
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                Kc
+                                Kc Actual ({actualsDateRangeText})
+                              </th>
+                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Kc Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 ET₀ Actual ({actualsDateRangeText})
@@ -1226,6 +1229,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let et0_actual_sum = 0;
                               let et0_forecast_sum = 0;
                               let actualDaysCount = 0;
+                              let kc_actual_sum = 0;
+                              let kc_forecast_sum = 0;
                               
                               const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                               
@@ -1235,49 +1240,51 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 referenceDate = futureStartDate;
                               }
                               
-                              // Get weekly Kc (use Kc for the reference date/current week)
-                              const referenceDateMonth = new Date(referenceDate + 'T12:00:00').getMonth() + 1;
-                              const customKc = locationInstances[0]?.customKcValues?.[referenceDateMonth];
-                              let weeklyKc = 1.0;
-                              
-                              if (customKc !== undefined) {
-                                weeklyKc = customKc;
-                              } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                                const monthData = cropData.monthlyKc.find(m => m.month === referenceDateMonth);
-                                weeklyKc = monthData?.kc || 1.0;
-                              } else {
-                                weeklyKc = locationInstances[0].currentStage === 2 ? 1.15 : 
-                                           locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
-                              }
-                              
-                              // Calculate actual range end (7 days before reference date)
-                              const actualRangeEnd = new Date(referenceDate);
-                              actualRangeEnd.setDate(actualRangeEnd.getDate() - 1); // Day before reference
-                              const actualRangeEndStr = actualRangeEnd.toISOString().split('T')[0];
+                              // Track date ranges for display
+                              let actualDates: string[] = [];
+                              let forecastDates: string[] = [];
                               
                               for (let i = startIdx; i < endIdx; i++) {
                                 const date = weather.daily.time[i];
                                 
-                                // Sum OpenMeteo forecast ET₀ only for FUTURE dates (>= reference date)
+                                // Get Kc for this specific day
+                                const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
+                                const customKc = locationInstances[0]?.customKcValues?.[dateMonth];
+                                let dailyKc = 1.0;
+                                
+                                if (customKc !== undefined) {
+                                  dailyKc = customKc;
+                                } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
+                                  const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
+                                  dailyKc = monthData?.kc || 1.0;
+                                } else {
+                                  dailyKc = locationInstances[0].currentStage === 2 ? 1.15 : 
+                                           locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
+                                }
+                                
+                                // Sum OpenMeteo forecast ET₀ and Kc for FUTURE dates (>= reference date)
                                 if (date >= referenceDate) {
                                   const et0_forecast = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
                                   et0_forecast_sum += et0_forecast;
+                                  kc_forecast_sum += dailyKc;
+                                  forecastDates.push(date);
                                 }
                                 
-                                // Sum CIMIS actual ET₀ only for dates BEFORE the reference date (past days)
-                                // This ensures we're getting historical actuals, not forecast data
+                                // Sum CIMIS actual ET₀ and Kc for dates BEFORE the reference date (past days)
                                 if (isCalifornia && date < referenceDate) {
                                   const cimisDay = locationCmisData.find(d => d.date === date);
                                   if (cimisDay && cimisDay.etc_actual !== undefined && cimisDay.etc_actual !== null) {
                                     et0_actual_sum += cimisDay.etc_actual;
+                                    kc_actual_sum += dailyKc;
                                     actualDaysCount++;
+                                    actualDates.push(date);
                                   }
                                 }
                               }
                               
-                              // Calculate weekly ETc totals using single weekly Kc
-                              const etc_actual_sum = et0_actual_sum * weeklyKc;
-                              const etc_forecast_sum = et0_forecast_sum * weeklyKc;
+                              // Calculate weekly ETc totals: multiply summed ET₀ by summed Kc
+                              const etc_actual_sum = et0_actual_sum * kc_actual_sum;
+                              const etc_forecast_sum = et0_forecast_sum * kc_forecast_sum;
                               const hasActualData = actualDaysCount > 0;
                               
                               // Determine water need category based on weekly forecast ETc
@@ -1303,7 +1310,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                    {weeklyKc.toFixed(2)}
+                                    {hasActualData ? kc_actual_sum.toFixed(2) : '—'}
+                                  </td>
+                                  
+                                  <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
+                                    {kc_forecast_sum.toFixed(2)}
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">

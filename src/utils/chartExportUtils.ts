@@ -1214,7 +1214,8 @@ export async function exportChartsAsHTML(
               <!-- Header Row -->
               <tr style="background-color: #353750;">
                 <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: left; font-weight: 600; text-transform: uppercase;">Location</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Kc</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Kc Actual (${actualsDateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Kc Forecast (${dateRangeText})</th>
                 <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Actual (${actualsDateRangeText})</th>
                 <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Forecast (${dateRangeText})</th>
                 <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Actual (${actualsDateRangeText})</th>
@@ -1244,44 +1245,46 @@ export async function exportChartsAsHTML(
                   referenceDate = additionalData.futureStartDate;
                 }
                 
-                // Calculate weekly Kc based on reference date's month
-                const referenceDateMonth = new Date(referenceDate + 'T12:00:00').getMonth() + 1;
-                const customKc = cropInstance?.customKcValues?.[referenceDateMonth];
-                let weeklyKc = 1.0;
-                
-                if (customKc !== undefined) {
-                  weeklyKc = customKc;
-                } else {
-                  weeklyKc = cropInstance.currentStage === 2 ? 1.15 : 
-                           cropInstance.currentStage === 1 ? 0.70 : 0.50;
-                }
-                
-                
                 let et0_actual_sum = 0;
                 let et0_forecast_sum = 0;
                 let actualDaysCount = 0;
+                let kc_actual_sum = 0;
+                let kc_forecast_sum = 0;
 
                 locForecast.forEach((day) => {
-                  // Sum forecast ET₀ only for FUTURE dates (>= reference date)
+                  // Get Kc for this specific day
+                  const dateMonth = new Date(day.date + 'T12:00:00').getMonth() + 1;
+                  const customKc = cropInstance?.customKcValues?.[dateMonth];
+                  let dailyKc = 1.0;
+                  
+                  if (customKc !== undefined) {
+                    dailyKc = customKc;
+                  } else {
+                    dailyKc = cropInstance.currentStage === 2 ? 1.15 : 
+                             cropInstance.currentStage === 1 ? 0.70 : 0.50;
+                  }
+                  
+                  // Sum forecast ET₀ and Kc for FUTURE dates (>= reference date)
                   if (day.date && day.date >= referenceDate) {
                     const et0_forecast_inches = Number(day.et0_forecast) || 0;
                     et0_forecast_sum += et0_forecast_inches;
+                    kc_forecast_sum += dailyKc;
                   }
 
-                  // Sum actual ET₀ only for dates BEFORE the reference date (past days from CIMIS)
-                  // This ensures we're getting historical actuals, not forecast data
+                  // Sum actual ET₀ and Kc for dates BEFORE the reference date (past days from CIMIS)
                   if (day.date && day.date < referenceDate) {
                     const et0_actual_inches = day.et0_actual;
                     if (et0_actual_inches !== null && et0_actual_inches !== undefined) {
                       et0_actual_sum += et0_actual_inches;
+                      kc_actual_sum += dailyKc;
                       actualDaysCount++;
                     }
                   }
                 });
 
-                // Calculate ETc weekly totals: multiply Kc by summed ET₀ values
-                const etc_actual_sum = et0_actual_sum * weeklyKc;
-                const etc_forecast_sum = et0_forecast_sum * weeklyKc;
+                // Calculate ETc weekly totals: multiply summed ET₀ by summed Kc
+                const etc_actual_sum = et0_actual_sum * kc_actual_sum;
+                const etc_forecast_sum = et0_forecast_sum * kc_forecast_sum;
 
                 const hasActualData = actualDaysCount > 0;
 
@@ -1305,7 +1308,8 @@ export async function exportChartsAsHTML(
                     <td style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD;">
                       📍 ${loc.name}
                     </td>
-                    <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${weeklyKc.toFixed(2)}</td>
+                    <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? kc_actual_sum.toFixed(2) : '—'}</td>
+                    <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${kc_forecast_sum.toFixed(2)}</td>
                     <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
                     <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_sum.toFixed(2)}</td>
                     <td style="color: #0A7DD6; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
