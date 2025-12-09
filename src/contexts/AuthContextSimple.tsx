@@ -38,7 +38,7 @@ export interface Organization {
 export interface UserLocation {
   id: string;
   user_id: string;
-  organization_id: string;
+  organization_id: string | null;
   name: string;
   description?: string;
   latitude: number;
