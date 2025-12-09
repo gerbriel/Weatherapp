@@ -1328,10 +1328,11 @@ export async function exportChartsAsHTML(
         </tr>
       </table>
       
-      <!-- Average ETc Chart for this Crop -->
+      <!-- Past 7 Days Average ETc Chart for this Crop -->
       ${(() => {
-        // Calculate average ETc across all locations for this crop
+        // Calculate average ETc across all locations for this crop (PAST 7 days)
         const dateMap = new Map();
+        const today = new Date().toISOString().split('T')[0];
         
         locationsWithCrop.forEach(loc => {
           const locForecast = generate14DayForecast(
@@ -1348,8 +1349,8 @@ export async function exportChartsAsHTML(
           const kc = cropInstance.currentStage === 2 ? 1.15 : 
                     cropInstance.currentStage === 1 ? 0.70 : 0.50;
           
-          // Use next 7 days
-          locForecast.slice(0, 7).forEach(day => {
+          // Filter for PAST dates only (before today)
+          locForecast.filter(day => day.date && day.date < today).slice(0, 7).forEach(day => {
             const et0_inches = Number(day.et0) || 0;
             const etc_inches = et0_inches * kc;
             
@@ -1368,73 +1369,154 @@ export async function exportChartsAsHTML(
         
         if (chartData.length === 0) return '';
         
-        // Generate a simple SVG line chart
-        const chartWidth = 700;
-        const chartHeight = 250;
-        const padding = { top: 40, right: 40, bottom: 50, left: 60 };
-        const plotWidth = chartWidth - padding.left - padding.right;
-        const plotHeight = chartHeight - padding.top - padding.bottom;
+        // Calculate max value for visual bar representation (include total in comparison)
+        const totalSum = chartData.reduce((sum, d) => sum + parseFloat(d.avgEtc), 0);
+        const maxEtc = Math.max(...chartData.map(d => parseFloat(d.avgEtc)), totalSum);
         
-        const maxEtc = Math.max(...chartData.map(d => parseFloat(d.avgEtc)));
-        const minEtc = 0;
-        const yScale = plotHeight / (maxEtc - minEtc);
-        const xScale = plotWidth / (chartData.length - 1);
-        
-        const points = chartData.map((d, i) => {
-          const x = padding.left + (i * xScale);
-          const y = chartHeight - padding.bottom - ((parseFloat(d.avgEtc) - minEtc) * yScale);
-          return { x, y, value: d.avgEtc, date: d.date };
-        });
-        
-        const pathData = points.map((p, i) => 
-          i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`
-        ).join(' ');
-        
+        // Generate HTML table with days as columns (Marketing Cloud compatible)
         return `
           <div style="margin: 20px 0; padding: 20px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px;">
             <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #353750; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-              Average ETc Across All Locations
+              Past 7 Days - Average ETc Across All Locations - ${cropName}
             </h4>
-            <svg width="${chartWidth}" height="${chartHeight}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-              <!-- Grid lines -->
-              ${Array.from({length: 6}, (_, i) => {
-                const y = padding.top + (plotHeight / 5) * i;
-                const value = (maxEtc - (maxEtc / 5) * i).toFixed(2);
-                return `
-                  <line x1="${padding.left}" y1="${y}" x2="${chartWidth - padding.right}" y2="${y}" 
-                        stroke="#E5E7EB" stroke-width="1" stroke-dasharray="3,3"/>
-                  <text x="${padding.left - 10}" y="${y + 5}" text-anchor="end" fill="#6B7280" font-size="11">${value}</text>
-                `;
-              }).join('')}
-              
-              <!-- X-axis labels -->
-              ${points.map((p, i) => `
-                <text x="${p.x}" y="${chartHeight - padding.bottom + 20}" 
-                      text-anchor="middle" fill="#6B7280" font-size="11">${p.date}</text>
-              `).join('')}
-              
-              <!-- Y-axis label -->
-              <text x="${padding.left - 45}" y="${padding.top + plotHeight/2}" 
-                    text-anchor="middle" fill="#6B7280" font-size="12" font-weight="600"
-                    transform="rotate(-90, ${padding.left - 45}, ${padding.top + plotHeight/2})">
-                ETc (inches)
-              </text>
-              
-              <!-- Line -->
-              <path d="${pathData}" stroke="#3B82F6" stroke-width="3" fill="none"/>
-              
-              <!-- Data points -->
-              ${points.map(p => `
-                <circle cx="${p.x}" cy="${p.y}" r="5" fill="#3B82F6" stroke="#FFFFFF" stroke-width="2"/>
-              `).join('')}
-              
-              <!-- Title -->
-              <text x="${chartWidth/2}" y="25" text-anchor="middle" fill="#353750" font-size="14" font-weight="600">
-                Average ETc for ${cropName}
-              </text>
-            </svg>
-            <p style="margin: 10px 0 0 0; font-size: 12px; color: #6B7280; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-              Shows the average crop water use (ETc) across all ${locationsWithCrop.length} location${locationsWithCrop.length !== 1 ? 's' : ''} growing ${cropName.toLowerCase()}
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #E5E7EB;">
+                  <th style="padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 600; color: #1F2937; border: 1px solid #D1D5DB;">&nbsp;</th>
+                  ${chartData.map(dataPoint => `
+                    <th style="padding: 10px 8px; text-align: center; font-size: 11px; font-weight: 600; color: #1F2937; border: 1px solid #D1D5DB;">${dataPoint.date}</th>
+                  `).join('')}
+                  <th style="padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 700; color: #1F2937; border: 1px solid #D1D5DB; background-color: #D1D5DB;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Visual Bar Row -->
+                <tr style="background-color: #F9FAFB;">
+                  <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #374151; border: 1px solid #E5E7EB; background-color: #F3F4F6; vertical-align: middle;">ETc<br/>(inches)</td>
+                  ${chartData.map(dataPoint => {
+                    const value = parseFloat(dataPoint.avgEtc);
+                    const barPercentage = maxEtc > 0 ? (value / maxEtc * 100) : 0;
+                    
+                    return `
+                      <td style="padding: 8px; border: 1px solid #E5E7EB; vertical-align: bottom;">
+                        <div style="background-color: #DBEAFE; border-radius: 4px; height: 150px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+                          <div style="background-color: #3B82F6; width: 100%; height: ${barPercentage.toFixed(1)}%; border-radius: 4px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px;">
+                            <span style="font-size: 13px; color: #FFFFFF; font-weight: 700;">${dataPoint.avgEtc}"</span>
+                          </div>
+                        </div>
+                      </td>
+                    `;
+                  }).join('')}
+                  <td style="padding: 8px; border: 1px solid #E5E7EB; vertical-align: bottom;">
+                    <div style="background-color: #DBEAFE; border-radius: 4px; height: 150px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+                      <div style="background-color: #3B82F6; width: 100%; height: ${maxEtc > 0 ? (totalSum / maxEtc * 100).toFixed(1) : 0}%; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 8px;">
+                        <span style="font-size: 11px; color: #FFFFFF; font-weight: 600;">Total</span>
+                        <span style="font-size: 13px; color: #FFFFFF; font-weight: 700;">${totalSum.toFixed(2)}"</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p style="margin: 15px 0 0 0; font-size: 12px; color: #6B7280; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.5;">
+              Shows the average crop water use (ETc) across all ${locationsWithCrop.length} location${locationsWithCrop.length !== 1 ? 's' : ''} growing ${cropName.toLowerCase()}. Values are in inches per day.
+            </p>
+          </div>
+        `;
+      })()}
+      
+      <!-- Forecast 7 Days Average ETc Chart for this Crop -->
+      ${(() => {
+        // Calculate average ETc across all locations for this crop (FORECAST 7 days)
+        const dateMap = new Map();
+        const today = new Date().toISOString().split('T')[0];
+        
+        locationsWithCrop.forEach(loc => {
+          const locForecast = generate14DayForecast(
+            loc,
+            additionalData?.reportMode || 'current',
+            additionalData?.futureStartDate,
+            additionalData?.forecastPreset,
+            additionalData?.dateRange,
+            additionalData?.cmisData
+          );
+          const cropInstance = cropsForThisCrop.find(c => c.locationId === loc.id);
+          if (!cropInstance) return;
+          
+          const kc = cropInstance.currentStage === 2 ? 1.15 : 
+                    cropInstance.currentStage === 1 ? 0.70 : 0.50;
+          
+          // Filter for FUTURE dates only (today and after)
+          locForecast.filter(day => day.date && day.date >= today).slice(0, 7).forEach(day => {
+            const et0_inches = Number(day.et0) || 0;
+            const etc_inches = et0_inches * kc;
+            
+            const existing = dateMap.get(day.formattedDate) || { total: 0, count: 0 };
+            dateMap.set(day.formattedDate, {
+              total: existing.total + etc_inches,
+              count: existing.count + 1
+            });
+          });
+        });
+        
+        const chartData = Array.from(dateMap.entries()).map(([date, data]) => ({
+          date,
+          avgEtc: (data.total / data.count).toFixed(2)
+        }));
+        
+        if (chartData.length === 0) return '';
+        
+        // Calculate max value for visual bar representation (include total in comparison)
+        const totalSum = chartData.reduce((sum, d) => sum + parseFloat(d.avgEtc), 0);
+        const maxEtc = Math.max(...chartData.map(d => parseFloat(d.avgEtc)), totalSum);
+        
+        // Generate HTML table with days as columns (Marketing Cloud compatible)
+        return `
+          <div style="margin: 20px 0; padding: 20px; background-color: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px;">
+            <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #78350F; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+              Forecast 7 Days - Average ETc Across All Locations - ${cropName}
+            </h4>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="width: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; border-collapse: collapse;">
+              <thead>
+                <tr style="background-color: #FDE68A;">
+                  <th style="padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 600; color: #78350F; border: 1px solid #FCD34D;">&nbsp;</th>
+                  ${chartData.map(dataPoint => `
+                    <th style="padding: 10px 8px; text-align: center; font-size: 11px; font-weight: 600; color: #78350F; border: 1px solid #FCD34D;">${dataPoint.date}</th>
+                  `).join('')}
+                  <th style="padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 700; color: #78350F; border: 1px solid #FCD34D; background-color: #FCD34D;">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Visual Bar Row -->
+                <tr style="background-color: #FFFBEB;">
+                  <td style="padding: 12px; font-size: 13px; font-weight: 600; color: #78350F; border: 1px solid #FDE68A; background-color: #FEF3C7; vertical-align: middle;">ETc<br/>(inches)</td>
+                  ${chartData.map(dataPoint => {
+                    const value = parseFloat(dataPoint.avgEtc);
+                    const barPercentage = maxEtc > 0 ? (value / maxEtc * 100) : 0;
+                    
+                    return `
+                      <td style="padding: 8px; border: 1px solid #FDE68A; vertical-align: bottom;">
+                        <div style="background-color: #FEF3C7; border-radius: 4px; height: 150px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+                          <div style="background-color: #F59E0B; width: 100%; height: ${barPercentage.toFixed(1)}%; border-radius: 4px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px;">
+                            <span style="font-size: 13px; color: #FFFFFF; font-weight: 700;">${dataPoint.avgEtc}"</span>
+                          </div>
+                        </div>
+                      </td>
+                    `;
+                  }).join('')}
+                  <td style="padding: 8px; border: 1px solid #FDE68A; vertical-align: bottom;">
+                    <div style="background-color: #FEF3C7; border-radius: 4px; height: 150px; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end;">
+                      <div style="background-color: #F59E0B; width: 100%; height: ${maxEtc > 0 ? (totalSum / maxEtc * 100).toFixed(1) : 0}%; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 8px;">
+                        <span style="font-size: 11px; color: #FFFFFF; font-weight: 600;">Total</span>
+                        <span style="font-size: 13px; color: #FFFFFF; font-weight: 700;">${totalSum.toFixed(2)}"</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p style="margin: 15px 0 0 0; font-size: 12px; color: #92400E; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.5;">
+              Shows the forecasted average crop water use (ETc) across all ${locationsWithCrop.length} location${locationsWithCrop.length !== 1 ? 's' : ''} growing ${cropName.toLowerCase()}. Values are in inches per day.
             </p>
           </div>
         `;
