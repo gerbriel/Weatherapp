@@ -544,6 +544,7 @@ export function exportComprehensiveData(
     };
     cropWeeklySummaries?: Record<string, string>;
     waterUseNotes?: string;
+    closingMessage?: string;
   } = {}
 ) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -557,7 +558,8 @@ export function exportComprehensiveData(
     fieldBlocks = [],
     insights,
     cropWeeklySummaries,
-    waterUseNotes
+    waterUseNotes,
+    closingMessage
   } = additionalData;
 
   // Handle special chart export formats
@@ -574,6 +576,7 @@ export function exportComprehensiveData(
       insights,
       cropWeeklySummaries,
       waterUseNotes,
+      closingMessage,
       reportMode: options.reportMode,
       futureStartDate: options.futureStartDate,
       forecastPreset: options.forecastPreset,

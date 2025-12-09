@@ -732,6 +732,7 @@ export async function exportChartsAsHTML(
     } | Map<string, { weather: string; crop: string; cropComparison: string; general: string; }>;
     cropWeeklySummaries?: Record<string, string>;
     waterUseNotes?: string;
+    closingMessage?: string;
     reportMode?: 'current' | 'future' | 'historical';
     futureStartDate?: string;
     forecastPreset?: 'today' | '7day';
@@ -1026,8 +1027,8 @@ export async function exportChartsAsHTML(
       <div class="hero">
       </div>
       ${additionalData?.waterUseNotes ? `
-      <div style="max-width: 800px; margin: 20px auto; padding: 20px; background: #F9FAFB; border-radius: 8px;">
-        <p style="font-size: 15px; color: #374151; margin: 0; line-height: 1.6; white-space: pre-wrap;">${additionalData.waterUseNotes}</p>
+      <div style="max-width: 800px; margin: 30px auto 20px; padding: 0 20px;">
+        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.waterUseNotes}</div>
       </div>
       ` : ''}
       <div style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
@@ -1306,7 +1307,7 @@ export async function exportChartsAsHTML(
                 return `
                   <tr style="background-color: ${locIdx % 2 === 0 ? '#FFFFFF' : '#F3F4F6'};">
                     <td style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD;">
-                      📍 ${loc.name}
+                      ${loc.name}
                     </td>
                     <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? kc_actual_sum.toFixed(2) : '—'}</td>
                     <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${kc_forecast_sum.toFixed(2)}</td>
@@ -1392,7 +1393,7 @@ export async function exportChartsAsHTML(
         return `
           <div style="margin: 20px 0; padding: 20px; background-color: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px;">
             <h4 style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #353750; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-              📈 Average ETc Across All Locations
+              Average ETc Across All Locations
             </h4>
             <svg width="${chartWidth}" height="${chartHeight}" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
               <!-- Grid lines -->
@@ -1443,7 +1444,7 @@ export async function exportChartsAsHTML(
       ${additionalData?.cropWeeklySummaries?.[cropId] ? `
         <div style="margin: 20px 0; padding: 20px; background-color: #F0FDF4; border: 1px solid #86EFAC; border-radius: 8px;">
           <h4 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #166534; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
-            📝 Weekly Summary - ${cropName}
+            Weekly Summary - ${cropName}
           </h4>
           <p style="margin: 0; font-size: 14px; color: #166534; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; white-space: pre-wrap;">
             ${additionalData.cropWeeklySummaries[cropId]}
@@ -1474,6 +1475,11 @@ export async function exportChartsAsHTML(
   }
 
   htmlContent += `
+      ${additionalData?.closingMessage ? `
+      <div style="max-width: 800px; margin: 40px auto 30px; padding: 0 20px;">
+        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.closingMessage}</div>
+      </div>
+      ` : ''}
       </div>
     </body>
     </html>

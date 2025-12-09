@@ -17,6 +17,17 @@ export default defineConfig(({ command }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/cmis/, '/api/data'),
         secure: true,
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('CMIS Proxy error:', err);
+          });
+          proxy.on('proxyReq', (_proxyReq, req, _res) => {
+            console.log('→ Proxying:', req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, _res) => {
+            console.log('← Response:', proxyRes.statusCode, req.url);
+          });
+        },
       }
     }
   },

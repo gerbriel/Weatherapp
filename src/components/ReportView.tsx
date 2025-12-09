@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings, Cloud, BarChart3, Wheat, Sun, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Thermometer, Droplets, Gauge, Calendar, Download, FileSpreadsheet, Sprout, Calculator, Filter, TrendingUp, Settings, Cloud, BarChart3, Wheat, Sun, FileText, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useLocations } from '../contexts/LocationsContext';
 import { exportComprehensiveData, type ComprehensiveExportOptions } from '../utils/exportUtils';
@@ -10,6 +10,9 @@ import { DateRangePicker } from './DateRangePicker';
 import { ReportModeToggle } from './ReportModeToggle';
 import { ExportOptionsModal } from './ExportOptionsModal';
 import ChartAIInsights from './ChartAIInsights';
+import { RichTextEditor } from './RichTextEditor';
+import { useAuth } from '../contexts/AuthContextSimple';
+import { supabase } from '../lib/supabase';
 import { cmisService } from '../services/cmisService';
 import { weatherService } from '../services/weatherService';
 import { isLocationInCalifornia } from '../utils/locationUtils';
@@ -86,6 +89,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
   onCropWeeklySummariesChange = () => {}
 }) => {
   
+  // Get auth context for saving closing message
+  const { profile } = useAuth();
+  
   // Always call the hook to follow rules of hooks
   let locationsData: any[] = [];
   let refreshFunction: () => void = () => {};
@@ -129,6 +135,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   
   // State for water use data notes
   const [waterUseNotes, setWaterUseNotes] = useState('');
+  const [closingMessage, setClosingMessage] = useState('');
   
   // State for collapsible location sections
   const [collapsedLocations, setCollapsedLocations] = useState<Set<string>>(new Set());
@@ -188,6 +195,70 @@ export const ReportView: React.FC<ReportViewProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Load saved closing message from local storage
+  useEffect(() => {
+    const savedClosingMessage = localStorage.getItem('default_closing_message');
+    if (savedClosingMessage) {
+      setClosingMessage(savedClosingMessage);
+    }
+  }, []);
+  
+  // Load closing message from Supabase if user is logged in (overrides localStorage)
+  useEffect(() => {
+    if (!profile?.id) return;
+    
+    const loadFromSupabase = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('setting_value')
+          .eq('user_id', profile.id)
+          .eq('setting_key', 'closing_message')
+          .maybeSingle();
+        
+        if (error) throw error;
+        
+        if (data && data.setting_value) {
+          setClosingMessage(data.setting_value as string);
+        }
+      } catch (error) {
+        console.error('Error loading closing message from Supabase:', error);
+      }
+    };
+    
+    loadFromSupabase();
+  }, [profile?.id]);
+  
+  // Save closing message to local storage when it changes
+  useEffect(() => {
+    if (closingMessage) {
+      localStorage.setItem('default_closing_message', closingMessage);
+    }
+  }, [closingMessage]);
+  
+  // Sync closing message to Supabase when user is logged in
+  useEffect(() => {
+    if (!profile?.id) return;
+    
+    const syncToSupabase = async () => {
+      try {
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: profile.id,
+            setting_key: 'closing_message',
+            setting_value: closingMessage
+        }, {
+          onConflict: 'user_id,setting_key'
+        });
+        
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error syncing closing message to Supabase:', error);
+      }
+    };    syncToSupabase();
+  }, [closingMessage, profile?.id]);
 
   // Initialize default date range (last 14 days, ending yesterday to avoid CMIS API future date errors)
   useEffect(() => {
@@ -528,7 +599,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       fieldBlocks: [],
       insights: getCombinedInsights(),
       cropWeeklySummaries: updatedSummaries,
-      waterUseNotes
+      waterUseNotes,
+      closingMessage
     });
   };
 
@@ -570,7 +642,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       fieldBlocks: [],
       insights: getCombinedInsights(),
       cropWeeklySummaries: updatedSummaries,
-      waterUseNotes
+      waterUseNotes,
+      closingMessage
     });
   };
 
@@ -604,7 +677,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       fieldBlocks: [], // Field blocks are managed by FieldBlocksManager
       insights: getCombinedInsights(),
       cropWeeklySummaries: updatedSummaries,
-      waterUseNotes
+      waterUseNotes,
+      closingMessage
     });
   };
 
@@ -1015,18 +1089,25 @@ export const ReportView: React.FC<ReportViewProps> = ({
             
             {!collapsedSections.has('waterUseData') && (
               <div className="p-6 space-y-8">
-              {/* Notes input field */}
-              <div className="mb-6">
-                <label htmlFor="waterUseNotes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Notes
-                </label>
-                <textarea
-                  id="waterUseNotes"
-                  value={waterUseNotes}
-                  onChange={(e) => setWaterUseNotes(e.target.value)}
-                  placeholder="Add notes about water use data, observations, or recommendations..."
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-vertical"
+              {/* Introduction message field for email */}
+              <RichTextEditor
+                value={waterUseNotes}
+                onChange={setWaterUseNotes}
+                label="Introduction Message"
+                placeholder="Write an introduction message for your irrigation report email. Example: 'This week's irrigation report shows water needs for all locations. Please review the recommendations and adjust schedules accordingly.'"
+                helperText="This message will be included in the HTML email export sent via Marketing Cloud."
+                minHeight="150px"
+              />
+              
+              {/* Closing message field for email */}
+              <div className="space-y-2">
+                <RichTextEditor
+                  value={closingMessage}
+                  onChange={setClosingMessage}
+                  label="Closing Message / Signature"
+                  placeholder="Add a closing message, P.S., or email signature. Example: 'Best regards, Your Irrigation Team'"
+                  helperText="This message will be saved automatically and appear at the bottom of the email."
+                  minHeight="120px"
                 />
               </div>
               

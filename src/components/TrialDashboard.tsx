@@ -10,6 +10,7 @@ import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
 import { EmailNotifications } from './EmailNotifications';
 import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
+import { supabase } from '../lib/supabase';
 
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { ReportView } from './ReportView';
@@ -148,8 +149,60 @@ export const TrialDashboard: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
-  const [selectedCrops, setSelectedCrops] = useState<string[]>([]);
-  const [cropInstances, setCropInstances] = useState<CropInstance[]>([]);
+  
+  // Load selected crops from localStorage on mount
+  const [selectedCrops, setSelectedCrops] = useState<string[]>(() => {
+    const saved = localStorage.getItem('selected_crops');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  // Load crop instances from localStorage on mount
+  const [cropInstances, setCropInstances] = useState<CropInstance[]>(() => {
+    const saved = localStorage.getItem('crop_instances');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  // Load from Supabase if user is logged in (overrides localStorage)
+  useEffect(() => {
+    if (!user || !profile?.id) return;
+    
+    const loadFromSupabase = async () => {
+      try {
+        // Load selected crops
+        const { data: cropsData, error: cropsError } = await supabase
+          .from('user_settings')
+          .select('setting_value')
+          .eq('user_id', profile.id)
+          .eq('setting_key', 'selected_crops')
+          .maybeSingle();
+        
+        if (cropsError) throw cropsError;
+        
+        if (cropsData && cropsData.setting_value) {
+          setSelectedCrops(cropsData.setting_value as string[]);
+        }
+        
+        // Load crop instances
+        const { data: instancesData, error: instancesError } = await supabase
+          .from('user_settings')
+          .select('setting_value')
+          .eq('user_id', profile.id)
+          .eq('setting_key', 'crop_instances')
+          .maybeSingle();
+        
+        if (instancesError) throw instancesError;
+        
+        if (instancesData && instancesData.setting_value) {
+          setCropInstances(instancesData.setting_value as CropInstance[]);
+        }
+      } catch (error) {
+        console.error('Error loading from Supabase:', error);
+      }
+    };
+    
+    loadFromSupabase();
+  }, [user, profile?.id]);
+  
   const [showCropSelector, setShowCropSelector] = useState(false);
   const [showEditCropModal, setShowEditCropModal] = useState(false);
   const [editingCropInstance, setEditingCropInstance] = useState<CropInstance | null>(null);
@@ -196,6 +249,62 @@ export const TrialDashboard: React.FC = () => {
   // Track if we've cleaned up custom Kc values to prevent infinite loops
   const hasCleanedKcRef = React.useRef(false);
   const lastCleanedCountRef = React.useRef(0);
+
+  // Save selected crops to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('selected_crops', JSON.stringify(selectedCrops));
+  }, [selectedCrops]);
+  
+  // Save crop instances to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('crop_instances', JSON.stringify(cropInstances));
+  }, [cropInstances]);
+  
+  // Sync selected crops to Supabase when user is logged in
+  useEffect(() => {
+    if (!user || !profile?.id) return;
+    
+    const syncToSupabase = async () => {
+      try {
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: profile.id,
+            setting_key: 'selected_crops',
+            setting_value: selectedCrops
+        }, {
+          onConflict: 'user_id,setting_key'
+        });
+        
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error syncing crops to Supabase:', error);
+      }
+    };    syncToSupabase();
+  }, [selectedCrops, user, profile?.id]);
+  
+  // Sync crop instances to Supabase when user is logged in
+  useEffect(() => {
+    if (!user || !profile?.id) return;
+    
+    const syncToSupabase = async () => {
+      try {
+        const { error } = await supabase
+          .from('user_settings')
+          .upsert({
+            user_id: profile.id,
+            setting_key: 'crop_instances',
+            setting_value: cropInstances
+        }, {
+          onConflict: 'user_id,setting_key'
+        });
+        
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error syncing crop instances to Supabase:', error);
+      }
+    };    syncToSupabase();
+  }, [cropInstances, user, profile?.id]);
 
   // Clean up custom Kc values that match defaults
   useEffect(() => {
