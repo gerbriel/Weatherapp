@@ -1050,6 +1050,75 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   // Get all locations that have this crop (not just selected ones)
                   const cropLocations = locations.filter(loc => cropLocationIds.has(loc.id));
 
+                  // Calculate date range for table headers by checking first location with weather data
+                  let dateRangeText = '';
+                  let actualsDateRangeText = '';
+                  const firstLocationWithWeather = cropLocations.find(loc => loc.weatherData?.daily?.time);
+                  if (firstLocationWithWeather) {
+                    const weather = firstLocationWithWeather.weatherData;
+                    let startIdx = 0;
+                    let endIdx = weather.daily.time.length;
+                    
+                    // Determine reference date for splitting actuals/forecasts
+                    const today = new Date().toISOString().split('T')[0];
+                    let referenceDate = today;
+                    if (reportMode === 'future' && futureStartDate) {
+                      referenceDate = futureStartDate;
+                    }
+                    
+                    if (reportMode === 'current') {
+                      const todayIdx = weather.daily.time.findIndex((d: string) => d >= today);
+                      if (todayIdx !== -1) {
+                        startIdx = Math.max(0, todayIdx - 7);
+                      }
+                      const daysToShow = forecastPreset === 'today' ? 1 : 14;
+                      endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
+                    } else if (reportMode === 'future') {
+                      let futureTargetDate: string;
+                      if (futureStartDate) {
+                        futureTargetDate = futureStartDate;
+                      } else {
+                        const future = new Date();
+                        future.setDate(future.getDate() + 7);
+                        futureTargetDate = future.toISOString().split('T')[0];
+                      }
+                      const targetIdx = weather.daily.time.findIndex((d: string) => d >= futureTargetDate);
+                      if (targetIdx !== -1) {
+                        startIdx = Math.max(0, targetIdx - 7);
+                        const daysToShow = forecastPreset === 'today' ? 1 : 14;
+                        endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
+                      }
+                    } else if (reportMode === 'historical') {
+                      if (dateRange.startDate && dateRange.endDate) {
+                        startIdx = weather.daily.time.findIndex((d: string) => d >= dateRange.startDate);
+                        if (startIdx === -1) startIdx = 0;
+                        endIdx = weather.daily.time.findIndex((d: string) => d > dateRange.endDate);
+                        if (endIdx === -1) endIdx = weather.daily.time.length;
+                      }
+                    }
+                    
+                    const startDate = weather.daily.time[startIdx];
+                    const endDate = weather.daily.time[Math.min(endIdx - 1, weather.daily.time.length - 1)];
+                    
+                    // Calculate actuals date range (only dates before reference date)
+                    const actualDates = weather.daily.time.slice(startIdx, endIdx).filter((d: string) => d < referenceDate);
+                    const actualsStartDate = actualDates.length > 0 ? actualDates[0] : startDate;
+                    const actualsEndDate = actualDates.length > 0 ? actualDates[actualDates.length - 1] : startDate;
+                    
+                    // Calculate forecast date range (only dates on or after reference date)
+                    const forecastDates = weather.daily.time.slice(startIdx, endIdx).filter((d: string) => d >= referenceDate);
+                    const forecastStartDate = forecastDates.length > 0 ? forecastDates[0] : referenceDate;
+                    const forecastEndDate = forecastDates.length > 0 ? forecastDates[forecastDates.length - 1] : referenceDate;
+                    
+                    const formatDate = (dateStr: string) => {
+                      const date = new Date(dateStr + 'T12:00:00');
+                      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    };
+                    
+                    dateRangeText = forecastDates.length > 0 ? `${formatDate(forecastStartDate)} - ${formatDate(forecastEndDate)}` : 'N/A';
+                    actualsDateRangeText = actualDates.length > 0 ? `${formatDate(actualsStartDate)} - ${formatDate(actualsEndDate)}` : 'N/A';
+                  }
+
                   return (
                     <div key={`${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -1066,23 +1135,20 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r border-gray-300 dark:border-gray-600">
                                 Location
                               </th>
-                              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-50 dark:bg-gray-800">
-                                Date
-                              </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 Kc
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ET₀ Actual (in)
+                                ET₀ Actual ({actualsDateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ET₀ Forecast (in)
+                                ET₀ Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ETc Actual (in)
+                                ETc Actual ({actualsDateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ETc Forecast (in)
+                                ETc Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 Water Need
@@ -1105,28 +1171,20 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let endIdx = weather.daily.time.length;
                               
                               if (reportMode === 'current') {
-                                // Current mode: Show previous 7 days + next 7 days (14 days total)
-                                // With past_days: 7 in OpenMeteo, the data array includes past 7 days
-                                // So the array is: [day-7, day-6, ..., today, day+1, ..., day+7]
                                 const today = new Date().toISOString().split('T')[0];
                                 const todayIdx = weather.daily.time.findIndex((d: string) => d >= today);
                                 
                                 if (todayIdx === -1) {
-                                  // Today not found, use beginning of array
                                   startIdx = 0;
                                 } else {
-                                  // Start from 7 days before today (which should be around index 0 with past_days: 7)
                                   startIdx = Math.max(0, todayIdx - 7);
                                 }
                                 
-                                // Show 14 days total (7 before + 7 after) or just today
                                 const daysToShow = forecastPreset === 'today' ? 1 : 14;
                                 endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
                               } else if (reportMode === 'future') {
-                                // Future mode: Show 7 days before selected date + 7 days after (14 days total)
                                 let futureTargetDate: string;
                                 if (futureStartDate) {
-                                  // Use the exact date from the picker - it's already in YYYY-MM-DD format
                                   futureTargetDate = futureStartDate;
                                 } else {
                                   const future = new Date();
@@ -1134,22 +1192,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   futureTargetDate = future.toISOString().split('T')[0];
                                 }
                                 
-                                // Find the target date index
                                 const targetIdx = weather.daily.time.findIndex((d: string) => d >= futureTargetDate);
                                 
                                 if (targetIdx === -1) {
-                                  // Target date not found, use a reasonable default
                                   startIdx = Math.min(7, weather.daily.time.length - 14);
                                   endIdx = Math.min(startIdx + 14, weather.daily.time.length);
                                 } else {
-                                  // Start from 7 days before target date
                                   startIdx = Math.max(0, targetIdx - 7);
-                                  // Show 14 days total (7 before + 7 after target) or just the target day
                                   const daysToShow = forecastPreset === 'today' ? 1 : 14;
                                   endIdx = Math.min(startIdx + daysToShow, weather.daily.time.length);
                                 }
                               } else if (reportMode === 'historical') {
-                                // Historical mode: Use custom date range
                                 if (dateRange.startDate && dateRange.endDate) {
                                   startIdx = weather.daily.time.findIndex((d: string) => d >= dateRange.startDate);
                                   if (startIdx === -1) startIdx = 0;
@@ -1158,12 +1211,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 }
                               }
                               
-                              const dateRows = [];
-                              
-                              // Get crop data for monthly Kc lookup
-                              const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
-                              
-                              // Check if this is a California location for CIMIS data
+                              // Calculate weekly summations instead of daily rows
                               const locationInfo = {
                                 latitude: location.latitude,
                                 longitude: location.longitude,
@@ -1175,140 +1223,121 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const locationCmisData = cmisData.get(location.id) || [];
                               const today = new Date().toISOString().split('T')[0];
                               
+                              let et0_actual_sum = 0;
+                              let et0_forecast_sum = 0;
+                              let actualDaysCount = 0;
+                              let avgKc = 0;
+                              let kcCount = 0;
+                              
+                              const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
+                              
+                              // Determine the reference date for splitting actuals vs forecasts
+                              let referenceDate = today;
+                              if (reportMode === 'future' && futureStartDate) {
+                                referenceDate = futureStartDate;
+                              }
+                              
+                              // Calculate actual range end (7 days before reference date)
+                              const actualRangeEnd = new Date(referenceDate);
+                              actualRangeEnd.setDate(actualRangeEnd.getDate() - 1); // Day before reference
+                              const actualRangeEndStr = actualRangeEnd.toISOString().split('T')[0];
+                              
                               for (let i = startIdx; i < endIdx; i++) {
                                 const date = weather.daily.time[i];
                                 
-                                // Get OpenMeteo forecast data (always available)
-                                const et0_forecast = weather.daily.et0_fao_evapotranspiration?.[i] || 0; // API already returns in inches
+                                // Sum OpenMeteo forecast ET₀ only for FUTURE dates (>= reference date)
+                                if (date >= referenceDate) {
+                                  const et0_forecast = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
+                                  et0_forecast_sum += et0_forecast;
+                                }
                                 
-                                // For California locations, try to get CIMIS actual data for past/current dates
-                                // This works for ALL report modes (current, future, historical)
-                                let et0_actual = null; // null means no actual data available
-                                let hasActualData = false;
-                                
-                                if (isCalifornia && date <= today) {
-                                  // Try to get CIMIS actual data for past and current dates
+                                // Sum CIMIS actual ET₀ only for dates BEFORE the reference date (past days)
+                                // This ensures we're getting historical actuals, not forecast data
+                                if (isCalifornia && date < referenceDate) {
                                   const cimisDay = locationCmisData.find(d => d.date === date);
                                   if (cimisDay && cimisDay.etc_actual !== undefined && cimisDay.etc_actual !== null) {
-                                    // CIMIS provides ETo in inches (already converted in cmisService)
-                                    et0_actual = cimisDay.etc_actual;
-                                    hasActualData = true;
+                                    et0_actual_sum += cimisDay.etc_actual;
+                                    actualDaysCount++;
                                   }
                                 }
                                 
-                                // Get month from date (1-12)
+                                // Calculate average Kc
                                 const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
-                                
-                                // Calculate Kc - check custom values first, then monthly, then stage-based fallback
-                                let kc = 1.0; // Default fallback
-                                
-                                // Priority 1: Check if this location has a crop instance with custom Kc for this month
                                 const customKc = locationInstances[0]?.customKcValues?.[dateMonth];
+                                let kc = 1.0;
+                                
                                 if (customKc !== undefined) {
                                   kc = customKc;
                                 } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                                  // Priority 2: Use monthly Kc values from crop database
                                   const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
                                   kc = monthData?.kc || 1.0;
                                 } else {
-                                  // Priority 3: Fallback to stage-based Kc (old method)
                                   kc = locationInstances[0].currentStage === 2 ? 1.15 : 
                                        locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
                                 }
                                 
-                                // Calculate ETc for both actual and forecast
-                                const etc_actual = hasActualData && et0_actual !== null ? et0_actual * kc : null;
-                                const etc_forecast = et0_forecast * kc;
-                                
-                                // Categorize water need based on ETc (use actual if available, otherwise forecast)
-                                const etc_for_need = etc_actual !== null ? etc_actual : etc_forecast;
-                                let waterNeedCategory = 'Low';
-                                if (etc_for_need > 0.25) {
-                                  waterNeedCategory = 'High';
-                                } else if (etc_for_need >= 0.15) {
-                                  waterNeedCategory = 'Med';
-                                }
-
-                                dateRows.push({
-                                  date,
-                                  kc,
-                                  et0_actual,
-                                  et0_forecast,
-                                  etc_actual,
-                                  etc_forecast,
-                                  hasActualData,
-                                  waterNeed: waterNeedCategory
-                                });
+                                avgKc += kc;
+                                kcCount++;
+                              }
+                              
+                              // Calculate averages and weekly ETc totals
+                              avgKc = kcCount > 0 ? avgKc / kcCount : 1.0;
+                              const etc_actual_sum = et0_actual_sum * avgKc;
+                              const etc_forecast_sum = et0_forecast_sum * avgKc;
+                              const hasActualData = actualDaysCount > 0;
+                              
+                              // Determine water need category based on weekly forecast ETc
+                              let waterNeedCategory = 'Low';
+                              if (etc_forecast_sum > 3.5) {
+                                waterNeedCategory = 'High';
+                              } else if (etc_forecast_sum >= 2.1) {
+                                waterNeedCategory = 'Med';
                               }
 
                               return (
-                                <React.Fragment key={`${location.id}-${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`}>
-                                  {/* Date rows with location name in first row */}
-                                  {dateRows.map((row, dateIdx) => (
-                                    <tr 
-                                      key={`${location.id}-${cropId}-${row.date}`}
-                                      className={locIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}
-                                    >
-                                      {/* Location cell - only show on first date row for each location */}
-                                      {dateIdx === 0 ? (
-                                        <td 
-                                          rowSpan={dateRows.length}
-                                          className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white sticky left-0 bg-blue-50 dark:bg-blue-900/20 border-r border-gray-300 dark:border-gray-600 align-top"
-                                        >
-                                          <div className="flex items-center">
-                                            <MapPin className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                            <span>{location.name}</span>
-                                          </div>
-                                        </td>
-                                      ) : null}
-                                      
-                                      {/* Date cell */}
-                                      <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
-                                        {new Date(row.date + 'T12:00:00').toLocaleDateString('en-US', { 
-                                          month: 'short', 
-                                          day: 'numeric',
-                                          weekday: 'short'
-                                        })}
-                                      </td>
-                                      
-                                      {/* Kc cell */}
-                                      <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                        {row.kc.toFixed(2)}
-                                      </td>
-                                      
-                                      {/* ET₀ Actual cell - only show if CIMIS data available */}
-                                      <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                        {row.et0_actual !== null ? row.et0_actual.toFixed(2) : '—'}
-                                      </td>
-                                      
-                                      {/* ET₀ Forecast cell - show OpenMeteo forecast for all dates */}
-                                      <td className="px-4 py-2 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                        {row.et0_forecast.toFixed(2)}
-                                      </td>
-                                      
-                                      {/* ETc Actual cell - only show if CIMIS data available */}
-                                      <td className="px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
-                                        {row.etc_actual !== null ? row.etc_actual.toFixed(2) : '—'}
-                                      </td>
-                                      
-                                      {/* ETc Forecast cell - show calculated ETc from forecast data */}
-                                      <td className="px-4 py-2 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
-                                        {row.etc_forecast.toFixed(2)}
-                                      </td>
-                                      
-                                      {/* Water Need cell */}
-                                      <td className="px-4 py-2 text-sm text-center font-semibold">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                          row.waterNeed === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                          row.waterNeed === 'Med' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                                          'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                        }`}>
-                                          {row.waterNeed}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </React.Fragment>
+                                <tr 
+                                  key={`${location.id}-${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`}
+                                  className={locIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}
+                                >
+                                  <td 
+                                    className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white sticky left-0 bg-blue-50 dark:bg-blue-900/20 border-r border-gray-300 dark:border-gray-600"
+                                  >
+                                    <div className="flex items-center">
+                                      <MapPin className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                      <span>{location.name}</span>
+                                    </div>
+                                  </td>
+                                  
+                                  <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
+                                    {avgKc.toFixed(2)}
+                                  </td>
+                                  
+                                  <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
+                                    {hasActualData ? et0_actual_sum.toFixed(2) : '—'}
+                                  </td>
+                                  
+                                  <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
+                                    {et0_forecast_sum.toFixed(2)}
+                                  </td>
+                                  
+                                  <td className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
+                                    {hasActualData ? etc_actual_sum.toFixed(2) : '—'}
+                                  </td>
+                                  
+                                  <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
+                                    {etc_forecast_sum.toFixed(2)}
+                                  </td>
+                                  
+                                  <td className="px-4 py-3 text-sm text-center font-semibold">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      waterNeedCategory === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                      waterNeedCategory === 'Med' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                    }`}>
+                                      {waterNeedCategory}
+                                    </span>
+                                  </td>
+                                </tr>
                               );
                             })}
                           </tbody>

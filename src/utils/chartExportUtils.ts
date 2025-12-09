@@ -1148,6 +1148,57 @@ export async function exportChartsAsHTML(
     
     if (locationsWithCrop.length === 0) return;
     
+    // Calculate date range for headers
+    let dateRangeText = '';
+    let actualsDateRangeText = '';
+    const firstLocationWithWeather = locationsWithCrop.find(loc => loc.weatherData?.daily);
+    if (firstLocationWithWeather) {
+      const forecast = generate14DayForecast(
+        firstLocationWithWeather,
+        additionalData?.reportMode || 'current',
+        additionalData?.futureStartDate,
+        additionalData?.forecastPreset,
+        additionalData?.dateRange,
+        additionalData?.cmisData
+      );
+      
+      if (forecast.length > 0) {
+        // Determine reference date
+        const today = new Date().toISOString().split('T')[0];
+        let referenceDate = today;
+        if (additionalData?.reportMode === 'future' && additionalData?.futureStartDate) {
+          referenceDate = additionalData.futureStartDate;
+        }
+        
+        // Split into actuals (past) and forecast (future)
+        const actualDates = forecast.filter(d => d.date && d.date < referenceDate);
+        const forecastDates = forecast.filter(d => d.date && d.date >= referenceDate);
+        
+        const formatDate = (dateStr: string) => {
+          const date = new Date(dateStr + 'T12:00:00');
+          return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
+        
+        // Forecast range: upcoming days only
+        if (forecastDates.length > 0) {
+          const forecastStart = forecastDates[0].date;
+          const forecastEnd = forecastDates[forecastDates.length - 1].date;
+          dateRangeText = `${formatDate(forecastStart)} - ${formatDate(forecastEnd)}`;
+        } else {
+          dateRangeText = 'N/A';
+        }
+        
+        // Actuals range: past days only
+        if (actualDates.length > 0) {
+          const actualsStart = actualDates[0].date;
+          const actualsEnd = actualDates[actualDates.length - 1].date;
+          actualsDateRangeText = `${formatDate(actualsStart)} - ${formatDate(actualsEnd)}`;
+        } else {
+          actualsDateRangeText = 'N/A';
+        }
+      }
+    }
+    
     htmlContent += `
       <div style="margin: ${cropIndex > 0 ? '40px' : '0'} 0 20px 0;">
         <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px 8px 12px; background: ${cropColor}; color: #fff; font-weight: 600; border-radius: 2px; clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 18px;">
@@ -1163,12 +1214,11 @@ export async function exportChartsAsHTML(
               <!-- Header Row -->
               <tr style="background-color: #353750;">
                 <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: left; font-weight: 600; text-transform: uppercase;">Location</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: left; font-weight: 600; text-transform: uppercase;">Date</th>
                 <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Kc</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Actual (in)</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Forecast (in)</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Actual (in)</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Forecast (in)</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Actual (${actualsDateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Forecast (${dateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Actual (${actualsDateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Forecast (${dateRangeText})</th>
                 <th style="background-color: #353750; color: #FFFFFF; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Water Need</th>
               </tr>
               <!-- Data Rows for this crop -->
@@ -1188,69 +1238,75 @@ export async function exportChartsAsHTML(
                 const kc = cropInstance.currentStage === 2 ? 1.15 : 
                           cropInstance.currentStage === 1 ? 0.70 : 0.50;
                 
-                // Show all 14 days (7 past + 7 future)
-                const daysToShow = locForecast;
-                
-                // Determine today's index for actual vs forecast
+                // Calculate weekly summations
                 const today = new Date().toISOString().split('T')[0];
-                const allDates = loc.weatherData?.daily?.time || [];
-                const todayIdx = allDates.findIndex((d: string) => d >= today);
                 
-                return daysToShow.map((day, dayIdx) => {
-                  // Get ET0 values from the day object (which now includes CIMIS data)
-                  const et0_forecast_inches = Number(day.et0_forecast) || 0; // OpenMeteo forecast
-                  const et0_actual_inches = day.et0_actual; // CIMIS actual (null if not available)
-                  const hasActualData = day.hasActualData;
-                  
-                  // Calculate ETc values
-                  const etc_forecast_inches = et0_forecast_inches * kc;
-                  const etc_actual_inches = hasActualData && et0_actual_inches !== null ? et0_actual_inches * kc : null;
-                  
-                  // Format values for display
-                  const et0Actual = et0_actual_inches !== null ? et0_actual_inches.toFixed(2) : '—';
-                  const et0Forecast = et0_forecast_inches.toFixed(2);
-                  const etcActual = etc_actual_inches !== null ? etc_actual_inches.toFixed(2) : '—';
-                  const etcForecast = etc_forecast_inches.toFixed(2);
-                  
-                  // Determine water need category based on available data
-                  const etc_for_need = etc_actual_inches !== null ? etc_actual_inches : etc_forecast_inches;
-                  let waterNeedCategory = 'Low';
-                  let waterNeedColor = '#10B981';
-                  let waterNeedBg = '#D1FAE5';
-                  
-                  if (etc_for_need > 0.25) {
-                    waterNeedCategory = 'High';
-                    waterNeedColor = '#EF4444';
-                    waterNeedBg = '#FEE2E2';
-                  } else if (etc_for_need >= 0.15) {
-                    waterNeedCategory = 'Med';
-                    waterNeedColor = '#F59E0B';
-                    waterNeedBg = '#FEF3C7';
+                // Determine the reference date for splitting actuals vs forecasts
+                let referenceDate = today;
+                if (additionalData?.reportMode === 'future' && additionalData?.futureStartDate) {
+                  referenceDate = additionalData.futureStartDate;
+                }
+                
+                let et0_actual_sum = 0;
+                let et0_forecast_sum = 0;
+                let actualDaysCount = 0;
+
+                locForecast.forEach((day) => {
+                  // Sum forecast ET₀ only for FUTURE dates (>= reference date)
+                  if (day.date && day.date >= referenceDate) {
+                    const et0_forecast_inches = Number(day.et0_forecast) || 0;
+                    et0_forecast_sum += et0_forecast_inches;
                   }
-                  
-                  return `
-                    <tr style="background-color: ${(locIdx * daysToShow.length + dayIdx) % 2 === 0 ? '#FFFFFF' : '#F3F4F6'};">
-                      ${dayIdx === 0 ? `
-                        <td rowspan="${daysToShow.length}" style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD; vertical-align: top;">
-                          📍 ${loc.name}
-                        </td>
-                      ` : ''}
-                      <td style="color: #4B5563; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: left;">
-                        ${day.formattedDate}
-                      </td>
-                      <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${kc.toFixed(2)}</td>
-                      <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${et0Actual}</td>
-                      <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0Forecast}</td>
-                      <td style="color: #0A7DD6; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${etcActual}</td>
-                      <td style="color: #0EA5E9; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${etcForecast}</td>
-                      <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
-                        <span style="background-color: ${waterNeedBg}; color: ${waterNeedColor}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
-                          ${waterNeedCategory}
-                        </span>
-                      </td>
-                    </tr>
-                  `;
-                }).join('');
+
+                  // Sum actual ET₀ only for dates BEFORE the reference date (past days from CIMIS)
+                  // This ensures we're getting historical actuals, not forecast data
+                  if (day.date && day.date < referenceDate) {
+                    const et0_actual_inches = day.et0_actual;
+                    if (et0_actual_inches !== null && et0_actual_inches !== undefined) {
+                      et0_actual_sum += et0_actual_inches;
+                      actualDaysCount++;
+                    }
+                  }
+                });
+
+                // Calculate ETc weekly totals: multiply Kc by summed ET₀ values
+                const etc_actual_sum = et0_actual_sum * kc;
+                const etc_forecast_sum = et0_forecast_sum * kc;
+
+                const hasActualData = actualDaysCount > 0;
+
+                // Determine water need category based on weekly forecast ETc
+                let waterNeedCategory = 'Low';
+                let waterNeedColor = '#10B981';
+                let waterNeedBg = '#D1FAE5';
+                
+                if (etc_forecast_sum > 3.5) {
+                  waterNeedCategory = 'High';
+                  waterNeedColor = '#EF4444';
+                  waterNeedBg = '#FEE2E2';
+                } else if (etc_forecast_sum >= 2.1) {
+                  waterNeedCategory = 'Med';
+                  waterNeedColor = '#F59E0B';
+                  waterNeedBg = '#FEF3C7';
+                }
+
+                return `
+                  <tr style="background-color: ${locIdx % 2 === 0 ? '#FFFFFF' : '#F3F4F6'};">
+                    <td style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD;">
+                      📍 ${loc.name}
+                    </td>
+                    <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${kc.toFixed(2)}</td>
+                    <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
+                    <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_sum.toFixed(2)}</td>
+                    <td style="color: #0A7DD6; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
+                    <td style="color: #0EA5E9; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${etc_forecast_sum.toFixed(2)}</td>
+                    <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
+                      <span style="background-color: ${waterNeedBg}; color: ${waterNeedColor}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
+                        ${waterNeedCategory}
+                      </span>
+                    </td>
+                  </tr>
+                `;
               }).join('')}
             </table>
           </td>
