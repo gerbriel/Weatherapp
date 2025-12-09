@@ -33,13 +33,19 @@ class CMISService {
   private apiKey: string | null = null;
 
   constructor() {
-    // Use proxy in development to avoid CORS issues, direct URL in production
+    // Use appropriate URL based on environment
     if (import.meta.env.DEV) {
       // Use Vite proxy in development
       this.baseUrl = '/api/cmis';
     } else {
-      // Use direct API URL in production (needs CORS configured on server or serverless function)
-      this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/api/data';
+      // Use Supabase Edge Function proxy in production to avoid CORS
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (supabaseUrl) {
+        this.baseUrl = `${supabaseUrl}/functions/v1/cmis-proxy`;
+      } else {
+        // Fallback to direct URL (will fail with CORS on GitHub Pages)
+        this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/api/data';
+      }
     }
     this.apiKey = import.meta.env.VITE_CMIS_API_KEY || null;
     
