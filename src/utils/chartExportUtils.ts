@@ -797,7 +797,7 @@ export async function exportChartsAsHTML(
         }
         .hero {
           background: url('https://image.email.netafim.com/lib/fe3a11717564047b751776/m/1/7cee6a62-4ac9-433b-9c17-94bae07295f7.png');
-          background-size: 100% auto;
+          background-size: contain;
           background-repeat: no-repeat;
           background-position: center top;
           padding: 0;
@@ -805,7 +805,8 @@ export async function exportChartsAsHTML(
           text-align: center;
           color: #FFFFFF;
           width: 100%;
-          padding-bottom: 36%;
+          min-height: 400px;
+          height: auto;
         }
         .hero h2 {
           font-size: 32px;
@@ -1047,7 +1048,27 @@ export async function exportChartsAsHTML(
       </div>
       ` : ''}
       <div style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
-        <h2 style="font-size: 24px; font-weight: 600; color: #1F2937; margin: 0 0 12px 0;">Week of ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</h2>
+        <h2 style="font-size: 24px; font-weight: 600; color: #1F2937; margin: 0 0 12px 0;">${(() => {
+          // Get the date range from the first location's forecast data
+          const firstLocation = locations[0];
+          const firstCrop = cropInstances.find(c => c.locationId === firstLocation.id);
+          if (firstCrop && firstLocation.weatherData) {
+            const forecastData = generate14DayForecast(
+              firstLocation,
+              additionalData?.reportMode || 'current',
+              additionalData?.futureStartDate,
+              additionalData?.forecastPreset || '7day',
+              additionalData?.dateRange,
+              additionalData?.cmisData
+            );
+            if (forecastData.length > 0) {
+              const startDate = new Date(forecastData[0].date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              const endDate = new Date(forecastData[forecastData.length - 1].date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              return `${startDate} - ${endDate}`;
+            }
+          }
+          return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        })()}</h2>
         <p style="font-size: 16px; color: #4B5563; margin: 0; line-height: 1.6;">Today's Weather Stats, ET trends and irrigation updates for ${selectedCrops.length > 0 ? selectedCrops.join(', ') : 'selected crops'} across ${locations.map(loc => loc.name).join(', ')}</p>
       </div>
       <div class="content-wrapper">
