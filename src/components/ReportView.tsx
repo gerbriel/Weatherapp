@@ -1226,8 +1226,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let et0_actual_sum = 0;
                               let et0_forecast_sum = 0;
                               let actualDaysCount = 0;
-                              let avgKc = 0;
-                              let kcCount = 0;
                               
                               const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                               
@@ -1235,6 +1233,21 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let referenceDate = today;
                               if (reportMode === 'future' && futureStartDate) {
                                 referenceDate = futureStartDate;
+                              }
+                              
+                              // Get weekly Kc (use Kc for the reference date/current week)
+                              const referenceDateMonth = new Date(referenceDate + 'T12:00:00').getMonth() + 1;
+                              const customKc = locationInstances[0]?.customKcValues?.[referenceDateMonth];
+                              let weeklyKc = 1.0;
+                              
+                              if (customKc !== undefined) {
+                                weeklyKc = customKc;
+                              } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
+                                const monthData = cropData.monthlyKc.find(m => m.month === referenceDateMonth);
+                                weeklyKc = monthData?.kc || 1.0;
+                              } else {
+                                weeklyKc = locationInstances[0].currentStage === 2 ? 1.15 : 
+                                           locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
                               }
                               
                               // Calculate actual range end (7 days before reference date)
@@ -1260,30 +1273,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     actualDaysCount++;
                                   }
                                 }
-                                
-                                // Calculate average Kc
-                                const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
-                                const customKc = locationInstances[0]?.customKcValues?.[dateMonth];
-                                let kc = 1.0;
-                                
-                                if (customKc !== undefined) {
-                                  kc = customKc;
-                                } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                                  const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                                  kc = monthData?.kc || 1.0;
-                                } else {
-                                  kc = locationInstances[0].currentStage === 2 ? 1.15 : 
-                                       locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
-                                }
-                                
-                                avgKc += kc;
-                                kcCount++;
                               }
                               
-                              // Calculate averages and weekly ETc totals
-                              avgKc = kcCount > 0 ? avgKc / kcCount : 1.0;
-                              const etc_actual_sum = et0_actual_sum * avgKc;
-                              const etc_forecast_sum = et0_forecast_sum * avgKc;
+                              // Calculate weekly ETc totals using single weekly Kc
+                              const etc_actual_sum = et0_actual_sum * weeklyKc;
+                              const etc_forecast_sum = et0_forecast_sum * weeklyKc;
                               const hasActualData = actualDaysCount > 0;
                               
                               // Determine water need category based on weekly forecast ETc
@@ -1309,7 +1303,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                    {avgKc.toFixed(2)}
+                                    {weeklyKc.toFixed(2)}
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">

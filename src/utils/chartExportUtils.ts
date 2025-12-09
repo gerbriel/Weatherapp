@@ -1235,9 +1235,6 @@ export async function exportChartsAsHTML(
                 
                 if (!cropInstance) return '';
                 
-                const kc = cropInstance.currentStage === 2 ? 1.15 : 
-                          cropInstance.currentStage === 1 ? 0.70 : 0.50;
-                
                 // Calculate weekly summations
                 const today = new Date().toISOString().split('T')[0];
                 
@@ -1246,6 +1243,19 @@ export async function exportChartsAsHTML(
                 if (additionalData?.reportMode === 'future' && additionalData?.futureStartDate) {
                   referenceDate = additionalData.futureStartDate;
                 }
+                
+                // Calculate weekly Kc based on reference date's month
+                const referenceDateMonth = new Date(referenceDate + 'T12:00:00').getMonth() + 1;
+                const customKc = cropInstance?.customKcValues?.[referenceDateMonth];
+                let weeklyKc = 1.0;
+                
+                if (customKc !== undefined) {
+                  weeklyKc = customKc;
+                } else {
+                  weeklyKc = cropInstance.currentStage === 2 ? 1.15 : 
+                           cropInstance.currentStage === 1 ? 0.70 : 0.50;
+                }
+                
                 
                 let et0_actual_sum = 0;
                 let et0_forecast_sum = 0;
@@ -1270,8 +1280,8 @@ export async function exportChartsAsHTML(
                 });
 
                 // Calculate ETc weekly totals: multiply Kc by summed ET₀ values
-                const etc_actual_sum = et0_actual_sum * kc;
-                const etc_forecast_sum = et0_forecast_sum * kc;
+                const etc_actual_sum = et0_actual_sum * weeklyKc;
+                const etc_forecast_sum = et0_forecast_sum * weeklyKc;
 
                 const hasActualData = actualDaysCount > 0;
 
@@ -1295,7 +1305,7 @@ export async function exportChartsAsHTML(
                     <td style="font-weight: 600; color: #353750; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD;">
                       📍 ${loc.name}
                     </td>
-                    <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${kc.toFixed(2)}</td>
+                    <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${weeklyKc.toFixed(2)}</td>
                     <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
                     <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_sum.toFixed(2)}</td>
                     <td style="color: #0A7DD6; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
