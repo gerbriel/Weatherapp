@@ -1060,7 +1060,7 @@ export async function exportChartsAsHTML(
 
   // Add comprehensive ET Summary - SEPARATE TABLE FOR EACH CROP
   htmlContent += `
-    <h2 style="text-align: center; margin: 0 0 30px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 22px; color: #353750;">📊 Comprehensive ET Summary</h2>
+    <h2 style="text-align: center; margin: 0 0 30px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 22px; color: #353750;">Comprehensive ET Summary</h2>
   `;
 
   // Get unique crops
@@ -1592,7 +1592,7 @@ export function generatePrintableChartReport(
   exportChartsAsHTML(locations, selectedCrops, cropInstances, {});
   
   // Provide user instructions
-  alert('📊 Chart report generated!\n\n' +
+  alert('Chart report generated!\n\n' +
         '✅ The HTML report will download automatically\n' +
         '🖨️ To create a PDF: Open the HTML file → Print → Save as PDF\n' +
         '📱 The report is mobile-friendly and print-optimized');
