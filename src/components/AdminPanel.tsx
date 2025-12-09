@@ -728,7 +728,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   };
 
   const handleRejectPendingCoefficient = async (id: string) => {
-    console.log('🔥 UPDATED REJECT CODE WITH DELAY AND DEBUG');
     if (!confirm('Are you sure you want to reject this pending coefficient?')) {
       return;
     }

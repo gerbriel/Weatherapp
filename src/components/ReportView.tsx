@@ -86,16 +86,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
   onCropWeeklySummariesChange = () => {}
 }) => {
   
-  // Debug logging
-  React.useEffect(() => {
-    console.log('🟡 ReportView mounted/updated with props:', {
-      hasCallback: typeof onCropWeeklySummariesChange,
-      callbackName: onCropWeeklySummariesChange.name,
-      summariesProp: cropWeeklySummaries,
-      functionString: onCropWeeklySummariesChange.toString().substring(0, 200)
-    });
-  }, [cropWeeklySummaries, onCropWeeklySummariesChange]);
-  
   // Always call the hook to follow rules of hooks
   let locationsData: any[] = [];
   let refreshFunction: () => void = () => {};

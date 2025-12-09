@@ -164,8 +164,8 @@ class WeatherService {
     try {
       const response = await axios.get<WeatherApiResponse>(FORECAST_URL, { params });
       
-      // Debug: Log the date range received from API
-      if (response.data?.daily?.time) {
+      // Debug: Log the date range received from API (only in development)
+      if (import.meta.env.DEV && response.data?.daily?.time) {
         console.log('🔍 OpenMeteo API Response - Date Range:', {
           firstDate: response.data.daily.time[0],
           lastDate: response.data.daily.time[response.data.daily.time.length - 1],

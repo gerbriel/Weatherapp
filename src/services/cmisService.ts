@@ -142,7 +142,10 @@ class CMISService {
           }
           
           const data = await response.json();
-          console.log('✅ CMIS API Response received:', data);
+          // Only log in development
+          if (import.meta.env.DEV) {
+            console.log('✅ CMIS API Response received:', data);
+          }
           const result = this.parseETCResponse(data);
           
           return {
@@ -152,12 +155,22 @@ class CMISService {
             isCaliforniaLocation: true
           };
         } catch (networkError) {
-          // Return error when API is not accessible (no mock data fallback)
-          console.error('CMIS API network error:', networkError);
+          // Handle CORS and network errors gracefully in production
+          const isDev = import.meta.env.DEV;
+          const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown error';
+          
+          // Only log in development to reduce console spam
+          if (isDev) {
+            console.error('CMIS API network error:', networkError);
+          } else {
+            // Silently fail in production (CORS blocked on GitHub Pages)
+            console.log('CMIS API unavailable (CORS restricted)');
+          }
+          
           return {
             success: false,
             data: [],
-            error: 'CMIS API is currently unavailable. Please check your internet connection or try again later.',
+            error: isDev ? 'CMIS API is currently unavailable. Please check your internet connection or try again later.' : undefined,
             isCaliforniaLocation: true
           };
         }

@@ -667,13 +667,6 @@ function generate14DayForecast(
   
   const dates = allDates.slice(startIdx, endIdx);
   
-  console.log('🔥 FINAL EXPORT DATA for', location.name, {
-    reportMode,
-    dates: dates,
-    firstDate: dates[0],
-    lastDate: dates[dates.length - 1]
-  });
-  
   // Get CIMIS data for this location if available
   const locationCmisData = cmisData?.get(location.id) || [];
   
@@ -701,16 +694,6 @@ function generate14DayForecast(
       }
     }
     
-    if (i === 0) {
-      console.log('🔥 FIRST ROW DATA:', {
-        rawDate: date,
-        formattedDate: formattedDate,
-        index: index,
-        et0_actual,
-        et0_forecast,
-        hasActualData
-      });
-    }
     
     return {
       formattedDate: formattedDate,

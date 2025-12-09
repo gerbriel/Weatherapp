@@ -105,7 +105,6 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
   }, [profile, activeTab]);
 
   const loadData = async () => {
-    console.log('🔄 loadData called for tab:', activeTab);
     setLoading(true);
     try {
       if (activeTab === 'organizations') {
@@ -118,21 +117,16 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      console.log('✅ loadData finished');
       setLoading(false);
     }
   };
 
   const loadOrganizations = async () => {
-    console.log('🏢 Loading organizations...');
     try {
       const { data, error } = await supabase
         .from('organizations')
         .select('*')
-        .order('created_at', { ascending: false });
-
-      console.log('📊 Organizations raw data:', data);
-      console.log('❌ Organizations error:', error);
+        .order('created_at', { ascending: false});
 
       if (error) {
         console.error('Error loading organizations:', error);
@@ -171,7 +165,6 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
         })
       );
 
-      console.log('✅ Organizations with counts:', orgsWithCounts);
       setOrganizations(orgsWithCounts);
     } catch (err) {
       console.error('Failed to load organizations:', err);
@@ -180,14 +173,11 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
   };
 
   const loadUsers = async () => {
-    console.log('🔍 Loading users...');
     try {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
         .order('created_at', { ascending: false });
-
-      console.log('📊 User profiles data:', data);
 
       if (error) {
         console.error('❌ Error loading users:', error);
@@ -222,7 +212,6 @@ export function SuperUserDashboard({ onClose }: SuperUserDashboardProps) {
       );
 
       setUsers(usersWithOrg);
-      console.log('✅ Users loaded:', usersWithOrg.length);
     } catch (err) {
       console.error('❌ Failed to load users:', err);
       setUsers([]);
