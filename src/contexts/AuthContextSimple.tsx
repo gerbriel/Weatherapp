@@ -206,7 +206,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
       });
 
-      if (error) return { error };
+      if (error) {
+        // Provide user-friendly error message for network issues
+        if (error.message && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
+          return { error: { ...error, message: 'Unable to connect to authentication server. Please check your internet connection.' } };
+        }
+        return { error };
+      }
 
       if (data.user) {
         const userProfile = await fetchProfile(data.user.id);
@@ -215,7 +221,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: null };
     } catch (error: any) {
-      return { error };
+      // Handle network errors gracefully
+      const message = error.message?.includes('aborted') || error.name === 'AbortError'
+        ? 'Connection timeout. Please check your internet connection and try again.' 
+        : 'Unable to sign in. Please try again later.';
+      return { error: { message } };
     }
   };
 

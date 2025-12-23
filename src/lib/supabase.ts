@@ -30,11 +30,18 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     flowType: 'pkce',
   },
   global: {
-    // Custom fetch with 1-second timeout to fail fast
+    // Custom fetch with smart timeout - fast for background checks, normal for user actions
     fetch: async (url, options = {}) => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout
+        
+        // Only apply fast timeout to specific auth background operations
+        // Allow normal timeout for user-initiated login/signup
+        const urlString = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+        const isBackgroundAuthCheck = urlString.includes('/auth/v1/token') && options.method !== 'POST';
+        const timeoutMs = isBackgroundAuthCheck ? 1000 : 10000; // 1s for background, 10s for user actions
+        
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         
         const response = await fetch(url, {
           ...options,
