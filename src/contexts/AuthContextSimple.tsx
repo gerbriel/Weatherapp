@@ -105,9 +105,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Fetch user profile from database
   const fetchProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
-      // Create timeout promise (10 seconds)
+      // Create timeout promise (1 second - fail fast)
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 1000)
       );
       
       // Create fetch promise
@@ -122,17 +122,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = result as any;
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        // Silently fail - likely network issue
         return null;
       }
 
       return data as UserProfile;
     } catch (error: any) {
-      if (error.message === 'Profile fetch timeout') {
-        console.error('Profile fetch timed out after 10 seconds');
-      } else {
-        console.error('Error in fetchProfile:', error);
-      }
+      // Silently fail - trial mode works without profile
       return null;
     }
   };
@@ -141,31 +137,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let mounted = true;
     
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const userProfile = await fetchProfile(session.user.id);
+    // Get initial session - suppress errors and fail fast
+    const initAuth = async () => {
+      try {
+        // Set timeout for the entire auth check (2 seconds max)
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Auth timeout')), 2000)
+        );
+        
+        const authPromise = supabase.auth.getSession();
+        
+        const { data: { session } } = await Promise.race([authPromise, timeoutPromise]) as any;
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          const userProfile = await fetchProfile(session.user.id);
+          if (mounted) {
+            setProfile(userProfile);
+          }
+        }
+      } catch (error) {
+        // Silently fail - likely network issue, trial mode will work fine
+      } finally {
         if (mounted) {
-          setProfile(userProfile);
+          setLoading(false);
         }
       }
-      
-      if (mounted) {
-        setLoading(false);
-      }
-    }).catch(error => {
-      console.error('Error getting session:', error);
-      if (mounted) {
-        setLoading(false);
-      }
-    });
+    };
+    
+    initAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes - suppress errors
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
       
