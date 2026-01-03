@@ -573,9 +573,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   
                   if (response.success) {
                     newCmisData.set(location.id, response.data);
+                    console.log(`✅ CIMIS SUCCESS for ${location.name}: ${response.data.length} records`);
+                    if (response.data.length > 0) {
+                      console.log(`   First 3 records:`, response.data.slice(0, 3));
+                      console.log(`   Date range: ${response.data[0].date} to ${response.data[response.data.length - 1].date}`);
+                    }
                   } else if (!response.isCaliforniaLocation) {
                     // Store empty array for non-CA locations
                     newCmisData.set(location.id, []);
+                    console.log(`⚠️  ${location.name} is not in California - no CIMIS data`);
+                  } else {
+                    console.log(`❌ CIMIS FAILED for ${location.name}: ${response.error}`);
                   }
                 } else {
                   // No station found (likely non-CA location)
@@ -598,6 +606,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
       if (!isCancelled) {
         setCmisData(newCmisData);
         setIsFetchingCmis(false);
+        console.log(`🎯 TOTAL CMIS DATA COLLECTED: ${newCmisData.size} locations`);
+        newCmisData.forEach((data, locationId) => {
+          console.log(`   Location ${locationId}: ${data.length} CIMIS records`);
+        });
       }
     };
 
