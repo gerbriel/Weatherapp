@@ -240,12 +240,20 @@ class CMISService {
       // CMIS API returns data in a nested structure
       apiResponse.Data.Providers.forEach((provider: any) => {
         if (provider.Records && Array.isArray(provider.Records)) {
-          provider.Records.forEach((record: any) => {
+          provider.Records.forEach((record: any, index: number) => {
             // Each record contains daily data
             if (record.DayAsceEto && record.DayAsceEto.Value !== null) {
+              const rawValue = record.DayAsceEto.Value;
+              const convertedValue = Number((rawValue * 0.0393701).toFixed(3));
+              
+              // Log first 3 records to debug unit issues
+              if (index < 3) {
+                console.log(`🔬 RAW CIMIS API VALUE: ${rawValue} → Converted: ${convertedValue} inches (Date: ${record.Date})`);
+              }
+              
               data.push({
                 date: record.Date,
-                etc_actual: Number((record.DayAsceEto.Value * 0.0393701).toFixed(3)), // CIMIS API returns mm, convert to inches
+                etc_actual: convertedValue, // CIMIS API returns mm, convert to inches
                 station_id: provider.StationNbr?.toString() || 'unknown',
                 crop_type: 'Reference Crop (Grass)'
               });
