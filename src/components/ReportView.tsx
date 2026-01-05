@@ -1051,33 +1051,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </div>
       </div>
 
-      {/* Export Buttons */}
-      <div className="flex justify-center gap-3 mb-6">
-        <button
-          onClick={handleExportCSV}
-          className="flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-          title="Export weather data and crop calculations to CSV files"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Weather & Crops CSV
-        </button>
-        <button
-          onClick={handleExportExcel}
-          className="flex items-center px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-          title="Export weather data and crop calculations to Excel file"
-        >
-          <FileSpreadsheet className="h-4 w-4 mr-2" />
-          Weather & Crops Excel
-        </button>
-        <button
-          onClick={() => setIsExportModalOpen(true)}
-          className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
-        >
-          <Settings className="h-4 w-4 mr-2" />
-          Comprehensive Export
-        </button>
-      </div>
-
       {/* Comprehensive Water Use Data Tables by Crop */}
       {selectedLocationIds.size > 0 && displayLocations.length > 0 && cropInstances.length > 0 && (
         <div className="mb-6 space-y-6">
@@ -1624,6 +1597,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   );
                 });
               })()}
+              
+              {/* Comprehensive Export Button */}
+              <div className="flex justify-center pt-6">
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white text-base font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+                >
+                  <Settings className="h-5 w-5 mr-2" />
+                  Comprehensive Export
+                </button>
+              </div>
               </div>
             )}
           </div>
