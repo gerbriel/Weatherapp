@@ -1345,6 +1345,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const etc_actual_sum = et0_actual_sum * kc_actual_sum;
                               const etc_forecast_sum = et0_forecast_sum * kc_forecast_sum;
                               const hasActualData = actualDaysCount > 0;
+                              const isLoadingCmis = loadingCmisLocations.has(location.id);
                               
                               // Determine water need category based on weekly forecast ETc
                               let waterNeedCategory = 'Low';
@@ -1369,7 +1370,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                    {hasActualData ? kc_actual_sum.toFixed(2) : '—'}
+                                    {isLoadingCmis ? (
+                                      <div className="flex items-center justify-center">
+                                        <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                                      </div>
+                                    ) : hasActualData ? kc_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
@@ -1377,7 +1382,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                    {hasActualData ? et0_actual_sum.toFixed(2) : '—'}
+                                    {isLoadingCmis ? (
+                                      <div className="flex items-center justify-center">
+                                        <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                                      </div>
+                                    ) : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
@@ -1385,7 +1394,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
-                                    {hasActualData ? etc_actual_sum.toFixed(2) : '—'}
+                                    {isLoadingCmis ? (
+                                      <div className="flex items-center justify-center">
+                                        <div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div>
+                                      </div>
+                                    ) : hasActualData ? etc_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
                                   <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
