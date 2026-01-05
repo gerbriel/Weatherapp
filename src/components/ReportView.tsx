@@ -1244,10 +1244,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 Total ET₀ Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ETc Actual ({actualsDateRangeText})
+                                Total ETc Actual ({actualsDateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ETc Forecast ({dateRangeText})
+                                Total ETc Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 Water Need
