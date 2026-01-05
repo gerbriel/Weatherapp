@@ -1332,19 +1332,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 Location
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                Total Kc Actual ({actualsDateRangeText})
-                              </th>
-                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                Total Kc Forecast ({dateRangeText})
-                              </th>
-                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 Total ET₀ Actual ({actualsDateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                Total ET₀ Forecast ({dateRangeText})
+                                Total ETc Actual ({actualsDateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                Total ETc Actual ({actualsDateRangeText})
+                                Total Kc
+                              </th>
+                              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                                Total ET₀ Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 Total ETc Forecast ({dateRangeText})
@@ -1507,29 +1504,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     </div>
                                   </td>
                                   
-                                  <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
-                                    {isLoadingCmis ? (
-                                      <div className="flex items-center justify-center">
-                                        <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                                      </div>
-                                    ) : hasCmisFailed ? (
-                                      <button
-                                        onClick={() => retryLocationCMIS(location.id)}
-                                        className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                                        title="Click to retry loading CIMIS data"
-                                      >
-                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        Retry
-                                      </button>
-                                    ) : hasActualData ? kc_actual_sum.toFixed(2) : '—'}
-                                  </td>
-                                  
-                                  <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                    {kc_forecast_sum.toFixed(2)}
-                                  </td>
-                                  
+                                  {/* ET₀ Actual */}
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
                                     {isLoadingCmis ? (
                                       <div className="flex items-center justify-center">
@@ -1549,10 +1524,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     ) : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
-                                  <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                    {et0_forecast_sum.toFixed(2)}
-                                  </td>
-                                  
+                                  {/* ETc Actual */}
                                   <td className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
                                     {isLoadingCmis ? (
                                       <div className="flex items-center justify-center">
@@ -1572,10 +1544,37 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     ) : hasActualData ? etc_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
+                                  {/* Total Kc */}
+                                  <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono">
+                                    {isLoadingCmis ? (
+                                      <div className="flex items-center justify-center">
+                                        <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                                      </div>
+                                    ) : hasCmisFailed ? (
+                                      <button
+                                        onClick={() => retryLocationCMIS(location.id)}
+                                        className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                        title="Click to retry loading CIMIS data"
+                                      >
+                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Retry
+                                      </button>
+                                    ) : hasActualData ? kc_actual_sum.toFixed(2) : '—'}
+                                  </td>
+                                  
+                                  {/* ET₀ Forecast */}
+                                  <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
+                                    {et0_forecast_sum.toFixed(2)}
+                                  </td>
+                                  
+                                  {/* ETc Forecast */}
                                   <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
                                     {etc_forecast_sum.toFixed(2)}
                                   </td>
                                   
+                                  {/* Water Need */}
                                   <td className="px-4 py-3 text-sm text-center font-semibold">
                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                       waterNeedCategory === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
