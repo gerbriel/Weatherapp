@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { MarketingLayout } from './MarketingLayout';
 import { 
   Droplets, 
@@ -16,51 +15,45 @@ import {
   DollarSign,
   Zap,
   Brain,
-  Sprout
+  Sprout,
+  Calculator,
+  Mail
 } from 'lucide-react';
 import { AuthModal } from '../auth/AuthModal';
-import { useTrial } from '../../contexts/TrialContext';
 
 export const HomePage: React.FC = () => {
-  const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const { enableTrialMode } = useTrial();
-
-  const handleStartTrial = () => {
-    enableTrialMode();
-    navigate('/trial');
-  };
 
   const features = [
     {
       icon: <Wheat className="h-6 w-6" />,
-      title: "Multi-Crop Intelligence",
-      description: "Get crop-specific ET calculations and watering schedules for 50+ crops including tomatoes, almonds, grapes, and field crops."
+      title: "50+ Crop Database",
+      description: "Track water requirements for almonds, walnuts, pistachios, citrus, vegetables, and more with crop-specific Kc coefficients."
     },
     {
-      icon: <TrendingUp className="h-6 w-6" />,
-      title: "Yield Optimization",
-      description: "AI-powered insights help you maximize crop yields while minimizing water usage and operational costs."
+      icon: <MapPin className="h-6 w-6" />,
+      title: "Multi-Location Management",
+      description: "Monitor unlimited locations across California and beyond. Each location gets real-time weather and ET₀ data."
     },
     {
-      icon: <DollarSign className="h-6 w-6" />,
-      title: "Cost Savings Tracking",
-      description: "Monitor water cost reductions and ROI with detailed financial reports showing exactly how much you're saving."
+      icon: <Calculator className="h-6 w-6" />,
+      title: "Irrigation Runtime Calculator",
+      description: "Calculate exact irrigation runtimes based on ET₀, crop Kc, system flow rate, and field size."
+    },
+    {
+      icon: <BarChart3 className="h-6 w-6" />,
+      title: "Comprehensive Reports",
+      description: "Generate detailed ET reports comparing actual CIMIS data vs forecasts across all your crops and locations."
     },
     {
       icon: <Brain className="h-6 w-6" />,
-      title: "Smart Irrigation Timing",
-      description: "Receive precise irrigation schedules based on weather patterns, soil conditions, and crop growth stages."
+      title: "AI-Powered Insights",
+      description: "Get intelligent irrigation recommendations based on weather patterns, crop stages, and soil conditions."
     },
     {
-      icon: <Zap className="h-6 w-6" />,
-      title: "Automated Field Alerts",
-      description: "Get instant notifications for irrigation windows, weather threats, and optimal harvest timing."
-    },
-    {
-      icon: <Sprout className="h-6 w-6" />,
-      title: "Growth Stage Monitoring",
-      description: "Track crop development and adjust irrigation strategies based on real-time plant water needs."
+      icon: <Mail className="h-6 w-6" />,
+      title: "Email Reports & Alerts",
+      description: "Receive automated irrigation reports and frost warnings directly to your inbox with beautiful charts."
     }
   ];
 
@@ -107,30 +100,30 @@ export const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">
-                Maximize Crop Yields with 
-                <span className="text-green-300"> Smart Irrigation</span>
+                Professional ET₀ Tracking & 
+                <span className="text-green-300"> Irrigation Management</span>
               </h1>
               <p className="text-xl lg:text-2xl text-blue-100 mb-8 leading-relaxed">
-                Boost your farm's profitability with precision ET calculations, crop-specific watering schedules, 
-                and AI-powered agricultural insights designed for modern growers.
+                Real-time ET₀ data, crop-specific Kc coefficients, and comprehensive irrigation reports 
+                for 50+ crops across multiple locations. Powered by OpenMeteo and CIMIS data.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={handleStartTrial}
+                  onClick={() => setShowAuthModal(true)}
                   className="bg-green-500 text-white text-lg font-semibold px-8 py-4 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center"
                 >
-                  Start Free Farm Trial
+                  Sign Up Now
                   <Eye className="ml-2 h-5 w-5" />
                 </button>
                 <button
-                  onClick={handleStartTrial}
+                  onClick={() => setShowAuthModal(true)}
                   className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
                 >
-                  See How It Works
+                  Log In
                 </button>
               </div>
               <p className="text-blue-200 text-sm mt-4">
-                ✓ 14-day free trial • ✓ Multi-crop intelligence • ✓ No credit card required
+                ✓ Multi-crop intelligence • ✓ Real-time ET data • ✓ Professional irrigation planning
               </p>
             </div>
             
@@ -214,21 +207,21 @@ export const HomePage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                Increase Profits While Saving Water
+                Everything You Need for Precision Irrigation
               </h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-                Our precision irrigation system helps growers boost crop yields by 10-25% 
-                while reducing water costs and improving farm sustainability.
+                Track real-time weather data, calculate crop water requirements, and generate 
+                comprehensive reports comparing actual vs forecast ET across all your locations.
               </p>
               
               <div className="space-y-4">
                 {[
-                  "Increase crop yields by 10-25%",
-                  "Cut water costs by 20-40%", 
-                  "Reduce irrigation labor by 60%",
-                  "Prevent overwatering damage",
-                  "Optimize harvest quality",
-                  "Meet water compliance requirements"
+                  "Track unlimited locations with real-time weather",
+                  "Manage 50+ crops with custom Kc values", 
+                  "Calculate irrigation runtimes instantly",
+                  "Compare CIMIS actual vs forecast data",
+                  "Generate exportable ET reports",
+                  "Receive automated email reports & frost alerts"
                 ].map((benefit, index) => (
                   <div key={index} className="flex items-center">
                     <CheckCircle className="h-6 w-6 text-green-500 dark:text-green-400 mr-3" />
@@ -239,10 +232,10 @@ export const HomePage: React.FC = () => {
 
               <div className="flex flex-col sm:flex-row gap-4 mt-8">
                 <button
-                  onClick={handleStartTrial}
+                  onClick={() => setShowAuthModal(true)}
                   className="bg-green-500 text-white text-lg font-semibold px-8 py-4 rounded-lg hover:bg-green-600 transition-colors"
                 >
-                  Start Farm Trial
+                  Get Started
                 </button>
                 <button
                   onClick={() => setShowAuthModal(true)}
@@ -332,23 +325,20 @@ export const HomePage: React.FC = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={handleStartTrial}
+              onClick={() => setShowAuthModal(true)}
               className="bg-green-500 text-white text-lg font-semibold px-8 py-4 rounded-lg hover:bg-green-600 transition-colors"
             >
-              Try Free Demo
+              Sign Up
             </button>
             <button
               onClick={() => setShowAuthModal(true)}
               className="bg-white text-blue-600 text-lg font-semibold px-8 py-4 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              Start Your Free Demo
-            </button>
-            <button className="border-2 border-white text-white text-lg font-semibold px-8 py-4 rounded-lg hover:bg-white hover:text-blue-600 transition-colors">
-              Schedule a Demo
+              Log In
             </button>
           </div>
           <p className="text-blue-200 text-sm mt-4">
-            No credit card required • Full featured demo • Instant access
+            Professional irrigation management • Real-time crop intelligence • Multi-location support
           </p>
         </div>
       </section>

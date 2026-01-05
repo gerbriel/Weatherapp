@@ -35,79 +35,79 @@ export const ProductPage: React.FC = () => {
   const cropIntelligenceFeatures = [
     {
       icon: <Wheat className="h-8 w-8" />,
-      title: "Multi-Crop Database",
-      description: "50+ crop varieties with specific ET coefficients, growth stages, and water requirements"
-    },
-    {
-      icon: <Brain className="h-8 w-8" />,
-      title: "AI-Powered Insights", 
-      description: "Machine learning algorithms analyze crop conditions and provide optimization recommendations"
+      title: "50+ Crop Database",
+      description: "Comprehensive crop library including almonds, walnuts, pistachios, citrus, vegetables, and field crops with validated Kc coefficients"
     },
     {
       icon: <Calendar className="h-8 w-8" />,
-      title: "Growth Stage Tracking",
-      description: "Monitor crop development and adjust irrigation based on plant phenology"
+      title: "Monthly Kc Values", 
+      description: "Crop-specific coefficients for each month, with ability to customize values per crop per location"
     },
     {
       icon: <Target className="h-8 w-8" />,
-      title: "Yield Optimization",
-      description: "Maximize production while maintaining quality through precision water management"
+      title: "Growth Stage Tracking",
+      description: "Monitor crop development stages and automatically adjust Kc values based on plant maturity"
     },
     {
-      icon: <DollarSign className="h-8 w-8" />,
-      title: "ROI Tracking",
-      description: "Monitor water cost savings and yield improvements with detailed financial analytics"
+      icon: <Database className="h-8 w-8" />,
+      title: "Crop Instance Management",
+      description: "Track multiple plantings of the same crop across different locations with individual planting dates and notes"
     },
     {
       icon: <Sprout className="h-8 w-8" />,
-      title: "Stress Prevention",
-      description: "Early detection of water stress to prevent yield loss and crop damage"
+      title: "Custom Crop Profiles",
+      description: "Save irrigation calculator settings as reusable profiles for quick access to common crop setups"
+    },
+    {
+      icon: <Brain className="h-8 w-8" />,
+      title: "AI Irrigation Insights",
+      description: "Get intelligent recommendations based on weather patterns, crop water needs, and historical data"
     }
   ];
 
   const irrigationManagementFeatures = [
     {
       icon: <Droplets className="h-8 w-8" />,
-      title: "Precision Scheduling",
-      description: "Automated irrigation schedules based on real-time crop water needs and weather conditions"
+      title: "Runtime Calculator",
+      description: "Calculate exact irrigation runtimes based on ET₀, crop Kc, system flow rate (GPM), and field size"
     },
     {
-      icon: <Timer className="h-8 w-8" />,
-      title: "Optimal Timing",
-      description: "Calculate the best irrigation windows to maximize water efficiency and minimize runoff"
+      icon: <Gauge className="h-8 w-8" />,
+      title: "Real-Time ET₀ Data",
+      description: "Get current reference evapotranspiration from OpenMeteo weather stations updated hourly"
     },
     {
-      icon: <Zap className="h-8 w-8" />,
-      title: "Controller Integration",
-      description: "Connect with popular irrigation controllers for automated valve control"
+      icon: <CloudRain className="h-8 w-8" />,
+      title: "CIMIS Integration",
+      description: "Compare actual ET data from California CIMIS stations vs forecast predictions for accuracy"
     },
     {
       icon: <AlertTriangle className="h-8 w-8" />,
-      title: "Field Alerts",
-      description: "Instant notifications for irrigation needs, weather threats, and equipment issues"
+      title: "Frost Warnings",
+      description: "Receive automatic email alerts when frost conditions are detected at your locations"
     }
   ];
 
   const fieldAnalyticsFeatures = [
     {
       icon: <BarChart3 className="h-8 w-8" />,
-      title: "Performance Analytics",
-      description: "Track yield improvements, water usage efficiency, and cost savings across fields"
+      title: "Comprehensive Reports",
+      description: "Generate detailed ET reports with tables comparing Total Kc, ET₀, and ETc across all crops and locations"
     },
     {
       icon: <TrendingUp className="h-8 w-8" />,
-      title: "Trend Analysis",
-      description: "Historical data analysis to identify seasonal patterns and optimize future seasons"
-    },
-    {
-      icon: <Database className="h-8 w-8" />,
-      title: "Custom Reports",
-      description: "Generate detailed reports for compliance, investors, or operational analysis"
+      title: "Actual vs Forecast",
+      description: "View side-by-side comparison of CIMIS actual data vs OpenMeteo forecast for California locations"
     },
     {
       icon: <Globe className="h-8 w-8" />,
-      title: "Farm Management Integration",
-      description: "Connect with John Deere, Climate FieldView, and other farm management platforms"
+      title: "Multi-Location Tracking",
+      description: "Monitor unlimited locations with automatic weather data updates and ET₀ calculations"
+    },
+    {
+      icon: <Database className="h-8 w-8" />,
+      title: "Export & Email",
+      description: "Export reports to email with embedded charts and tables, or download as comprehensive HTML reports"
     }
   ];  const tabs = [
     { id: 'crops', label: 'Crop Intelligence', features: cropIntelligenceFeatures },
@@ -122,17 +122,17 @@ export const ProductPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl lg:text-5xl font-bold mb-6">
-              Complete Crop Intelligence Platform for Modern Growers
+              Professional ET₀ Tracking & Irrigation Intelligence
             </h1>
             <p className="text-xl lg:text-2xl text-blue-100 mb-8 max-w-4xl mx-auto">
-              Maximize yields and profits with crop-specific irrigation schedules, AI-powered insights, 
-              and precision agriculture tools built for today's farming operations.
+              Real-time weather data, crop-specific Kc coefficients, irrigation calculators, 
+              and comprehensive reports powered by OpenMeteo and CIMIS for California growers.
             </p>
             <button
               onClick={() => setShowAuthModal(true)}
               className="bg-white text-green-700 text-lg font-semibold px-8 py-4 rounded-lg hover:bg-green-50 transition-colors"
             >
-              Start Farm Trial
+              Get Started
             </button>
           </div>
         </div>
