@@ -243,7 +243,7 @@ class CMISService {
           provider.Records.forEach((record: any, index: number) => {
             // Each record contains daily data
             if (record.DayAsceEto && record.DayAsceEto.Value !== null) {
-              const rawValue = record.DayAsceEto.Value;
+              const rawValue = Number(record.DayAsceEto.Value);
               // CIMIS API actually returns INCHES, not mm! No conversion needed.
               const valueInInches = Number(rawValue.toFixed(3));
               
