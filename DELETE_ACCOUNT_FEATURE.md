@@ -57,12 +57,19 @@ GRANT EXECUTE ON FUNCTION delete_user() TO authenticated;
 
 ## Setup Instructions
 
-### Step 1: Run the SQL Function
+### ⚠️ IMPORTANT: Step 1 Must Be Completed First!
+
+**Before testing the delete account feature, you MUST run the SQL function in Supabase.** Without this function, you'll see an error message saying the database function is not configured.
+
+### Step 1: Run the SQL Function (REQUIRED)
 1. Go to your Supabase Dashboard
 2. Navigate to SQL Editor
-3. Open the file `create_delete_user_function.sql` 
-4. Run the SQL query
-5. Verify it was created successfully
+3. Copy the contents of `create_delete_user_function.sql`
+4. Paste into the SQL Editor
+5. Click "Run" to execute the query
+6. Verify the function was created successfully (you should see a success message)
+
+**What this does:** Creates a secure database function that allows any authenticated user to delete their own account.
 
 ### Step 2: Test the Feature
 1. Build and deploy the app
@@ -97,8 +104,10 @@ The database schema uses `ON DELETE CASCADE` foreign key constraints, so when a 
 ### Security
 - The `delete_user()` function uses `SECURITY DEFINER` to run with elevated privileges
 - It verifies the user is authenticated before allowing deletion
-- Users can only delete their own account (checked via `auth.uid()`)
+- **Users can only delete their own account** (checked via `auth.uid()`)
+- **Any user can delete their account, regardless of role** (user, admin, superuser)
 - Requires explicit confirmation by typing the confirmation phrase
+- Note: The initial user who creates an organization is automatically set to admin role, but they can still delete their own account
 
 ### User Experience
 1. User clicks "Delete Account" button

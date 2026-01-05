@@ -713,11 +713,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // - user_settings (ON DELETE CASCADE via user_profiles)
       // - user_locations (ON DELETE CASCADE via user_profiles)
       // - Any other related data with CASCADE foreign keys
+      // NOTE: Any user can delete their own account, not just admins
       const { error } = await supabase.rpc('delete_user');
 
       if (error) {
         console.error('RPC delete_user not available:', error);
-        return { error: { message: 'Account deletion requires admin privileges. Please contact support.' } };
+        return { error: { message: 'Database function not configured. Please run the SQL setup script (create_delete_user_function.sql) in your Supabase SQL Editor.' } };
       }
 
       // Clear localStorage

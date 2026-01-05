@@ -319,6 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Delete account - removes user from Supabase (cascades to all related tables)
+  // NOTE: Any user can delete their own account, not just admins
   const deleteAccount = async () => {
     if (!user) {
       return { error: { message: 'No user logged in' } };
@@ -334,9 +335,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { error } = await supabase.rpc('delete_user');
 
       if (error) {
-        // If RPC doesn't exist, try the admin method (requires service role key in production)
-        console.error('RPC delete_user not available, user must be deleted via admin API');
-        return { error: { message: 'Account deletion requires admin privileges. Please contact support.' } };
+        // If RPC doesn't exist, it needs to be created in Supabase
+        console.error('RPC delete_user not available:', error);
+        return { error: { message: 'Database function not configured. Please run the SQL setup script (create_delete_user_function.sql) in your Supabase SQL Editor.' } };
       }
 
       // Sign out after successful deletion
