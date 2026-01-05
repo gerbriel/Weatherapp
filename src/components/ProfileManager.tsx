@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Mail, Building2, Phone, Key, Save, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { X, User, Mail, Building2, Phone, Key, Save, Eye, EyeOff, ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContextSimple';
 import { supabase } from '../lib/supabase';
 
@@ -10,8 +10,8 @@ interface ProfileManagerProps {
 }
 
 export const ProfileManager: React.FC<ProfileManagerProps> = ({ isOpen, onClose, onBack }) => {
-  const { profile, user } = useAuth();
-  const [activeSection, setActiveSection] = useState<'profile' | 'security'>('profile');
+  const { profile, user, deleteAccount } = useAuth();
+  const [activeSection, setActiveSection] = useState<'profile' | 'security' | 'account'>('profile');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -27,6 +27,11 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({ isOpen, onClose,
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Delete account state
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Update profile information
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -114,6 +119,33 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({ isOpen, onClose,
     }
   };
 
+  // Delete account
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText.toLowerCase() !== 'delete my account') {
+      setMessage({ type: 'error', text: 'Please type "delete my account" to confirm' });
+      return;
+    }
+
+    setIsDeleting(true);
+    setMessage(null);
+
+    try {
+      const { error } = await deleteAccount();
+      
+      if (error) {
+        setMessage({ type: 'error', text: error.message || 'Failed to delete account' });
+        setIsDeleting(false);
+        return;
+      }
+
+      // Account deleted successfully - redirect to home
+      window.location.href = '/';
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'An unexpected error occurred' });
+      setIsDeleting(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -157,7 +189,7 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({ isOpen, onClose,
             }`}
           >
             <User className="h-4 w-4 inline mr-2" />
-            Profile Information
+            Profile
           </button>
           <button
             onClick={() => setActiveSection('security')}
@@ -169,6 +201,17 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({ isOpen, onClose,
           >
             <Key className="h-4 w-4 inline mr-2" />
             Security
+          </button>
+          <button
+            onClick={() => setActiveSection('account')}
+            className={`flex-1 px-6 py-4 font-medium transition-colors ${
+              activeSection === 'account'
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-white dark:bg-gray-800'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <AlertTriangle className="h-4 w-4 inline mr-2" />
+            Account
           </button>
         </div>
 
@@ -425,6 +468,98 @@ export const ProfileManager: React.FC<ProfileManagerProps> = ({ isOpen, onClose,
                 </button>
               </div>
             </form>
+          )}
+
+          {/* Account Settings Section */}
+          {activeSection === 'account' && (
+            <div className="space-y-6">
+              {/* Danger Zone */}
+              <div className="border-2 border-red-200 dark:border-red-900 rounded-lg p-6 bg-red-50 dark:bg-red-900/10">
+                <div className="flex items-start space-x-3 mb-4">
+                  <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-red-900 dark:text-red-100 mb-2">
+                      Delete Account
+                    </h3>
+                    <p className="text-sm text-red-800 dark:text-red-200">
+                      Permanently delete your account and all associated data. This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+
+                {!showDeleteConfirmation ? (
+                  <button
+                    onClick={() => setShowDeleteConfirmation(true)}
+                    className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center space-x-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Delete Account</span>
+                  </button>
+                ) : (
+                  <div className="mt-4 space-y-4 border-t-2 border-red-300 dark:border-red-800 pt-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-red-300 dark:border-red-700">
+                      <h4 className="font-semibold text-red-900 dark:text-red-100 mb-3 flex items-center">
+                        <AlertTriangle className="h-5 w-5 mr-2" />
+                        Are you absolutely sure?
+                      </h4>
+                      <p className="text-sm text-red-800 dark:text-red-200 mb-3">
+                        This will permanently delete:
+                      </p>
+                      <ul className="text-sm text-red-800 dark:text-red-200 mb-4 list-disc list-inside space-y-1 ml-2">
+                        <li>Your profile and settings</li>
+                        <li>All your locations and crops</li>
+                        <li>All saved irrigation calculations and reports</li>
+                        <li>Email notification preferences</li>
+                        <li>All other associated data</li>
+                      </ul>
+                      <p className="text-sm font-medium text-red-900 dark:text-red-100 mb-2">
+                        Type <span className="font-mono bg-red-100 dark:bg-red-900/40 px-2 py-1 rounded">delete my account</span> to confirm:
+                      </p>
+                      <input
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="delete my account"
+                        className="w-full px-4 py-2 border border-red-300 dark:border-red-700 rounded-lg mb-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        disabled={isDeleting}
+                      />
+                      
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={handleDeleteAccount}
+                          disabled={isDeleting || deleteConfirmText.toLowerCase() !== 'delete my account'}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>{isDeleting ? 'Deleting...' : 'Yes, Delete My Account'}</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowDeleteConfirmation(false);
+                            setDeleteConfirmText('');
+                            setMessage(null);
+                          }}
+                          disabled={isDeleting}
+                          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium disabled:opacity-50"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Additional account information */}
+              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-2">Account Information</h4>
+                <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                  <p><span className="font-medium">Email:</span> {user?.email}</p>
+                  <p><span className="font-medium">Account Created:</span> {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</p>
+                  <p><span className="font-medium">Role:</span> {profile?.role || 'user'}</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
