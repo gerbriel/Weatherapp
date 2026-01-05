@@ -20,6 +20,7 @@ export const SimpleSignupForm: React.FC<SimpleSignupFormProps> = ({ onSuccess, o
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
 
   // Fetch existing companies from database
   useEffect(() => {
@@ -70,9 +71,52 @@ export const SimpleSignupForm: React.FC<SimpleSignupFormProps> = ({ onSuccess, o
       }
     } else {
       setLoading(false);
-      onSuccess?.();
+      setShowEmailConfirmation(true);
+      // Don't call onSuccess immediately - let user see the confirmation message
     }
   };
+
+  // Show email confirmation screen
+  if (showEmailConfirmation) {
+    return (
+      <div className="w-full max-w-md mx-auto p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Check Your Email</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            We've sent a confirmation email to <span className="font-semibold">{email}</span>
+          </p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
+              <strong>Next steps:</strong>
+            </p>
+            <ol className="text-sm text-blue-800 dark:text-blue-200 text-left space-y-1 list-decimal list-inside">
+              <li>Check your email inbox</li>
+              <li>Click the confirmation link</li>
+              <li>You'll be automatically logged into the app</li>
+            </ol>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Didn't receive the email? Check your spam folder or{' '}
+            <button
+              onClick={() => setShowEmailConfirmation(false)}
+              className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+            >
+              try again
+            </button>
+          </p>
+          <button
+            onClick={onSuccess}
+            className="w-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-white font-semibold py-3 px-4 rounded-md transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">

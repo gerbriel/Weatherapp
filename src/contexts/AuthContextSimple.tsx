@@ -242,6 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             company: userData?.company,
             phone: userData?.phone,
           },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
         },
       });
 
