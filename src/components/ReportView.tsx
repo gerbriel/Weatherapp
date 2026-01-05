@@ -120,6 +120,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const [cmisData, setCmisData] = useState<Map<string, CMISETCData[]>>(new Map());
   const [isFetchingCmis, setIsFetchingCmis] = useState(false);
   const [loadingCmisLocations, setLoadingCmisLocations] = useState<Set<string>>(new Set());
+  const [failedCmisLocations, setFailedCmisLocations] = useState<Set<string>>(new Set());
 
   // State for dynamic reports
   const [reportMode, setReportMode] = useState<'current' | 'historical' | 'future'>('current');
@@ -437,17 +438,27 @@ export const ReportView: React.FC<ReportViewProps> = ({
     return dayData ? `${dayData.etc_actual.toFixed(2)} in` : '—';
   };
 
-  // Fetch CMIS data for a specific location
-  const fetchLocationCMISData = async (locationId: string) => {
+  // Fetch CMIS data for a specific location with retry logic
+  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 2) => {
     const location = displayLocations.find(loc => loc.id === locationId);
-    if (!location || cmisData.has(locationId)) return; // Skip if already fetched
+    if (!location) return;
     
-    // Set loading state
+    // If already has data and not manually retrying, skip
+    if (cmisData.has(locationId) && retryCount === 0) return;
+    
+    // Set loading state and clear failed state if retrying
     setLoadingCmisLocations(prev => new Set(prev).add(locationId));
+    if (retryCount > 0) {
+      setFailedCmisLocations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(locationId);
+        return newSet;
+      });
+    }
     
-    // Add timeout to prevent hanging
+    // Add timeout to prevent hanging (5 seconds)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('CIMIS request timeout')), 10000)
+      setTimeout(() => reject(new Error('CIMIS request timeout')), 5000)
     );
     
     try {
@@ -476,43 +487,65 @@ export const ReportView: React.FC<ReportViewProps> = ({
           timeoutPromise
         ]) as any;
         
-        if (response.success) {
+        if (response.success && response.data.length > 0) {
           setCmisData(prev => {
             const newMap = new Map(prev);
             newMap.set(locationId, response.data);
             return newMap;
           });
+          // Clear from failed set on success
+          setFailedCmisLocations(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(locationId);
+            return newSet;
+          });
           console.log(`✅ CIMIS SUCCESS for ${location.name}: ${response.data.length} records`);
         } else {
-          console.log(`❌ CIMIS FAILED for ${location.name}: ${response.error}`);
-          setCmisData(prev => {
-            const newMap = new Map(prev);
-            newMap.set(locationId, []); // Mark as attempted
-            return newMap;
-          });
+          throw new Error(response.error || 'No data returned');
         }
       } else {
-        setCmisData(prev => {
-          const newMap = new Map(prev);
-          newMap.set(locationId, []);
-          return newMap;
-        });
+        throw new Error('No CIMIS station found');
       }
     } catch (error) {
-      console.error(`Error fetching CMIS data for ${location?.name}:`, error);
-      setCmisData(prev => {
-        const newMap = new Map(prev);
-        newMap.set(locationId, []); // Mark as attempted
-        return newMap;
-      });
+      console.error(`❌ CIMIS FAILED for ${location?.name} (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+      
+      // Retry if we haven't exceeded max retries
+      if (retryCount < maxRetries) {
+        // Wait a bit before retrying (exponential backoff)
+        const delay = 1000 * (retryCount + 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return fetchLocationCMISData(locationId, retryCount + 1, maxRetries);
+      } else {
+        // Max retries exceeded - mark as failed
+        setCmisData(prev => {
+          const newMap = new Map(prev);
+          newMap.set(locationId, []); // Mark as attempted
+          return newMap;
+        });
+        setFailedCmisLocations(prev => new Set(prev).add(locationId));
+      }
     } finally {
-      // Remove loading state
-      setLoadingCmisLocations(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(locationId);
-        return newSet;
-      });
+      // Remove loading state only if this is the last attempt or successful
+      if (retryCount >= maxRetries) {
+        setLoadingCmisLocations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(locationId);
+          return newSet;
+        });
+      }
     }
+  };
+
+  // Manual retry function for failed locations
+  const retryLocationCMIS = (locationId: string) => {
+    // Clear existing data to force refetch
+    setCmisData(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(locationId);
+      return newMap;
+    });
+    // Fetch with retries
+    fetchLocationCMISData(locationId, 0, 2);
   };
 
   // Toggle location collapse state and fetch CMIS data when expanding
@@ -1379,6 +1412,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const etc_forecast_sum = et0_forecast_sum * kc_forecast_sum;
                               const hasActualData = actualDaysCount > 0;
                               const isLoadingCmis = loadingCmisLocations.has(location.id);
+                              const hasCmisFailed = failedCmisLocations.has(location.id);
                               
                               // Determine water need category based on weekly forecast ETc
                               let waterNeedCategory = 'Low';
@@ -1407,6 +1441,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                       <div className="flex items-center justify-center">
                                         <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                                       </div>
+                                    ) : hasCmisFailed ? (
+                                      <button
+                                        onClick={() => retryLocationCMIS(location.id)}
+                                        className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                        title="Click to retry loading CIMIS data"
+                                      >
+                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Retry
+                                      </button>
                                     ) : hasActualData ? kc_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
@@ -1419,6 +1464,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                       <div className="flex items-center justify-center">
                                         <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
                                       </div>
+                                    ) : hasCmisFailed ? (
+                                      <button
+                                        onClick={() => retryLocationCMIS(location.id)}
+                                        className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                        title="Click to retry loading CIMIS data"
+                                      >
+                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Retry
+                                      </button>
                                     ) : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
@@ -1431,6 +1487,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                       <div className="flex items-center justify-center">
                                         <div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div>
                                       </div>
+                                    ) : hasCmisFailed ? (
+                                      <button
+                                        onClick={() => retryLocationCMIS(location.id)}
+                                        className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                        title="Click to retry loading CIMIS data"
+                                      >
+                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                        </svg>
+                                        Retry
+                                      </button>
                                     ) : hasActualData ? etc_actual_sum.toFixed(2) : '—'}
                                   </td>
                                   
