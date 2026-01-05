@@ -16,15 +16,21 @@ I've implemented a complete delete account feature that allows users to permanen
 
 ### 2. Frontend Changes
 
-#### UserProfile.tsx
-- Added a "Danger Zone" section at the bottom of the profile page
-- Includes a confirmation dialog requiring the user to type "delete my account"
-- Shows a clear warning about what will be deleted:
+#### ProfileManager.tsx
+- Added a new "Account" tab to the Manage Profile section
+- Includes a "Danger Zone" with delete account functionality
+- Shows confirmation dialog requiring the user to type "delete my account"
+- Displays clear warning about what will be deleted:
   - Profile and settings
   - All locations and crops
   - All saved irrigation calculations and reports
   - Email notification preferences
 - Has loading states and error handling
+- Shows account information (email, role, created date)
+
+#### UserProfile.tsx
+- Removed the standalone delete account section
+- Users should now access delete account via the Manage Profile modal
 
 ### 3. Database Setup Required
 
@@ -61,12 +67,14 @@ GRANT EXECUTE ON FUNCTION delete_user() TO authenticated;
 ### Step 2: Test the Feature
 1. Build and deploy the app
 2. Log in with a test account
-3. Navigate to the Profile page (User menu → Profile Settings)
-4. Scroll to the bottom to see the "Danger Zone"
-5. Click "Delete Account"
-6. Type "delete my account" in the confirmation dialog
-7. Click "Yes, Delete My Account"
-8. Verify you're logged out and redirected to the home page
+3. Click on your user profile icon (top right)
+4. Select "Manage Profile" from the dropdown
+5. Navigate to the "Account" tab (third tab)
+6. Scroll to the "Danger Zone" section
+7. Click "Delete Account"
+8. Type "delete my account" in the confirmation dialog
+9. Click "Yes, Delete My Account"
+10. Verify you're logged out and redirected to the home page
 
 ### Step 3: Verify Database Cleanup
 1. Check that the user was removed from `auth.users`
@@ -105,8 +113,9 @@ The database schema uses `ON DELETE CASCADE` foreign key constraints, so when a 
 
 1. `/src/contexts/AuthContextSimple.tsx` - Added deleteAccount method
 2. `/src/contexts/AuthContext.tsx` - Added deleteAccount method
-3. `/src/components/UserProfile.tsx` - Added Danger Zone UI with confirmation
-4. `/create_delete_user_function.sql` - SQL function for secure deletion
+3. `/src/components/ProfileManager.tsx` - Added Account tab with delete functionality
+4. `/src/components/UserProfile.tsx` - Removed standalone delete section
+5. `/create_delete_user_function.sql` - SQL function for secure deletion
 
 ## Safety Features
 
