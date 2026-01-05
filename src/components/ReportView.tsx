@@ -439,7 +439,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   // Fetch CMIS data for a specific location with retry logic
-  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 2) => {
+  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 1) => {
     const location = displayLocations.find(loc => loc.id === locationId);
     if (!location) return;
     
@@ -456,9 +456,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
       });
     }
     
-    // Add timeout to prevent hanging (5 seconds)
+    // Add timeout to prevent hanging (8 seconds - give server more time)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('CIMIS request timeout')), 5000)
+      setTimeout(() => reject(new Error('CIMIS request timeout')), 8000)
     );
     
     try {
@@ -511,8 +511,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       
       // Retry if we haven't exceeded max retries
       if (retryCount < maxRetries) {
-        // Wait a bit before retrying (exponential backoff)
-        const delay = 1000 * (retryCount + 1);
+        // Wait longer before retrying (2-4 seconds to give server breathing room)
+        const delay = 2000 * (retryCount + 1);
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchLocationCMISData(locationId, retryCount + 1, maxRetries);
       } else {
@@ -664,18 +664,14 @@ export const ReportView: React.FC<ReportViewProps> = ({
       );
       
       if (locationsToFetch.length > 0) {
-        // Batch fetch in groups of 3 to avoid overwhelming the API
-        const batchSize = 3;
+        // Batch fetch ONE at a time with longer delays to avoid rate limiting
         const fetchBatches = async () => {
-          for (let i = 0; i < locationsToFetch.length; i += batchSize) {
-            const batch = locationsToFetch.slice(i, i + batchSize);
-            // Fetch batch in parallel
-            await Promise.allSettled(
-              batch.map(location => fetchLocationCMISData(location.id))
-            );
-            // Small delay between batches
-            if (i + batchSize < locationsToFetch.length) {
-              await new Promise(resolve => setTimeout(resolve, 300));
+          for (let i = 0; i < locationsToFetch.length; i++) {
+            const location = locationsToFetch[i];
+            await fetchLocationCMISData(location.id);
+            // Wait 1.5 seconds between each location to avoid overwhelming API
+            if (i < locationsToFetch.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1500));
             }
           }
         };
