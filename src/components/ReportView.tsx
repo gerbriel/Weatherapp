@@ -1197,8 +1197,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   // Get all unique location IDs for this crop from the instances
                   const cropLocationIds = new Set(instances.map(inst => inst.locationId));
                   
-                  // Get all locations that have this crop (not just selected ones)
-                  const cropLocations = locations.filter(loc => cropLocationIds.has(loc.id));
+                  // Get only the DISPLAYED locations that have this crop (intersection of crop locations and selected locations)
+                  const cropLocations = displayLocations.filter(loc => cropLocationIds.has(loc.id));
 
                   // Calculate date range for table headers by checking first location with weather data
                   let dateRangeText = '';
