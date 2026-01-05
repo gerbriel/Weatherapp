@@ -445,6 +445,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
     // Set loading state
     setLoadingCmisLocations(prev => new Set(prev).add(locationId));
     
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('CIMIS request timeout')), 10000)
+    );
+    
     try {
       const locationInfo = {
         latitude: location.latitude,
@@ -455,11 +460,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
         cimisStationId: (location as any).cimisStationId || location.weatherstationID
       };
 
-      const station = await cmisService.findNearestStation(
-        location.latitude, 
-        location.longitude, 
-        locationInfo
-      );
+      const station = await Promise.race([
+        cmisService.findNearestStation(location.latitude, location.longitude, locationInfo),
+        timeoutPromise
+      ]) as any;
       
       if (station) {
         const endDate = new Date();
@@ -467,12 +471,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
         const startDate = new Date();
         startDate.setDate(endDate.getDate() - 14);
         
-        const response = await cmisService.getETCData(
-          station.id, 
-          startDate, 
-          endDate, 
-          locationInfo
-        );
+        const response = await Promise.race([
+          cmisService.getETCData(station.id, startDate, endDate, locationInfo),
+          timeoutPromise
+        ]) as any;
         
         if (response.success) {
           setCmisData(prev => {
@@ -623,12 +625,29 @@ export const ReportView: React.FC<ReportViewProps> = ({
     const isComprehensiveExpanded = !collapsedSections.has('waterUseData');
     
     if (isComprehensiveExpanded && displayLocations.length > 0 && cropInstances.length > 0) {
-      // Fetch CIMIS data for all locations used in comprehensive tables
-      displayLocations.forEach(location => {
-        if (!cmisData.has(location.id) && !loadingCmisLocations.has(location.id)) {
-          fetchLocationCMISData(location.id);
-        }
-      });
+      // Fetch CIMIS data for all locations in parallel with batching
+      const locationsToFetch = displayLocations.filter(
+        location => !cmisData.has(location.id) && !loadingCmisLocations.has(location.id)
+      );
+      
+      if (locationsToFetch.length > 0) {
+        // Batch fetch in groups of 3 to avoid overwhelming the API
+        const batchSize = 3;
+        const fetchBatches = async () => {
+          for (let i = 0; i < locationsToFetch.length; i += batchSize) {
+            const batch = locationsToFetch.slice(i, i + batchSize);
+            // Fetch batch in parallel
+            await Promise.allSettled(
+              batch.map(location => fetchLocationCMISData(location.id))
+            );
+            // Small delay between batches
+            if (i + batchSize < locationsToFetch.length) {
+              await new Promise(resolve => setTimeout(resolve, 300));
+            }
+          }
+        };
+        fetchBatches();
+      }
     }
   }, [collapsedSections, displayLocations.length, cropInstances.length]);
 
