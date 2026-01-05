@@ -1281,7 +1281,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           </h3>
                           
                           {/* Load CIMIS Data Button */}
-                          {!loadedCropCmisData.has(cropId) ? (
+                          {!loadedCropCmisData.has(cropId) && cmisData.size === 0 ? (
                             <button
                               onClick={() => loadCmisDataForCrop(cropId)}
                               disabled={cmisLoadingProgress.total > 0}
@@ -1292,12 +1292,19 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               </svg>
                               Load Actual CIMIS Data
                             </button>
-                          ) : (
+                          ) : loadedCropCmisData.has(cropId) ? (
                             <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-sm font-medium rounded-lg">
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                               </svg>
                               CIMIS Data Loaded
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-sm font-medium rounded-lg border border-blue-300 dark:border-blue-700">
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              CIMIS Data Available (Loaded for Another Crop)
                             </div>
                           )}
                         </div>
