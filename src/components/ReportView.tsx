@@ -119,6 +119,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // const [isRefreshing, setIsRefreshing] = useState(false);
   const [cmisData, setCmisData] = useState<Map<string, CMISETCData[]>>(new Map());
   const [isFetchingCmis, setIsFetchingCmis] = useState(false);
+  const [loadingCmisLocations, setLoadingCmisLocations] = useState<Set<string>>(new Set());
 
   // State for dynamic reports
   const [reportMode, setReportMode] = useState<'current' | 'historical' | 'future'>('current');
@@ -441,6 +442,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
     const location = displayLocations.find(loc => loc.id === locationId);
     if (!location || cmisData.has(locationId)) return; // Skip if already fetched
     
+    // Set loading state
+    setLoadingCmisLocations(prev => new Set(prev).add(locationId));
+    
     try {
       const locationInfo = {
         latitude: location.latitude,
@@ -479,6 +483,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
           console.log(`✅ CIMIS SUCCESS for ${location.name}: ${response.data.length} records`);
         } else {
           console.log(`❌ CIMIS FAILED for ${location.name}: ${response.error}`);
+          setCmisData(prev => {
+            const newMap = new Map(prev);
+            newMap.set(locationId, []); // Mark as attempted
+            return newMap;
+          });
         }
       } else {
         setCmisData(prev => {
@@ -489,6 +498,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
       }
     } catch (error) {
       console.error(`Error fetching CMIS data for ${location?.name}:`, error);
+      setCmisData(prev => {
+        const newMap = new Map(prev);
+        newMap.set(locationId, []); // Mark as attempted
+        return newMap;
+      });
+    } finally {
+      // Remove loading state
+      setLoadingCmisLocations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(locationId);
+        return newSet;
+      });
     }
   };
 
@@ -1793,6 +1814,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
               {/* Collapsible Content */}
               {!isCollapsed && (
               <>
+              {/* Loading Indicator for CIMIS Data */}
+              {loadingCmisLocations.has(location.id) && (
+                <div className="px-6 py-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                      Loading CIMIS actual data for {location.name}...
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Today's Metrics Grid */}
               <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
                 <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4 flex items-center">
@@ -2216,6 +2249,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
             {/* Collapsible Content */}
             {!isCollapsed && (
             <>
+            {/* Loading Indicator for CIMIS Data */}
+            {loadingCmisLocations.has(location.id) && (
+              <div className="px-6 py-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700">
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <div className="text-sm text-blue-700 dark:text-blue-300">
+                    Loading CIMIS actual data for {location.name}...
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Today's Metrics Grid */}
             <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
               <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4 flex items-center">
