@@ -272,6 +272,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData?: any) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<{ error: any }>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ data: any; error: any }>;
+  deleteAccount: () => Promise<{ error: any }>;
   addLocation: (location: Omit<UserLocation, 'id' | 'user_id' | 'organization_id'>) => Promise<{ data: any; error: any }>;
   updateLocation: (id: string, updates: Partial<UserLocation>) => Promise<{ data: any; error: any }>;
   deleteLocation: (id: string) => Promise<{ error: any }>;
@@ -700,6 +701,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { data: updatedProfile, error: null };
   };
 
+  const deleteAccount = async () => {
+    if (!user) {
+      return { error: { message: 'No user logged in' } };
+    }
+
+    try {
+      // Delete the user from Supabase Auth
+      // This will CASCADE delete:
+      // - user_profiles (ON DELETE CASCADE)
+      // - user_settings (ON DELETE CASCADE via user_profiles)
+      // - user_locations (ON DELETE CASCADE via user_profiles)
+      // - Any other related data with CASCADE foreign keys
+      const { error } = await supabase.rpc('delete_user');
+
+      if (error) {
+        console.error('RPC delete_user not available:', error);
+        return { error: { message: 'Account deletion requires admin privileges. Please contact support.' } };
+      }
+
+      // Clear localStorage
+      localStorage.removeItem(`userProfile_${user.id}`);
+      localStorage.removeItem(`userLocations_${user.id}`);
+
+      // Sign out after successful deletion
+      await signOut();
+      
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      return { error };
+    }
+  };
+
   const addLocation = async (location: Omit<UserLocation, 'id' | 'user_id' | 'organization_id'>) => {
     if (!user || !profile) return { data: null, error: { message: 'No user logged in' } };
 
@@ -970,6 +1004,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signOut,
     updateProfile,
+    deleteAccount,
     addLocation,
     updateLocation,
     deleteLocation,

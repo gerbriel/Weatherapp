@@ -73,6 +73,7 @@ interface AuthContextType {
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any }>;
   resetPasswordForEmail: (email: string, redirectTo?: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
+  deleteAccount: () => Promise<{ error: any }>;
   // Location management (for TrialDashboard compatibility)
   addLocation: (location: Omit<UserLocation, 'id' | 'user_id' | 'organization_id'>) => Promise<{ data: any; error: any }>;
   updateLocation: (id: string, updates: Partial<UserLocation>) => Promise<{ data: any; error: any }>;
@@ -313,6 +314,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       return { error };
     } catch (error: any) {
+      return { error };
+    }
+  };
+
+  // Delete account - removes user from Supabase (cascades to all related tables)
+  const deleteAccount = async () => {
+    if (!user) {
+      return { error: { message: 'No user logged in' } };
+    }
+
+    try {
+      // Delete the user from Supabase Auth
+      // This will CASCADE delete:
+      // - user_profiles (ON DELETE CASCADE)
+      // - user_settings (ON DELETE CASCADE via user_profiles)
+      // - user_locations (ON DELETE CASCADE via user_profiles)
+      // - Any other related data with CASCADE foreign keys
+      const { error } = await supabase.rpc('delete_user');
+
+      if (error) {
+        // If RPC doesn't exist, try the admin method (requires service role key in production)
+        console.error('RPC delete_user not available, user must be deleted via admin API');
+        return { error: { message: 'Account deletion requires admin privileges. Please contact support.' } };
+      }
+
+      // Sign out after successful deletion
+      await signOut();
+      
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
       return { error };
     }
   };
@@ -778,6 +810,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateProfile,
     resetPasswordForEmail,
     updatePassword,
+    deleteAccount,
     addLocation,
     updateLocation,
     deleteLocation,
