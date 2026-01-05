@@ -436,13 +436,74 @@ export const ReportView: React.FC<ReportViewProps> = ({
     return dayData ? `${dayData.etc_actual.toFixed(2)} in` : '—';
   };
 
-  // Toggle location collapse state
+  // Fetch CMIS data for a specific location
+  const fetchLocationCMISData = async (locationId: string) => {
+    const location = displayLocations.find(loc => loc.id === locationId);
+    if (!location || cmisData.has(locationId)) return; // Skip if already fetched
+    
+    try {
+      const locationInfo = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        state: (location as any).state,
+        region: (location as any).region,
+        name: location.name,
+        cimisStationId: (location as any).cimisStationId || location.weatherstationID
+      };
+
+      const station = await cmisService.findNearestStation(
+        location.latitude, 
+        location.longitude, 
+        locationInfo
+      );
+      
+      if (station) {
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() - 1);
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - 14);
+        
+        const response = await cmisService.getETCData(
+          station.id, 
+          startDate, 
+          endDate, 
+          locationInfo
+        );
+        
+        if (response.success) {
+          setCmisData(prev => {
+            const newMap = new Map(prev);
+            newMap.set(locationId, response.data);
+            return newMap;
+          });
+          console.log(`✅ CIMIS SUCCESS for ${location.name}: ${response.data.length} records`);
+        } else {
+          console.log(`❌ CIMIS FAILED for ${location.name}: ${response.error}`);
+        }
+      } else {
+        setCmisData(prev => {
+          const newMap = new Map(prev);
+          newMap.set(locationId, []);
+          return newMap;
+        });
+      }
+    } catch (error) {
+      console.error(`Error fetching CMIS data for ${location?.name}:`, error);
+    }
+  };
+
+  // Toggle location collapse state and fetch CMIS data when expanding
   const toggleLocationCollapse = (locationId: string) => {
     setCollapsedLocations(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(locationId)) {
+      const isCurrentlyCollapsed = newSet.has(locationId);
+      
+      if (isCurrentlyCollapsed) {
+        // Expanding - fetch CMIS data if not already loaded
         newSet.delete(locationId);
+        fetchLocationCMISData(locationId);
       } else {
+        // Collapsing
         newSet.add(locationId);
       }
       return newSet;
@@ -526,105 +587,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
     }
   }, [displayLocations.length]); // Only re-run when the number of locations changes
 
-  // Fetch CMIS data for locations
+  // Fetch CMIS data for locations - DISABLED for lazy loading
+  // CMIS data is now fetched only when location sections are expanded
   useEffect(() => {
-    // Prevent double execution in React dev mode
-    let isCancelled = false;
-    
-    const fetchCMISData = async () => {
-      if (displayLocations.length === 0 || isFetchingCmis || isCancelled) return;
-      
-      setIsFetchingCmis(true);
-      const newCmisData = new Map<string, CMISETCData[]>();
-      
-      // Process locations in smaller batches to prevent overwhelming the browser
-      const batchSize = 2; // Reduced batch size for better performance
-      for (let i = 0; i < displayLocations.length; i += batchSize) {
-        if (isCancelled) break;
-        
-        const batch = displayLocations.slice(i, i + batchSize);
-        
-        await Promise.allSettled(
-          batch.map(async (location) => {
-            if (location.latitude && location.longitude && !isCancelled) {
-              try {
-                // Prepare location info for California check
-                const locationInfo = {
-                  latitude: location.latitude,
-                  longitude: location.longitude,
-                  state: (location as any).state,
-                  region: (location as any).region,
-                  name: location.name,
-                  cimisStationId: (location as any).cimisStationId || location.weatherstationID  // Include weather station ID
-                };
-
-                const station = await cmisService.findNearestStation(
-                  location.latitude, 
-                  location.longitude, 
-                  locationInfo
-                );
-                
-                if (station) {
-                  // Use yesterday's date to avoid timezone issues with CMIS API
-                  const endDate = new Date();
-                  endDate.setDate(endDate.getDate() - 1); // Use yesterday to avoid "future date" errors
-                  const startDate = new Date();
-                  startDate.setDate(endDate.getDate() - 14);
-                  
-                  const response = await cmisService.getETCData(
-                    station.id, 
-                    startDate, 
-                    endDate, 
-                    locationInfo
-                  );
-                  
-                  if (response.success) {
-                    newCmisData.set(location.id, response.data);
-                    console.log(`✅ CIMIS SUCCESS for ${location.name}: ${response.data.length} records`);
-                    if (response.data.length > 0) {
-                      console.log(`   First 3 records:`, response.data.slice(0, 3));
-                      console.log(`   Date range: ${response.data[0].date} to ${response.data[response.data.length - 1].date}`);
-                    }
-                  } else if (!response.isCaliforniaLocation) {
-                    // Store empty array for non-CA locations
-                    newCmisData.set(location.id, []);
-                    console.log(`⚠️  ${location.name} is not in California - no CIMIS data`);
-                  } else {
-                    console.log(`❌ CIMIS FAILED for ${location.name}: ${response.error}`);
-                  }
-                } else {
-                  // No station found (likely non-CA location)
-                  newCmisData.set(location.id, []);
-                }
-              } catch (error) {
-                console.error(`Error fetching CMIS data for ${location.name}:`, error);
-                newCmisData.set(location.id, []);
-              }
-            }
-          })
-        );
-        
-        // Add a longer delay between batches to prevent freezing
-        if (i + batchSize < displayLocations.length) {
-          await new Promise(resolve => setTimeout(resolve, 200));
-        }
-      }
-      
-      if (!isCancelled) {
-        setCmisData(newCmisData);
-        setIsFetchingCmis(false);
-        console.log(`🎯 TOTAL CMIS DATA COLLECTED: ${newCmisData.size} locations`);
-        newCmisData.forEach((data, locationId) => {
-          console.log(`   Location ${locationId}: ${data.length} CIMIS records`);
-        });
-      }
-    };
-
-    fetchCMISData();
-    
-    // Cleanup function to prevent state updates if component unmounts
+    // Lazy loading enabled to improve initial page load and reduce CIMIS API errors
+    console.log(`📊 Lazy loading enabled: CMIS data will load when you expand location sections`);
     return () => {
-      isCancelled = true;
+      // Cleanup
     };
   }, [displayLocations.length]); // Only depend on length to avoid unnecessary refetches
 
