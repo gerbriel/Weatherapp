@@ -244,16 +244,17 @@ class CMISService {
             // Each record contains daily data
             if (record.DayAsceEto && record.DayAsceEto.Value !== null) {
               const rawValue = record.DayAsceEto.Value;
-              const convertedValue = Number((rawValue * 0.0393701).toFixed(3));
+              // CIMIS API actually returns INCHES, not mm! No conversion needed.
+              const valueInInches = Number(rawValue.toFixed(3));
               
-              // Log first 3 records to debug unit issues
+              // Log first 3 records to verify values
               if (index < 3) {
-                console.log(`🔬 RAW CIMIS API VALUE: ${rawValue} → Converted: ${convertedValue} inches (Date: ${record.Date})`);
+                console.log(`✅ CIMIS API VALUE: ${rawValue} inches (Date: ${record.Date})`);
               }
               
               data.push({
                 date: record.Date,
-                etc_actual: convertedValue, // CIMIS API returns mm, convert to inches
+                etc_actual: valueInInches, // CIMIS API returns inches directly
                 station_id: provider.StationNbr?.toString() || 'unknown',
                 crop_type: 'Reference Crop (Grass)'
               });
