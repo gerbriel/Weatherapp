@@ -618,6 +618,20 @@ export const ReportView: React.FC<ReportViewProps> = ({
     };
   }, [displayLocations.length]); // Only depend on length to avoid unnecessary refetches
 
+  // Fetch CIMIS data for comprehensive section when it's expanded
+  useEffect(() => {
+    const isComprehensiveExpanded = !collapsedSections.has('waterUseData');
+    
+    if (isComprehensiveExpanded && displayLocations.length > 0 && cropInstances.length > 0) {
+      // Fetch CIMIS data for all locations used in comprehensive tables
+      displayLocations.forEach(location => {
+        if (!cmisData.has(location.id) && !loadingCmisLocations.has(location.id)) {
+          fetchLocationCMISData(location.id);
+        }
+      });
+    }
+  }, [collapsedSections, displayLocations.length, cropInstances.length]);
+
   // Show message when no locations are selected - dropdown is always visible at top
   if (displayLocations.length === 0) {
     // const isTrialMode = locations.length > 0 && !('weatherData' in (locations[0] || {}));
