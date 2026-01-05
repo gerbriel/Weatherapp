@@ -140,9 +140,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // State for collapsible location sections
   const [collapsedLocations, setCollapsedLocations] = useState<Set<string>>(new Set());
   
-  // State for collapsible report sections (start collapsed)
+  // State for collapsible report sections (start collapsed except waterUseData)
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set(['cropManagement', 'waterUseData', 'dataSourcesApis'])
+    new Set(['cropManagement', 'dataSourcesApis'])
   );
 
   // Helper functions for location-specific insights
@@ -518,6 +518,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
   useEffect(() => {
     onDisplayLocationsChange(displayLocations);
   }, [displayLocations]); // Remove onDisplayLocationsChange from dependencies to prevent infinite re-renders
+
+  // Initialize all locations as collapsed by default
+  useEffect(() => {
+    if (displayLocations.length > 0) {
+      setCollapsedLocations(new Set(displayLocations.map(loc => loc.id)));
+    }
+  }, [displayLocations.length]); // Only re-run when the number of locations changes
 
   // Fetch CMIS data for locations
   useEffect(() => {
@@ -1044,78 +1051,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </div>
       </div>
 
-      {/* Crop and Calculator Data Summary */}
-      {(selectedCrops.length > 0 || calculatorResult) && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
-          <button
-            onClick={() => toggleSectionCollapse('cropManagement')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-              <Sprout className="h-5 w-5 text-green-500" />
-              <span>Crop Management Summary</span>
-            </h3>
-            {collapsedSections.has('cropManagement') ? (
-              <ChevronDown className="h-5 w-5 text-gray-400" />
-            ) : (
-              <ChevronUp className="h-5 w-5 text-gray-400" />
-            )}
-          </button>
-          
-          {!collapsedSections.has('cropManagement') && (
-            <div className="px-6 pb-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Selected Crops */}
-                {selectedCrops.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">Active Crops ({selectedCrops.length})</h4>
-                    <div className="space-y-1">
-                      {selectedCrops.slice(0, 5).map((crop, index) => (
-                        <div key={index} className="text-sm text-gray-600 dark:text-gray-400 flex items-center space-x-1">
-                          <Sprout className="h-3 w-3 text-green-500" />
-                          <span>{crop}</span>
-                        </div>
-                      ))}
-                      {selectedCrops.length > 5 && (
-                        <div className="text-sm text-gray-500 dark:text-gray-500">
-                          +{selectedCrops.length - 5} more crops
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Calculator Results */}
-                {calculatorResult && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 dark:text-white mb-2 flex items-center space-x-1">
-                      <Calculator className="h-4 w-4 text-blue-500" />
-                      <span>Current Calculation</span>
-                    </h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Daily Water Need:</span> {calculatorResult.dailyWaterNeed.toFixed(1)} gal
-                      </div>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Runtime:</span> {calculatorResult.runtimeHours}h {calculatorResult.runtimeMinutes}m
-                      </div>
-                      <div className="text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">Efficiency:</span> {calculatorResult.efficiency}%
-                      </div>
-                      {calculatorInputs?.crop && (
-                        <div className="text-gray-600 dark:text-gray-400">
-                          <span className="font-medium">Crop:</span> {calculatorInputs.crop}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Export Buttons */}
       <div className="flex justify-center gap-3 mb-6">
         <button
@@ -1297,16 +1232,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 Location
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                Kc Actual ({actualsDateRangeText})
+                                Total Kc Actual ({actualsDateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                Kc Forecast ({dateRangeText})
+                                Total Kc Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ET₀ Actual ({actualsDateRangeText})
+                                Total ET₀ Actual ({actualsDateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                                ET₀ Forecast ({dateRangeText})
+                                Total ET₀ Forecast ({dateRangeText})
                               </th>
                               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                 ETc Actual ({actualsDateRangeText})
