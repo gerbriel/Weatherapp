@@ -121,6 +121,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const [isFetchingCmis, setIsFetchingCmis] = useState(false);
   const [loadingCmisLocations, setLoadingCmisLocations] = useState<Set<string>>(new Set());
   const [failedCmisLocations, setFailedCmisLocations] = useState<Set<string>>(new Set());
+  const [cmisLoadingProgress, setCmisLoadingProgress] = useState({ current: 0, total: 0, currentLocation: '' });
+  const [loadedCropCmisData, setLoadedCropCmisData] = useState<Set<string>>(new Set());
 
   // State for dynamic reports
   const [reportMode, setReportMode] = useState<'current' | 'historical' | 'future'>('current');
@@ -654,31 +656,58 @@ export const ReportView: React.FC<ReportViewProps> = ({
   }, [displayLocations.length]); // Only depend on length to avoid unnecessary refetches
 
   // Fetch CIMIS data for comprehensive section when it's expanded
-  useEffect(() => {
-    const isComprehensiveExpanded = !collapsedSections.has('waterUseData');
+  // REMOVED AUTO-LOADING - Now user must click "Load CIMIS Data" button per crop
+  
+  // Manual function to load CIMIS data for specific crop locations
+  const loadCmisDataForCrop = async (cropId: string) => {
+    // Get crop instances for this crop type
+    const cropCropInstances = cropInstances.filter(ci => ci.cropId === cropId);
     
-    if (isComprehensiveExpanded && displayLocations.length > 0 && cropInstances.length > 0) {
-      // Fetch CIMIS data for all locations in parallel with batching
-      const locationsToFetch = displayLocations.filter(
-        location => !cmisData.has(location.id) && !loadingCmisLocations.has(location.id)
-      );
+    // Get unique location IDs for this crop
+    const cropLocationIds = new Set(cropCropInstances.map(inst => inst.locationId));
+    
+    // Get locations for this crop
+    const cropLocations = displayLocations.filter(loc => cropLocationIds.has(loc.id));
+    
+    if (cropLocations.length === 0) return;
+    
+    // Mark this crop as loaded
+    setLoadedCropCmisData(prev => new Set(prev).add(cropId));
+    
+    // Filter to only locations that haven't been loaded yet
+    const locationsToFetch = cropLocations.filter(
+      location => !cmisData.has(location.id) && !loadingCmisLocations.has(location.id)
+    );
+    
+    if (locationsToFetch.length === 0) return;
+    
+    // Set progress
+    setCmisLoadingProgress({
+      current: 0,
+      total: locationsToFetch.length,
+      currentLocation: locationsToFetch[0]?.name || ''
+    });
+    
+    // Load locations one at a time with progress updates
+    for (let i = 0; i < locationsToFetch.length; i++) {
+      const location = locationsToFetch[i];
+      setCmisLoadingProgress({
+        current: i + 1,
+        total: locationsToFetch.length,
+        currentLocation: location.name
+      });
       
-      if (locationsToFetch.length > 0) {
-        // Batch fetch ONE at a time with longer delays to avoid rate limiting
-        const fetchBatches = async () => {
-          for (let i = 0; i < locationsToFetch.length; i++) {
-            const location = locationsToFetch[i];
-            await fetchLocationCMISData(location.id);
-            // Wait 1.5 seconds between each location to avoid overwhelming API
-            if (i < locationsToFetch.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 1500));
-            }
-          }
-        };
-        fetchBatches();
+      await fetchLocationCMISData(location.id);
+      
+      // Wait between requests
+      if (i < locationsToFetch.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
     }
-  }, [collapsedSections, displayLocations.length, cropInstances.length]);
+    
+    // Clear progress
+    setCmisLoadingProgress({ current: 0, total: 0, currentLocation: '' });
+  };
 
   // Show message when no locations are selected - dropdown is always visible at top
   if (displayLocations.length === 0) {
@@ -1243,10 +1272,54 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   return (
                     <div key={`${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                       <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                          <Sprout className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
-                          {cropName}
-                        </h3>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                            <Sprout className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+                            {cropName}
+                          </h3>
+                          
+                          {/* Load CIMIS Data Button */}
+                          {!loadedCropCmisData.has(cropId) ? (
+                            <button
+                              onClick={() => loadCmisDataForCrop(cropId)}
+                              disabled={cmisLoadingProgress.total > 0}
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                              </svg>
+                              Load Actual CIMIS Data
+                            </button>
+                          ) : (
+                            <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-sm font-medium rounded-lg">
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              CIMIS Data Loaded
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Loading Progress Bar */}
+                        {cmisLoadingProgress.total > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                              <span>Loading CIMIS data for {cropName}...</span>
+                              <span className="font-medium">{cmisLoadingProgress.current} / {cmisLoadingProgress.total}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(cmisLoadingProgress.current / cmisLoadingProgress.total) * 100}%` }}
+                              />
+                            </div>
+                            {cmisLoadingProgress.currentLocation && (
+                              <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                Currently loading: {cmisLoadingProgress.currentLocation}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       
                       <div className="overflow-x-auto">
