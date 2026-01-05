@@ -502,6 +502,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
             return newSet;
           });
           console.log(`✅ CIMIS SUCCESS for ${location.name}: ${response.data.length} records`);
+          // Remove loading state on success
+          setLoadingCmisLocations(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(locationId);
+            return newSet;
+          });
         } else {
           throw new Error(response.error || 'No data returned');
         }
@@ -518,17 +524,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchLocationCMISData(locationId, retryCount + 1, maxRetries);
       } else {
-        // Max retries exceeded - mark as failed
+        // Max retries exceeded - mark as failed and remove loading state
         setCmisData(prev => {
           const newMap = new Map(prev);
           newMap.set(locationId, []); // Mark as attempted
           return newMap;
         });
         setFailedCmisLocations(prev => new Set(prev).add(locationId));
-      }
-    } finally {
-      // Remove loading state only if this is the last attempt or successful
-      if (retryCount >= maxRetries) {
         setLoadingCmisLocations(prev => {
           const newSet = new Set(prev);
           newSet.delete(locationId);
