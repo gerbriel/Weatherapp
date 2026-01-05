@@ -1036,7 +1036,7 @@ export async function exportChartsAsHTML(
       </div>
       ${additionalData?.waterUseNotes ? `
       <div style="max-width: 800px; margin: 30px auto 20px; padding: 0 20px;">
-        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.waterUseNotes}</div>
+        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.waterUseNotes.replace(/\{first name\}/gi, '%%First Name%%')}</div>
       </div>
       ` : ''}
       <div style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
@@ -1565,7 +1565,7 @@ export async function exportChartsAsHTML(
   htmlContent += `
       ${additionalData?.closingMessage ? `
       <div style="max-width: 800px; margin: 40px auto 30px; padding: 0 20px;">
-        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.closingMessage}</div>
+        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.closingMessage.replace(/\{first name\}/gi, '%%First Name%%')}</div>
       </div>
       ` : ''}
       </div>
