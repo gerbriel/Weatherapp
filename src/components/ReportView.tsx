@@ -1437,6 +1437,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               
                               let et0_actual_sum = 0;
                               let et0_forecast_sum = 0;
+                              let etc_actual_sum = 0; // Track actual ETc (ET₀ × Kc per day)
+                              let etc_forecast_sum = 0; // Track forecast ETc (ET₀ × Kc per day)
                               let actualDaysCount = 0;
                               let kc_values_used = new Set<number>();
                               
@@ -1477,6 +1479,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 if (date >= referenceDate) {
                                   const et0_forecast = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
                                   et0_forecast_sum += et0_forecast;
+                                  etc_forecast_sum += et0_forecast * dailyKc; // Calculate ETc per day
                                   forecastDates.push(date);
                                 }
                                 
@@ -1485,28 +1488,30 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   const cimisDay = locationCmisData.find(d => d.date === date);
                                   if (cimisDay && cimisDay.etc_actual !== undefined && cimisDay.etc_actual !== null) {
                                     et0_actual_sum += cimisDay.etc_actual;
+                                    etc_actual_sum += cimisDay.etc_actual * dailyKc; // Calculate ETc per day
                                     actualDaysCount++;
                                     actualDates.push(date);
                                   }
                                 }
                               }
                               
-                              // Calculate average Kc for ETc calculations
-                              const kc_values_array = Array.from(kc_values_used);
-                              const avg_kc = kc_values_array.length > 0 
-                                ? kc_values_array.reduce((sum, val) => sum + val, 0) / kc_values_array.length 
-                                : 1.0;
+                              // For non-California locations, calculate ETc using average Kc as fallback
+                              if (!isCalifornia && et0_actual_sum > 0) {
+                                const kc_values_array = Array.from(kc_values_used);
+                                const avg_kc = kc_values_array.length > 0 
+                                  ? kc_values_array.reduce((sum, val) => sum + val, 0) / kc_values_array.length 
+                                  : 1.0;
+                                etc_actual_sum = et0_actual_sum * avg_kc;
+                              }
                               
-                              // Calculate weekly ETc totals: multiply summed ET₀ by average Kc
-                              const etc_actual_sum = et0_actual_sum * avg_kc;
-                              const etc_forecast_sum = et0_forecast_sum * avg_kc;
                               const hasActualData = actualDaysCount > 0;
                               const isLoadingCmis = loadingCmisLocations.has(location.id);
                               const hasCmisFailed = failedCmisLocations.has(location.id);
                               
                               // Format Kc values for display
+                              const kc_values_array = Array.from(kc_values_used);
                               const kc_display = kc_values_array.length > 1 
-                                ? kc_values_array.map(v => v.toFixed(2)).join(', ')
+                                ? kc_values_array.map((v: number) => v.toFixed(2)).join(', ')
                                 : kc_values_array[0]?.toFixed(2) || '—';
                               
                               // Determine water need category based on weekly forecast ETc
