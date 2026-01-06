@@ -8,7 +8,6 @@ import { weatherService } from '../services/weatherService';
 import { COMPREHENSIVE_CROP_DATABASE, type AvailableCrop } from '../data/crops';
 import { LocationAddModal } from './LocationAddModal';
 import { CropManagementModal } from './CropManagementModal';
-import { EmailNotifications } from './EmailNotifications';
 import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
 import { supabase } from '../lib/supabase';
 
@@ -147,7 +146,7 @@ export const TrialDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports' | 'notifications'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   
   // Load selected crops from localStorage on mount
@@ -1202,17 +1201,6 @@ export const TrialDashboard: React.FC = () => {
                       <Gauge className="h-4 w-4 mr-1 inline" />
                       Calculator
                     </button>
-                    <button
-                      onClick={() => setCurrentView('notifications')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'notifications'
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <Mail className="h-4 w-4 mr-1 inline" />
-                      Notifications
-                    </button>
                   </div>
                   
                   {user ? (
@@ -1341,20 +1329,6 @@ export const TrialDashboard: React.FC = () => {
                     >
                       <Gauge className="h-4 w-4 mr-3" />
                       Calculator
-                    </button>
-                    <button
-                      onClick={() => {
-                        setCurrentView('notifications');
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'notifications'
-                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <Mail className="h-4 w-4 mr-3" />
-                      Notifications
                     </button>
                   </div>
                   
@@ -2501,51 +2475,6 @@ export const TrialDashboard: React.FC = () => {
                   reportInsights={reportInsights}
                   onReportInsightsChange={setReportInsights}
                 />
-              </>
-            ) : currentView === 'notifications' ? (
-              <>
-                {/* Notifications - Combined Email and Frost Alerts */}
-                <div className="space-y-8">
-                  {/* Email Notifications Section */}
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <Mail className="h-6 w-6 mr-3" />
-                      Email Notifications
-                    </h2>
-                    <EmailNotifications />
-                  </div>
-                  
-                  {/* Frost Alert Subscription Section */}
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                      <Thermometer className="h-6 w-6 mr-3" />
-                      Frost Alert Subscriptions
-                    </h2>
-                    <div className="space-y-6">
-                      <FrostWarningDashboard 
-                        locations={availableLocations}
-                        cropInstances={getLocationCropInstances()}
-                        onSendAlert={async (warning) => {
-                          try {
-                            const email = prompt('Enter email address for frost alert:');
-                            if (email) {
-                              await FrostEmailService.sendFrostWarning(
-                                email, 
-                                [warning], 
-                                [warning.locationName]
-                              );
-                              alert('Frost alert sent successfully!');
-                            }
-                          } catch (error) {
-                            console.error('Error sending frost alert:', error);
-                            alert('Failed to send frost alert');
-                          }
-                        }}
-                      />
-                      <FrostAlertSubscription />
-                    </div>
-                  </div>
-                </div>
               </>
             ) : null}
           </main>
