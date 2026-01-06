@@ -849,79 +849,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
     });
   };
 
-  const handleEmailReport = async (options: ComprehensiveExportOptions) => {
-    // Prompt for email address
-    const email = prompt('Enter email address to send the HTML report:');
-    if (!email) return;
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      alert('Please enter a valid email address');
-      return;
-    }
-
-    // Capture any unsaved textarea values
-    const textareas = document.querySelectorAll('textarea[id^="weekly-summary-"]');
-    const updatedSummaries = { ...cropWeeklySummaries };
-    textareas.forEach((textarea: any) => {
-      const cropId = textarea.id.replace('weekly-summary-', '');
-      if (textarea.value) {
-        updatedSummaries[cropId] = textarea.value;
-      }
-    });
-
-    // Show loading message
-    const loadingMsg = alert || ((msg: string) => console.log(msg));
-    
-    try {
-      // First, generate the HTML report by triggering download
-      // We'll intercept the Blob to get the HTML content
-      const exportOptions: ComprehensiveExportOptions = {
-        ...options,
-        fileFormat: 'html',
-        reportMode,
-        futureStartDate,
-        forecastPreset,
-        dateRange: reportMode === 'historical' ? dateRange : undefined
-      };
-      
-      // Import the chart export function
-      const { exportChartsAsHTML } = await import('../utils/chartExportUtils');
-      
-      // Generate HTML but don't download yet
-      // We need to create a custom version that returns HTML
-      // For now, show progress message
-      alert('📧 Generating and sending your report...\n\nThis may take a moment.');
-      
-      // Call the export which will generate and download the HTML
-      // Then we'll send it via API
-      exportComprehensiveData(displayLocations, exportOptions, {
-        cmisData,
-        cropInstances,
-        selectedCrops,
-        calculatorResult,
-        calculatorInputs,
-        selectedLocation,
-        fieldBlocks: [],
-        insights: getCombinedInsights(),
-        cropWeeklySummaries: updatedSummaries,
-        waterUseNotes,
-        closingMessage
-      });
-      
-      // TODO: Integrate with /api/send-report endpoint
-      // For now, show helpful message
-      setTimeout(() => {
-        alert(`✅ Report downloaded!\n\nThe report has been generated and downloaded to your computer.\n\n📧 To email it to ${email}:\n1. Locate the downloaded HTML file\n2. Attach it to an email\n3. Send to ${email}\n\n💡 Direct email sending is being set up and will be available soon!`);
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Error sending email report:', error);
-      alert(`❌ Error generating report: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
   // Determine what data types are available for export
   const availableDataTypes = {
     hasWeatherData: displayLocations.some(loc => loc.weatherData),
@@ -2824,7 +2751,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         onExport={handleComprehensiveExport}
-        onEmail={handleEmailReport}
         availableDataTypes={availableDataTypes}
       />
     </div>
