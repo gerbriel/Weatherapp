@@ -864,8 +864,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
     hasCharts: displayLocations.some(loc => loc.weatherData?.daily) // Charts available if weather data exists
   };
 
-  console.log('🔍 ReportView RENDERING dropdown section. locationsWithWeather.length:', locationsWithWeather.length);
-
   return (
     <div className="space-y-6">
       {/* Always Visible Location Filter Controls */}
@@ -877,15 +875,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Select Locations:
               </label>
-              <div style={{color: 'red', fontWeight: 'bold'}}>DEBUG: DROPDOWN SHOULD BE HERE</div>
               
               {/* Custom Multiselect Dropdown - Always Visible */}
               <div className="relative flex-1 max-w-lg" data-location-dropdown>
                 <button
-                  onClick={() => {
-                    console.log('🔍 DROPDOWN BUTTON CLICKED! locationsWithWeather.length:', locationsWithWeather.length);
-                    setIsLocationDropdownOpen(!isLocationDropdownOpen);
-                  }}
+                  onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
@@ -1142,7 +1136,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       </div>
 
       {/* Comprehensive Water Use Data Tables by Crop */}
-      {selectedLocationIds.size > 0 && displayLocations.length > 0 && cropInstances.length > 0 && (
+      {locationsWithWeather.length > 0 && (
         <div className="mb-6 space-y-6">
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
             <button
