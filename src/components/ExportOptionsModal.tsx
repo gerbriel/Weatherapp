@@ -31,7 +31,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
     includeFieldBlocks: false, // Removed from UI - not available
     includeHistoricalData: false,
     includeCharts: availableDataTypes.hasCharts, // Auto-include when available
-    fileFormat: availableDataTypes.hasCharts ? 'html' : 'excel', // Auto-select HTML if charts available
+    fileFormat: 'html', // Default to HTML Report
     separateSheets: true
   });
 
@@ -241,64 +241,88 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               Export Format
             </h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => toggleOption('fileFormat', 'csv')}
-                disabled={options.includeCharts}
-                className={`p-4 border rounded-lg text-left transition-all ${
-                  options.fileFormat === 'csv'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                } ${options.includeCharts ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <div className="flex items-center mb-2">
-                  <Download className="h-5 w-5 text-blue-500 mr-2" />
-                  <span className="font-medium text-gray-900 dark:text-white">CSV Files</span>
+            {/* HTML Report - Primary/Default Option */}
+            <button
+              onClick={() => toggleOption('fileFormat', 'html')}
+              className={`w-full p-6 border-2 rounded-lg text-left transition-all ${
+                options.fileFormat === 'html'
+                  ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 shadow-lg'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <Globe className="h-6 w-6 text-indigo-500 mr-3" />
+                  <div>
+                    <span className="font-semibold text-lg text-gray-900 dark:text-white">HTML Report</span>
+                    <span className="ml-2 text-xs px-2 py-1 bg-indigo-500 text-white rounded-full">RECOMMENDED</span>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Separate CSV files for each data type. Good for spreadsheet analysis.
-                  {options.includeCharts && <span className="text-red-500 block">Charts not supported in CSV</span>}
-                </p>
-              </button>
+                {options.fileFormat === 'html' && (
+                  <CheckCircle2 className="h-6 w-6 text-indigo-500" />
+                )}
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Beautiful, professional report with embedded charts and visual data. Perfect for sharing and presentations.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded">
+                  ✨ Visual Charts
+                </span>
+                <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded">
+                  📊 Comprehensive Data
+                </span>
+                <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 rounded">
+                  🎨 Professional Design
+                </span>
+              </div>
+            </button>
 
-              <button
-                onClick={() => toggleOption('fileFormat', 'excel')}
-                disabled={options.includeCharts}
-                className={`p-4 border rounded-lg text-left transition-all ${
-                  options.fileFormat === 'excel'
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                } ${options.includeCharts ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <div className="flex items-center mb-2">
-                  <FileSpreadsheet className="h-5 w-5 text-green-500 mr-2" />
-                  <span className="font-medium text-gray-900 dark:text-white">Excel File</span>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Single Excel file with multiple sheets. Best for comprehensive reports.
-                  {options.includeCharts && <span className="text-red-500 block">Charts not supported in basic Excel</span>}
-                </p>
-              </button>
-
-              {options.includeCharts && (
+            {/* Alternative Formats - Minimized */}
+            <details className="group">
+              <summary className="cursor-pointer text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 flex items-center">
+                <span>Other formats (CSV, Excel)</span>
+                <svg className="ml-2 h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              
+              <div className="mt-3 grid grid-cols-2 gap-3">
                 <button
-                  onClick={() => toggleOption('fileFormat', 'html')}
-                  className={`p-4 border rounded-lg text-left transition-all ${
-                    options.fileFormat === 'html'
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  onClick={() => toggleOption('fileFormat', 'csv')}
+                  className={`p-3 border rounded-lg text-left transition-all ${
+                    options.fileFormat === 'csv'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
-                  <div className="flex items-center mb-2">
-                    <Globe className="h-5 w-5 text-indigo-500 mr-2" />
-                    <span className="font-medium text-gray-900 dark:text-white">HTML Report ✨</span>
+                  <div className="flex items-center mb-1">
+                    <Download className="h-4 w-4 text-blue-500 mr-2" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">CSV Files</span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Beautiful HTML report with embedded charts. Perfect for sharing!
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Raw data files
                   </p>
                 </button>
-              )}
-            </div>
+
+                <button
+                  onClick={() => toggleOption('fileFormat', 'excel')}
+                  className={`p-3 border rounded-lg text-left transition-all ${
+                    options.fileFormat === 'excel'
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center mb-1">
+                    <FileSpreadsheet className="h-4 w-4 text-green-500 mr-2" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">Excel File</span>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Spreadsheet format
+                  </p>
+                </button>
+              </div>
+            </details>
           </div>
         </div>
 
@@ -323,12 +347,22 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
               disabled={getSelectedCount() === 0}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
             >
-              {options.fileFormat === 'excel' ? (
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
+              {options.fileFormat === 'html' ? (
+                <>
+                  <Globe className="h-4 w-4 mr-2" />
+                  Export HTML Report
+                </>
+              ) : options.fileFormat === 'excel' ? (
+                <>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Export Excel
+                </>
               ) : (
-                <Download className="h-4 w-4 mr-2" />
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export CSV
+                </>
               )}
-              Export {options.fileFormat.toUpperCase()}
             </button>
           </div>
         </div>
