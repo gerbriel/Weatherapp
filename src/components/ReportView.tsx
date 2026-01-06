@@ -602,11 +602,14 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Handle both trial locations (no weatherData property) and user locations (with weatherData)
   // CHANGED: Show all locations in dropdown, even if weather data not loaded yet
   const locationsWithWeather = useMemo(() => {
-    return locations.filter(loc => {
+    console.log('🔍 ReportView - Raw locations received:', locations.length, locations);
+    const filtered = locations.filter(loc => {
       // Show all locations, but filter out those with errors
       // This allows new users to see all their locations in the dropdown
       return !loc.error;
     });
+    console.log('🔍 ReportView - Filtered locationsWithWeather:', filtered.length, filtered);
+    return filtered;
   }, [locations]);
 
   // Don't auto-select all locations - let users choose via dropdown

@@ -124,6 +124,12 @@ export const TrialDashboard: React.FC = () => {
   // Use same location source as EnhancedLocationsList for consistency
   const rawAvailableLocations = user ? authLocations : locationsContextLocations;
   
+  console.log('🔍 TrialDashboard - Location sources:');
+  console.log('  - user:', !!user);
+  console.log('  - authLocations:', authLocations?.length);
+  console.log('  - locationsContextLocations:', locationsContextLocations?.length);
+  console.log('  - rawAvailableLocations:', rawAvailableLocations?.length);
+  
   // Deduplicate locations by ID (safeguard against any duplication issues)
   const availableLocations = React.useMemo(() => {
     const seen = new Set<string>();
@@ -2494,7 +2500,14 @@ export const TrialDashboard: React.FC = () => {
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   selectedLocation={null}
-                  availableLocations={trialLocationsWithWeather.length > 0 ? trialLocationsWithWeather : availableLocations}
+                  availableLocations={(() => {
+                    const locs = trialLocationsWithWeather.length > 0 ? trialLocationsWithWeather : availableLocations;
+                    console.log('🔍 TrialDashboard - Passing to ReportView:');
+                    console.log('  - trialLocationsWithWeather.length:', trialLocationsWithWeather.length);
+                    console.log('  - availableLocations.length:', availableLocations.length);
+                    console.log('  - Final locations passed:', locs.length, locs);
+                    return locs;
+                  })()}
                   onDisplayLocationsChange={setDisplayedLocations}
                   reportSelectedLocationIds={reportSelectedLocationIds}
                   onReportSelectedLocationIdsChange={setReportSelectedLocationIds}
