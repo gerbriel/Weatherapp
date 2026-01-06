@@ -1440,6 +1440,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let actualDaysCount = 0;
                               let kc_values_used = new Set<number>();
                               
+                              // Track ETc sums per Kc value for range display
+                              let etc_forecast_by_kc = new Map<number, number>();
+                              
                               const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                               
                               // Determine the reference date for splitting actuals vs forecasts
@@ -1477,7 +1480,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 if (date >= referenceDate) {
                                   const et0_forecast = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
                                   et0_forecast_sum += et0_forecast;
-                                  etc_forecast_sum += et0_forecast * dailyKc; // Calculate ETc per day
+                                  const dailyEtc = et0_forecast * dailyKc;
+                                  etc_forecast_sum += dailyEtc; // Calculate ETc per day
+                                  
+                                  // Track ETc by Kc value for range display
+                                  etc_forecast_by_kc.set(dailyKc, (etc_forecast_by_kc.get(dailyKc) || 0) + dailyEtc);
+                                  
                                   forecastDates.push(date);
                                 }
                                 
@@ -1511,6 +1519,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const kc_display = kc_values_array.length > 1 
                                 ? kc_values_array.map((v: number) => v.toFixed(2)).join(', ')
                                 : kc_values_array[0]?.toFixed(2) || '—';
+                              
+                              // Format ETc forecast display - show as range if multiple Kc values
+                              let etc_forecast_display = etc_forecast_sum.toFixed(2);
+                              if (kc_values_array.length > 1 && etc_forecast_by_kc.size > 1) {
+                                // Sort Kc values and get corresponding ETc values
+                                const sortedKcs = kc_values_array.sort((a, b) => a - b);
+                                const etcValues = sortedKcs.map(kc => etc_forecast_by_kc.get(kc) || 0);
+                                etc_forecast_display = `(${etcValues.map(v => v.toFixed(2)).join(', ')})`;
+                              }
                               
                               // Determine water need category based on weekly forecast ETc
                               let waterNeedCategory = 'Low';
@@ -1601,7 +1618,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   
                                   {/* ETc Forecast */}
                                   <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
-                                    {etc_forecast_sum.toFixed(2)}
+                                    {etc_forecast_display}
                                   </td>
                                   
                                   {/* Water Need */}
