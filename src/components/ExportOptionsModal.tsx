@@ -215,7 +215,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
                 <input
                   type="checkbox"
                   id="charts"
-                  checked={options.includeCharts && availableDataTypes.hasCharts}
+                  checked={availableDataTypes.hasCharts ? true : false}
                   onChange={() => toggleOption('includeCharts')}
                   disabled={!availableDataTypes.hasCharts}
                   className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
@@ -232,7 +232,7 @@ export const ExportOptionsModal: React.FC<ExportOptionsModalProps> = ({
                 {availableDataTypes.hasCharts ? (
                   <div className="flex items-center mt-1">
                     <CheckCircle2 className="h-3 w-3 text-green-500 mr-1" />
-                    <span className="text-xs text-green-600 dark:text-green-400">Available - Includes chart images and data</span>
+                    <span className="text-xs text-green-600 dark:text-green-400">Available - Auto-included</span>
                   </div>
                 ) : (
                   <div className="flex items-center mt-1">

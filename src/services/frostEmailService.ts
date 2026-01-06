@@ -65,7 +65,6 @@ export class FrostEmailService {
         enabled: true
       });
 
-      console.log(`Frost warning email queued for ${email}`);
     } catch (error) {
       console.error('Error sending frost warning email:', error);
       throw error;

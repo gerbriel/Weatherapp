@@ -502,7 +502,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
             newSet.delete(locationId);
             return newSet;
           });
-          console.log(`✅ CIMIS SUCCESS for ${location.name}: ${response.data.length} records`);
           // Remove loading state on success
           setLoadingCmisLocations(prev => {
             const newSet = new Set(prev);
@@ -650,7 +649,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // CMIS data is now fetched only when location sections are expanded
   useEffect(() => {
     // Lazy loading enabled to improve initial page load and reduce CIMIS API errors
-    console.log(`📊 Lazy loading enabled: CMIS data will load when you expand location sections`);
     return () => {
       // Cleanup
     };
@@ -853,7 +851,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
   const handleEmailReport = (options: ComprehensiveExportOptions) => {
     // Prompt for email address
-    const email = prompt('Enter email address to send the HTML report:');
+    const email = prompt('Enter email address to send the HTML report:\n\n(Note: The report will be downloaded for now. Automatic email delivery is coming soon!)');
     if (!email) return;
 
     // Validate email format
@@ -873,9 +871,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       }
     });
 
-    // For now, we'll download the report and show a message
-    // In the future, this could be integrated with an email service
-    alert(`Report will be downloaded. Please attach it to an email to ${email}\n\nNote: Automatic email sending will be available in a future update.`);
+    // Show helpful message
+    alert(`✅ Preparing your HTML report!\n\nThe report will download shortly. You can then:\n• Attach it to an email to ${email}\n• Share it directly via cloud storage\n• Print it to PDF\n\n💡 Automatic email delivery with attachments is planned for a future update!`);
     
     // Trigger the export with HTML format
     const exportOptions: ComprehensiveExportOptions = {
@@ -1837,7 +1834,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           data-version="3.0"
                           defaultValue={cropWeeklySummaries?.[cropId] ?? ''}
                           onBlur={(e) => {
-                            console.log('� onBlur triggered for', cropId, ':', e.target.value);
                             const updatedSummaries = {
                               ...cropWeeklySummaries,
                               [cropId]: e.target.value

@@ -142,8 +142,6 @@ class CMISService {
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
         
-        console.log(`🔍 CIMIS API Request - Station: ${stationId}, Start: ${startDateStr}, End: ${endDateStr}`);
-        
         try {
           // CIMIS API format: unitOfMeasure should be 'E' for English units
           const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
@@ -157,10 +155,6 @@ class CMISService {
           }
           
           const data = await response.json();
-          // Only log in development
-          if (import.meta.env.DEV) {
-            console.log('✅ CMIS API Response received:', data);
-          }
           const result = this.parseETCResponse(data);
           
           return {
@@ -258,7 +252,6 @@ class CMISService {
               
               // Log first 3 records to verify values
               if (index < 3) {
-                console.log(`✅ CIMIS API VALUE: ${rawValue} inches (Date: ${record.Date})`);
               }
               
               data.push({

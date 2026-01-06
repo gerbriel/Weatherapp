@@ -669,11 +669,6 @@ function generate14DayForecast(
   
   // Get CIMIS data for this location if available
   const locationCmisData = cmisData?.get(location.id) || [];
-  console.log(`🔍 Location "${location.name}" (${location.id}): ${locationCmisData.length} CIMIS records available`);
-  if (locationCmisData.length > 0) {
-    console.log(`📅 CIMIS Date Range: ${locationCmisData[0].date} to ${locationCmisData[locationCmisData.length - 1].date}`);
-    console.log(`📊 Sample CIMIS Data:`, locationCmisData.slice(0, 3));
-  }
   
   const result = dates.map((date: string, i: number) => {
     const index = startIdx + i; // Actual index in the full array
@@ -696,9 +691,6 @@ function generate14DayForecast(
       if (cimisDay && cimisDay.etc_actual !== undefined && cimisDay.etc_actual !== null) {
         et0_actual = cimisDay.etc_actual; // CIMIS data in inches (actually ETo from DayAsceEto)
         hasActualData = true;
-        console.log(`📊 CIMIS Data Found for ${date}: ET₀ = ${et0_actual} inches (Station: ${cimisDay.station_id})`);
-      } else {
-        console.log(`⚠️ No CIMIS Data for ${date}. Available CMIS dates:`, locationCmisData.map(d => d.date).join(', '));
       }
     }
     
