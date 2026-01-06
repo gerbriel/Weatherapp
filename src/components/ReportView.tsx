@@ -600,14 +600,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
   // Filter locations that have weather data (memoized for performance)
   // Handle both trial locations (no weatherData property) and user locations (with weatherData)
+  // CHANGED: Show all locations in dropdown, even if weather data not loaded yet
   const locationsWithWeather = useMemo(() => {
     return locations.filter(loc => {
-      // If it's a trial location (no weatherData property), include it
-      if (!('weatherData' in loc)) {
-        return true;
-      }
-      // If it's a user location, check for weatherData and no error
-      return loc.weatherData && !loc.error;
+      // Show all locations, but filter out those with errors
+      // This allows new users to see all their locations in the dropdown
+      return !loc.error;
     });
   }, [locations]);
 
