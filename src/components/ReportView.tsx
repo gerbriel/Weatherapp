@@ -851,6 +851,57 @@ export const ReportView: React.FC<ReportViewProps> = ({
     });
   };
 
+  const handleEmailReport = (options: ComprehensiveExportOptions) => {
+    // Prompt for email address
+    const email = prompt('Enter email address to send the HTML report:');
+    if (!email) return;
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // Capture any unsaved textarea values
+    const textareas = document.querySelectorAll('textarea[id^="weekly-summary-"]');
+    const updatedSummaries = { ...cropWeeklySummaries };
+    textareas.forEach((textarea: any) => {
+      const cropId = textarea.id.replace('weekly-summary-', '');
+      if (textarea.value) {
+        updatedSummaries[cropId] = textarea.value;
+      }
+    });
+
+    // For now, we'll download the report and show a message
+    // In the future, this could be integrated with an email service
+    alert(`Report will be downloaded. Please attach it to an email to ${email}\n\nNote: Automatic email sending will be available in a future update.`);
+    
+    // Trigger the export with HTML format
+    const exportOptions: ComprehensiveExportOptions = {
+      ...options,
+      fileFormat: 'html',
+      reportMode,
+      futureStartDate,
+      forecastPreset,
+      dateRange: reportMode === 'historical' ? dateRange : undefined
+    };
+    
+    exportComprehensiveData(displayLocations, exportOptions, {
+      cmisData,
+      cropInstances,
+      selectedCrops,
+      calculatorResult,
+      calculatorInputs,
+      selectedLocation,
+      fieldBlocks: [],
+      insights: getCombinedInsights(),
+      cropWeeklySummaries: updatedSummaries,
+      waterUseNotes,
+      closingMessage
+    });
+  };
+
   // Determine what data types are available for export
   const availableDataTypes = {
     hasWeatherData: displayLocations.some(loc => loc.weatherData),
@@ -2754,6 +2805,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         onExport={handleComprehensiveExport}
+        onEmail={handleEmailReport}
         availableDataTypes={availableDataTypes}
       />
     </div>
