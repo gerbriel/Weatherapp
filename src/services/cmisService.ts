@@ -83,16 +83,15 @@ class CMISService {
 
       // Updated mock stations with the specific CIMIS station IDs
       const mockStations: CMISStation[] = [
-        { id: '125', name: 'Arvin-Edison', latitude: 35.2108, longitude: -118.8281 }, // Correct coordinates for Station 125 (near Bakersfield)
-        { id: '146', name: 'Castroville', latitude: 36.7650, longitude: -121.7569 }, // Corrected station ID for Castroville
-        { id: '80', name: 'Fresno State', latitude: 36.8175, longitude: -119.7417 },
-        { id: '71', name: 'Manteca', latitude: 37.7633, longitude: -121.2158 },
-        { id: '250', name: 'Buttonwillow', latitude: 35.3986, longitude: -119.4692 },
-        { id: '77', name: 'Oakville', latitude: 38.4321, longitude: -122.4106 },
-        { id: '214', name: 'Torrey Pines', latitude: 32.8831, longitude: -117.2419 },
-        { id: '202', name: 'Atwater', latitude: 37.3472, longitude: -120.5878 },
-        { id: '258', name: 'Temecula', latitude: 33.4833, longitude: -117.1400 },
-        { id: '2', name: 'Five Points', latitude: 36.3350, longitude: -120.1058 }
+        { id: '125', name: 'Arvin-Edison', latitude: 35.205583, longitude: -118.77841 }, // Bakersfield area
+        { id: '80', name: 'Fresno State', latitude: 36.820833, longitude: -119.74231 }, // Fresno
+        { id: '71', name: 'Modesto', latitude: 37.645222, longitude: -121.18776 }, // Modesto (was incorrectly labeled Manteca)
+        { id: '250', name: 'Williams', latitude: 39.216667, longitude: -122.16889 }, // Colusa area (was incorrectly Buttonwillow)
+        { id: '77', name: 'Oakville', latitude: 38.428475, longitude: -122.41021 }, // Napa
+        { id: '214', name: 'Salinas South II', latitude: 36.625619, longitude: -121.53789 }, // Salinas (was Torrey Pines)
+        { id: '202', name: 'Nipomo', latitude: 35.028281, longitude: -120.56003 }, // Santa Maria (was Atwater)
+        { id: '258', name: 'Lemon Cove', latitude: 36.376917, longitude: -119.03972 }, // Exeter (was Temecula)
+        { id: '2', name: 'Five Points', latitude: 36.336222, longitude: -120.11291 } // Five Points
       ];
 
       // If a specific CIMIS station ID is provided (e.g., from trial locations), use that station
