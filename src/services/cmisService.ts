@@ -1,6 +1,13 @@
 /**
  * CMIS (California Irrigation Management Information System) API Service
- * Provides actual ETC (Evapotranspiration of Crop) data for comparison with projected ET₀
+ * Provides actual ETC (Evapotranspiration of Crop) dat      // If we have a real API key, use the actual CMIS API
+      if (this.apiKey) {
+        const startDateStr = startDate.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+        
+        try {
+          // CIMIS API format: unitOfMeasure should be 'E' for English units
+          const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;arison with projected ET₀
  * NOTE: CMIS data is only available for California locations
  */
 
@@ -76,7 +83,8 @@ class CMISService {
 
       // Updated mock stations with the specific CIMIS station IDs
       const mockStations: CMISStation[] = [
-        { id: '125', name: 'Castroville', latitude: 36.7650, longitude: -121.7569 },
+        { id: '125', name: 'Arvin-Edison', latitude: 35.2108, longitude: -118.8281 }, // Correct coordinates for Station 125 (near Bakersfield)
+        { id: '146', name: 'Castroville', latitude: 36.7650, longitude: -121.7569 }, // Corrected station ID for Castroville
         { id: '80', name: 'Fresno State', latitude: 36.8175, longitude: -119.7417 },
         { id: '71', name: 'Manteca', latitude: 37.7633, longitude: -121.2158 },
         { id: '250', name: 'Buttonwillow', latitude: 35.3986, longitude: -119.4692 },

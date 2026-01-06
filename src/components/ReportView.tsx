@@ -479,10 +479,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
         timeoutPromise
       ]) as any;
       
-      if (location.name === 'Bakersfield') {
-        console.log('🔍 Bakersfield CIMIS Station:', station);
-      }
-      
       if (station) {
         const endDate = new Date();
         endDate.setDate(endDate.getDate() - 1);  // Yesterday (Jan 5)
@@ -1439,12 +1435,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const locationCmisData = cmisData.get(location.id) || [];
                               const today = new Date().toISOString().split('T')[0];
                               
-                              // Debug logging for Bakersfield
-                              if (location.name === 'Bakersfield') {
-                                console.log('🔍 Bakersfield CIMIS Data:', locationCmisData);
-                                console.log('🔍 Total CIMIS records:', locationCmisData.length);
-                              }
-                              
                               let et0_actual_sum = 0;
                               let et0_forecast_sum = 0;
                               let actualDaysCount = 0;
@@ -1497,11 +1487,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     et0_actual_sum += cimisDay.etc_actual;
                                     actualDaysCount++;
                                     actualDates.push(date);
-                                    
-                                    // Debug logging for Bakersfield
-                                    if (location.name === 'Bakersfield') {
-                                      console.log(`🔍 Bakersfield ${date}: ET₀ = ${cimisDay.etc_actual}, Running sum = ${et0_actual_sum.toFixed(3)}`);
-                                    }
                                   }
                                 }
                               }
