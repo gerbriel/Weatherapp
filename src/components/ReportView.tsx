@@ -114,6 +114,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const setSelectedLocationIds = onReportSelectedLocationIdsChange;
   const [showCropInsights, setShowCropInsights] = useState(true);
   const [showAIInsights, setShowAIInsights] = useState(false);
+  const [showLocationDetails, setShowLocationDetails] = useState(true);
   // showAllLocations replaced with multiselect dropdown functionality
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   // const [isRefreshing, setIsRefreshing] = useState(false);
@@ -997,6 +998,16 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   </span>
                 </span>
               </label>
+              
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <input
+                  type="checkbox"
+                  checked={showLocationDetails}
+                  onChange={(e) => setShowLocationDetails(e.target.checked)}
+                  className="mr-2"
+                />
+                Show Individual Location Details
+              </label>
             </div>
           </div>
         </div>
@@ -1816,8 +1827,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </div>
       ) : (
         <>
-          {/* Location Reports */}
-          {displayLocations.map((location, locationIndex) => {
+          {/* Location Reports - Toggle with "Show Individual Location Details" checkbox */}
+          {showLocationDetails && displayLocations.map((location, locationIndex) => {
         // Check if location has weather data and proper structure
         const weather = location.weatherData;
         
