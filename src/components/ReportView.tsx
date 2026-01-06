@@ -114,7 +114,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const setSelectedLocationIds = onReportSelectedLocationIdsChange;
   const [showCropInsights, setShowCropInsights] = useState(true);
   const [showAIInsights, setShowAIInsights] = useState(false);
-  const [showLocationDetails, setShowLocationDetails] = useState(true);
+  const [showLocationDetails, setShowLocationDetails] = useState(false);
   // showAllLocations replaced with multiselect dropdown functionality
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
   // const [isRefreshing, setIsRefreshing] = useState(false);
@@ -2688,23 +2688,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
           );
           })}
         </>
-      )}      {/* General Report Insights */}
-      {selectedLocationIds.size > 0 && (
-        <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-600">
-          <div className="flex items-center mb-3">
-            <FileText className="h-5 w-5 mr-2 text-gray-700 dark:text-gray-300" />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              General Report Insights
-            </h3>
-          </div>
-          <textarea
-            value=""
-            onChange={() => {}}
-            placeholder="General insights will be available per location in the future..."
-            disabled
-            className="w-full h-32 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400 opacity-50"
-          />
-        </div>
       )}
 
       {/* Summary Footer - only show when locations are displayed */}
