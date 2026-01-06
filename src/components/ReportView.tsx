@@ -479,11 +479,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
         timeoutPromise
       ]) as any;
       
+      if (location.name === 'Bakersfield') {
+        console.log('🔍 Bakersfield CIMIS Station:', station);
+      }
+      
       if (station) {
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 1);
-        const startDate = new Date();
-        startDate.setDate(endDate.getDate() - 14);
+        endDate.setDate(endDate.getDate() - 1);  // Yesterday (Jan 5)
+        const startDate = new Date(endDate.getTime());  // Clone endDate
+        startDate.setDate(startDate.getDate() - 14);  // 14 days before endDate
         
         const response = await Promise.race([
           cmisService.getETCData(station.id, startDate, endDate, locationInfo),
