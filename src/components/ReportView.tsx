@@ -1442,6 +1442,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               
                               // Track ETc sums per Kc value for range display
                               let etc_forecast_by_kc = new Map<number, number>();
+                              let etc_actual_by_kc = new Map<number, number>();
                               
                               const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                               
@@ -1494,7 +1495,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   const cimisDay = locationCmisData.find(d => d.date === date);
                                   if (cimisDay && cimisDay.etc_actual !== undefined && cimisDay.etc_actual !== null) {
                                     et0_actual_sum += cimisDay.etc_actual;
-                                    etc_actual_sum += cimisDay.etc_actual * dailyKc; // Calculate ETc per day
+                                    const dailyEtc = cimisDay.etc_actual * dailyKc;
+                                    etc_actual_sum += dailyEtc;
+                                    etc_actual_by_kc.set(dailyKc, (etc_actual_by_kc.get(dailyKc) || 0) + dailyEtc);
                                     actualDaysCount++;
                                     actualDates.push(date);
                                   }
@@ -1527,6 +1530,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 const sortedKcs = kc_values_array.sort((a, b) => a - b);
                                 const etcValues = sortedKcs.map(kc => etc_forecast_by_kc.get(kc) || 0);
                                 etc_forecast_display = `(${etcValues.map(v => v.toFixed(2)).join(', ')})`;
+                              }
+                              
+                              // Format ETc actual display - show as range if multiple Kc values
+                              let etc_actual_display = etc_actual_sum.toFixed(2);
+                              if (kc_values_array.length > 1 && etc_actual_by_kc.size > 1) {
+                                // Sort Kc values and get corresponding ETc values
+                                const sortedKcs = kc_values_array.sort((a, b) => a - b);
+                                const etcValues = sortedKcs.map(kc => etc_actual_by_kc.get(kc) || 0);
+                                etc_actual_display = `(${etcValues.map(v => v.toFixed(2)).join(', ')})`;
                               }
                               
                               // Determine water need category based on weekly forecast ETc
@@ -1588,7 +1600,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                         </svg>
                                         Retry
                                       </button>
-                                    ) : hasActualData ? etc_actual_sum.toFixed(2) : '—'}
+                                    ) : hasActualData ? etc_actual_display : '—'}
                                   </td>
                                   
                                   {/* Total Kc */}
