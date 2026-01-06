@@ -1468,7 +1468,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   dailyKc = customKc;
                                 } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
                                   const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                                  dailyKc = monthData?.kc || 1.0;
+                                  dailyKc = monthData?.kc !== undefined ? monthData.kc : 1.0;
                                 } else {
                                   dailyKc = locationInstances[0].currentStage === 2 ? 1.15 : 
                                            locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
