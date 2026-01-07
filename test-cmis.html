@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMIS API Tester</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #334155;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        .success {
+            background: #d1fae5;
+            border: 2px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            color: #991b1b;
+        }
+        .info {
+            background: #dbeafe;
+            border: 2px solid #3b82f6;
+            color: #1e40af;
+        }
+        .loading {
+            text-align: center;
+            color: #64748b;
+        }
+        pre {
+            margin: 10px 0 0 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .help {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            color: #92400e;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .help h3 {
+            margin: 0 0 10px 0;
+            color: #78350f;
+        }
+        .help ol {
+            margin: 10px 0 0 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 CMIS API Connection Tester</h1>
+        <p class="subtitle">Test if your CMIS API key works and diagnose connection issues</p>
+
+        <div class="help">
+            <h3>📋 How to Get Your CMIS API Key:</h3>
+            <ol>
+                <li>Visit <a href="https://cimis.water.ca.gov/" target="_blank">cimis.water.ca.gov</a></li>
+                <li>Click "Register for CIMIS Web Services"</li>
+                <li>Fill out the form with your information</li>
+                <li>Check your email for API key (subject: "CIMIS Web Services AppKey")</li>
+                <li>Paste the API key below to test</li>
+            </ol>
+        </div>
+
+        <form id="testForm">
+            <label for="apiKey">Your CMIS API Key:</label>
+            <input 
+                type="text" 
+                id="apiKey" 
+                placeholder="e.g., a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                required
+            >
+
+            <label for="stationId">CMIS Station ID (default: 2 = Five Points):</label>
+            <input 
+                type="text" 
+                id="stationId" 
+                value="2"
+                placeholder="Station ID"
+                required
+            >
+
+            <button type="submit">🔍 Test CMIS Connection</button>
+        </form>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('testForm');
+        const resultDiv = document.getElementById('result');
+        const apiKeyInput = document.getElementById('apiKey');
+        const stationIdInput = document.getElementById('stationId');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const apiKey = apiKeyInput.value.trim();
+            const stationId = stationIdInput.value.trim();
+            
+            if (!apiKey) {
+                showResult('error', '❌ Error', 'Please enter your CMIS API key');
+                return;
+            }
+
+            // Show loading
+            showResult('loading', '⏳ Testing...', 'Attempting to connect to CMIS API...');
+            
+            // Test dates (last 5 days)
+            const endDate = new Date();
+            endDate.setDate(endDate.getDate() - 1); // Yesterday
+            const startDate = new Date(endDate);
+            startDate.setDate(startDate.getDate() - 4); // 5 days ago
+            
+            const startDateStr = startDate.toISOString().split('T')[0];
+            const endDateStr = endDate.toISOString().split('T')[0];
+
+            // Build API URL
+            const apiUrl = `https://et.water.ca.gov/api/data?appKey=${apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
+            
+            try {
+                const response = await fetch(apiUrl);
+                const contentType = response.headers.get('content-type');
+                
+                // Check if response is HTML (WAF block) or JSON (success)
+                if (contentType && contentType.includes('text/html')) {
+                    const html = await response.text();
+                    
+                    if (html.includes('Request Rejected')) {
+                        showResult('error', '🚫 CMIS WAF Block Detected', 
+                            `The CMIS API firewall is blocking your request.\n\n` +
+                            `This is a known issue with the CMIS infrastructure.\n\n` +
+                            `What to do:\n` +
+                            `1. Your API key might be valid, but the firewall blocks it\n` +
+                            `2. Try again later - sometimes it unblocks automatically\n` +
+                            `3. Contact CMIS support: support@cimis.water.ca.gov\n` +
+                            `4. Your app will work fine using Open-Meteo data instead\n\n` +
+                            `Response: ${html.substring(0, 200)}...`
+                        );
+                    } else {
+                        showResult('error', '❌ Unexpected HTML Response', 
+                            `Expected JSON but got HTML.\n\n${html.substring(0, 500)}...`
+                        );
+                    }
+                    return;
+                }
+                
+                // Try to parse JSON
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    showResult('error', '❌ API Error', 
+                        `Status: ${response.status}\n\n` +
+                        `Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                    return;
+                }
+                
+                // Success!
+                if (data && data.Data && data.Data.Providers && data.Data.Providers[0]) {
+                    const records = data.Data.Providers[0].Records || [];
+                    
+                    showResult('success', '✅ CMIS Connection Successful!', 
+                        `Your API key works! Found ${records.length} records.\n\n` +
+                        `Station: ${stationId}\n` +
+                        `Date Range: ${startDateStr} to ${endDateStr}\n\n` +
+                        `✅ Your app will use CMIS data for California locations.\n\n` +
+                        `Next Steps:\n` +
+                        `1. Copy your API key\n` +
+                        `2. Add to .env file: VITE_CMIS_API_KEY=${apiKey}\n` +
+                        `3. Restart your dev server: npm run dev\n` +
+                        `4. Add GitHub Secret for production deployment\n\n` +
+                        `Sample Response:\n${JSON.stringify(data, null, 2).substring(0, 800)}...`
+                    );
+                } else {
+                    showResult('info', '⚠️ Unexpected Response Format', 
+                        `Got a response but it doesn't match expected format.\n\n` +
+                        `Response:\n${JSON.stringify(data, null, 2)}`
+                    );
+                }
+                
+            } catch (error) {
+                showResult('error', '❌ Network Error', 
+                    `Failed to connect to CMIS API.\n\n` +
+                    `Error: ${error.message}\n\n` +
+                    `Possible causes:\n` +
+                    `1. CORS blocking (try from a different browser)\n` +
+                    `2. Network connectivity issues\n` +
+                    `3. CMIS API is down\n` +
+                    `4. Firewall/proxy blocking the request`
+                );
+            }
+        });
+
+        function showResult(type, title, message) {
+            const classes = {
+                'success': 'result success',
+                'error': 'result error',
+                'info': 'result info',
+                'loading': 'result info loading'
+            };
+            
+            resultDiv.className = classes[type] || 'result';
+            resultDiv.innerHTML = `<strong>${title}</strong><pre>${message}</pre>`;
+        }
+    </script>
+</body>
+</html>
