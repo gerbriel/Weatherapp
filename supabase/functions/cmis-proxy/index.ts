@@ -61,7 +61,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: `CIMIS API error: ${cmisResponse.status}`,
-          details: errorText
+          details: errorText.substring(0, 200) // Limit error text length
         }),
         { 
           status: cmisResponse.status,
@@ -70,8 +70,27 @@ serve(async (req) => {
       );
     }
 
-    // Get the response data
-    const data = await cmisResponse.json();
+    // Get the response data - handle non-JSON responses
+    const responseText = await cmisResponse.text();
+    
+    // Check if response is JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('CIMIS returned non-JSON response:', responseText.substring(0, 200));
+      return new Response(
+        JSON.stringify({ 
+          error: 'CIMIS API returned invalid response',
+          details: 'Expected JSON but received HTML or plain text. The CIMIS API may be unavailable or blocking requests.',
+          preview: responseText.substring(0, 200)
+        }),
+        { 
+          status: 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     // Return the data with CORS headers
     return new Response(
