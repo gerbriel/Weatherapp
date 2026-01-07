@@ -47,11 +47,12 @@ serve(async (req) => {
 
     console.log('Proxying CIMIS request:', cmisUrl.toString());
 
-    // Make request to CIMIS API
+    // Make request to CIMIS API with proper headers
     const cmisResponse = await fetch(cmisUrl.toString(), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'User-Agent': 'WeatherApp/1.0 (Supabase Edge Function)',
       },
     });
 
