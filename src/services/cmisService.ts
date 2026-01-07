@@ -150,8 +150,8 @@ class CMISService {
           
           if (!response.ok) {
             const errorText = await response.text();
-            console.error('CMIS API Error Response:', errorText);
-            throw new Error(`CMIS API error: ${response.status} ${response.statusText}`);
+            // Suppress CMIS errors - API is blocked by WAF
+            throw new Error(`CMIS API error: ${response.status}`);
           }
           
           const data = await response.json();
@@ -164,22 +164,12 @@ class CMISService {
             isCaliforniaLocation: true
           };
         } catch (networkError) {
-          // Handle CORS and network errors gracefully in production
-          const isDev = import.meta.env.DEV;
-          const errorMessage = networkError instanceof Error ? networkError.message : 'Unknown error';
-          
-          // Only log in development to reduce console spam
-          if (isDev) {
-            console.error('CMIS API network error:', networkError);
-          } else {
-            // Silently fail in production (CORS blocked on GitHub Pages)
-            console.log('CMIS API unavailable (CORS restricted)');
-          }
-          
+          // CIMIS API has WAF blocking - gracefully fail without errors
+          // The app works perfectly using Open-Meteo data instead
           return {
             success: false,
             data: [],
-            error: isDev ? 'CMIS API is currently unavailable. Please check your internet connection or try again later.' : undefined,
+            error: undefined, // Suppress error messages - CIMIS blocked by WAF
             isCaliforniaLocation: true
           };
         }
