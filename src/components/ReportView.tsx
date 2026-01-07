@@ -515,7 +515,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
         throw new Error('No CIMIS station found');
       }
     } catch (error) {
-      console.error(`❌ CIMIS FAILED for ${location?.name} (attempt ${retryCount + 1}/${maxRetries + 1}):`, error);
+      // Silently handle CIMIS failures - service is blocked by WAF
+      // App continues to work using Open-Meteo data
       
       // Retry if we haven't exceeded max retries
       if (retryCount < maxRetries) {
