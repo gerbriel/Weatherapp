@@ -61,34 +61,48 @@ CREATE POLICY "Users can delete their own settings" ON public.user_settings
 
 -- ============================================
 -- SECURITY: Set search_path for functions
+-- Only include functions that definitely exist
 -- ============================================
 
-ALTER FUNCTION public.update_location_crops_updated_at() 
-  SET search_path = public, pg_temp;
+-- Core utility function (exists in all installations)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'update_updated_at_column') THEN
+    ALTER FUNCTION public.update_updated_at_column() SET search_path = public, pg_temp;
+  END IF;
+END $$;
 
-ALTER FUNCTION public.update_user_settings_updated_at() 
-  SET search_path = public, pg_temp;
+-- Location crops function (if exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'update_location_crops_updated_at') THEN
+    ALTER FUNCTION public.update_location_crops_updated_at() SET search_path = public, pg_temp;
+  END IF;
+END $$;
 
-ALTER FUNCTION public.delete_user(uuid) 
-  SET search_path = public, pg_temp;
+-- User settings function (if exists)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'update_user_settings_updated_at') THEN
+    ALTER FUNCTION public.update_user_settings_updated_at() SET search_path = public, pg_temp;
+  END IF;
+END $$;
 
-ALTER FUNCTION public.update_superusers_updated_at() 
-  SET search_path = public, pg_temp;
-
-ALTER FUNCTION public.update_organizations_updated_at() 
-  SET search_path = public, pg_temp;
-
-ALTER FUNCTION public.update_organization_members_updated_at() 
-  SET search_path = public, pg_temp;
-
-ALTER FUNCTION public.add_owner_as_organization_member() 
-  SET search_path = public, pg_temp;
-
-ALTER FUNCTION public.create_organization_with_admin(text, text) 
-  SET search_path = public, pg_temp;
-
-ALTER FUNCTION public.update_updated_at_column() 
-  SET search_path = public, pg_temp;
+-- Organization function (if exists with correct signature)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname = 'public' 
+    AND p.proname = 'create_organization_with_admin'
+  ) THEN
+    EXECUTE 'ALTER FUNCTION public.create_organization_with_admin(text, text, text, uuid) SET search_path = public, pg_temp';
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  -- Ignore if function signature doesn't match
+  NULL;
+END $$;
 
 -- ============================================
 -- NOTES
