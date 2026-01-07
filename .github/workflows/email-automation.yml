@@ -1,10 +1,17 @@
-name: Email Automation
+name: Email Automation (DISABLED)
+
+# This workflow is disabled because email functionality was removed
+# To re-enable, uncomment the 'on:' section below
+
+# on:
+#   schedule:
+#     # Run every 5 minutes (GitHub Actions minimum for free accounts)
+#     - cron: '*/5 * * * *'
+#   workflow_dispatch: # Allow manual triggering
 
 on:
-  schedule:
-    # Run every 5 minutes (GitHub Actions minimum for free accounts)
-    - cron: '*/5 * * * *'
-  workflow_dispatch: # Allow manual triggering
+  # Disabled - no triggers
+  workflow_dispatch: # Manual trigger only (for testing if needed)
 
 jobs:
   send-weather-emails:
