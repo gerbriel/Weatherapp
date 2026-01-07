@@ -146,16 +146,44 @@ class CMISService {
           // CIMIS API format: unitOfMeasure should be 'E' for English units
           const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
           
+          console.log(`🌾 CMIS: Fetching data from station ${stationId}`, {
+            url: apiUrl.replace(this.apiKey, 'API_KEY_HIDDEN'),
+            dateRange: `${startDateStr} to ${endDateStr}`
+          });
+          
           const response = await fetch(apiUrl);
+          
+          console.log(`🌾 CMIS: Response status: ${response.status} ${response.statusText}`, {
+            contentType: response.headers.get('content-type'),
+            ok: response.ok
+          });
           
           if (!response.ok) {
             const errorText = await response.text();
-            // Suppress CMIS errors - API is blocked by WAF
-            throw new Error(`CMIS API error: ${response.status}`);
+            console.error('❌ CMIS API Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              contentType: response.headers.get('content-type'),
+              responsePreview: errorText.substring(0, 500),
+              isHTML: errorText.includes('<html')
+            });
+            
+            throw new Error(`CMIS API error: ${response.status} - ${errorText.substring(0, 200)}`);
           }
           
           const data = await response.json();
+          console.log('✅ CMIS: Successfully parsed JSON response', {
+            hasData: !!data,
+            dataKeys: Object.keys(data || {})
+          });
+          
           const result = this.parseETCResponse(data);
+          
+          console.log(`✅ CMIS: Parsed ${result.data.length} ETC records`, {
+            success: result.success,
+            recordCount: result.data.length,
+            error: result.error
+          });
           
           return {
             success: result.success,
@@ -164,12 +192,17 @@ class CMISService {
             isCaliforniaLocation: true
           };
         } catch (networkError) {
-          // CIMIS API has WAF blocking - gracefully fail without errors
-          // The app works perfectly using Open-Meteo data instead
+          console.error('❌ CMIS API Request Failed:', {
+            error: networkError instanceof Error ? networkError.message : String(networkError),
+            stationId,
+            dateRange: `${startDateStr} to ${endDateStr}`,
+            apiKey: this.apiKey ? 'configured' : 'missing'
+          });
+          
           return {
             success: false,
             data: [],
-            error: undefined, // Suppress error messages - CIMIS blocked by WAF
+            error: networkError instanceof Error ? networkError.message : 'Failed to fetch CMIS data',
             isCaliforniaLocation: true
           };
         }

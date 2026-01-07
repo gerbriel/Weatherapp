@@ -515,6 +515,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
         throw new Error('No CIMIS station found');
       }
     } catch (error) {
+      console.error("❌ CMIS Fetch Failed:", error);
       // Silently handle CIMIS failures - service is blocked by WAF
       // App continues to work using Open-Meteo data
       
