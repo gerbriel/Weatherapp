@@ -1245,11 +1245,12 @@ export async function exportChartsAsHTML(
                   referenceDate = additionalData.futureStartDate;
                 }
                 
-                let et0_actual_sum = 0;
-                let et0_forecast_sum = 0;
+                let et0_actual_sum = 0; // Sum of ET₀ actuals (for display)
+                let et0_forecast_sum = 0; // Sum of ET₀ forecasts (for display)
                 let actualDaysCount = 0;
-                let kc_actual_sum = 0;
-                let kc_forecast_sum = 0;
+                let etc_actual_sum = 0; // Sum of daily ETc (ET₀ × Kc per day)
+                let etc_forecast_sum = 0; // Sum of daily ETc forecast
+                let kc_values_set = new Set<number>(); // Track unique Kc values
 
                 locForecast.forEach((day) => {
                   // Get Kc for this specific day
@@ -1264,27 +1265,33 @@ export async function exportChartsAsHTML(
                              cropInstance.currentStage === 1 ? 0.70 : 0.50;
                   }
                   
-                  // Sum forecast ET₀ and Kc for FUTURE dates (>= reference date)
+                  kc_values_set.add(dailyKc); // Track Kc values used
+                  
+                  // Sum forecast ET₀ and ETc for FUTURE dates (>= reference date)
                   if (day.date && day.date >= referenceDate) {
                     const et0_forecast_inches = Number(day.et0_forecast) || 0;
                     et0_forecast_sum += et0_forecast_inches;
-                    kc_forecast_sum += dailyKc;
+                    const dailyEtc = et0_forecast_inches * dailyKc;
+                    etc_forecast_sum += dailyEtc;
                   }
 
-                  // Sum actual ET₀ and Kc for dates BEFORE the reference date (past days from CIMIS)
+                  // Sum actual ET₀ and ETc for dates BEFORE the reference date (past days from CIMIS)
                   if (day.date && day.date < referenceDate) {
                     const et0_actual_inches = day.et0_actual;
                     if (et0_actual_inches !== null && et0_actual_inches !== undefined) {
                       et0_actual_sum += et0_actual_inches;
-                      kc_actual_sum += dailyKc;
+                      const dailyEtc = et0_actual_inches * dailyKc;
+                      etc_actual_sum += dailyEtc;
                       actualDaysCount++;
                     }
                   }
                 });
 
-                // Calculate ETc weekly totals: multiply summed ET₀ by summed Kc
-                const etc_actual_sum = et0_actual_sum * kc_actual_sum;
-                const etc_forecast_sum = et0_forecast_sum * kc_forecast_sum;
+                // Display Kc: show single value if all same, otherwise show range
+                const kc_values_array = Array.from(kc_values_set).sort((a, b) => a - b);
+                const kc_display = kc_values_array.length === 1 
+                  ? kc_values_array[0].toFixed(2)
+                  : `${kc_values_array[0].toFixed(2)} - ${kc_values_array[kc_values_array.length - 1].toFixed(2)}`;
 
                 const hasActualData = actualDaysCount > 0;
 
@@ -1310,7 +1317,7 @@ export async function exportChartsAsHTML(
                     </td>
                     <td style="color: #353750; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
                     <td style="color: #0A7DD6; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
-                    <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${kc_forecast_sum.toFixed(2)}</td>
+                    <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${kc_display}</td>
                     <td style="color: #6B7280; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_sum.toFixed(2)}</td>
                     <td style="color: #0EA5E9; font-size: 14px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${etc_forecast_sum.toFixed(2)}</td>
                     <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
