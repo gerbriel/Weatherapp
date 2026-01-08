@@ -85,12 +85,12 @@ class CMISService {
       const mockStations: CMISStation[] = [
         { id: '125', name: 'Arvin-Edison', latitude: 35.205583, longitude: -118.77841 }, // Bakersfield area
         { id: '80', name: 'Fresno State', latitude: 36.820833, longitude: -119.74231 }, // Fresno
-        { id: '71', name: 'Modesto', latitude: 37.645222, longitude: -121.18776 }, // Modesto (was incorrectly labeled Manteca)
-        { id: '250', name: 'Williams', latitude: 39.216667, longitude: -122.16889 }, // Colusa area (was incorrectly Buttonwillow)
+        { id: '71', name: 'Modesto', latitude: 37.645222, longitude: -121.18776 }, // Modesto 
+        { id: '250', name: 'Williams', latitude: 39.216667, longitude: -122.16889 }, // Colusa area 
         { id: '77', name: 'Oakville', latitude: 38.428475, longitude: -122.41021 }, // Napa
-        { id: '214', name: 'Salinas South II', latitude: 36.625619, longitude: -121.53789 }, // Salinas (was Torrey Pines)
-        { id: '202', name: 'Nipomo', latitude: 35.028281, longitude: -120.56003 }, // Santa Maria (was Atwater)
-        { id: '258', name: 'Lemon Cove', latitude: 36.376917, longitude: -119.03972 }, // Exeter (was Temecula)
+        { id: '214', name: 'Salinas South II', latitude: 36.625619, longitude: -121.53789 }, // Salinas 
+        { id: '202', name: 'Nipomo', latitude: 35.028281, longitude: -120.56003 }, // Santa Maria 
+        { id: '258', name: 'Lemon Cove', latitude: 36.376917, longitude: -119.03972 }, // Exeter
         { id: '2', name: 'Five Points', latitude: 36.336222, longitude: -120.11291 } // Five Points
       ];
 
