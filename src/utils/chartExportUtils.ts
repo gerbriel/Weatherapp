@@ -780,6 +780,9 @@ export async function exportChartsAsHTML(
           padding: 0;
           background: #F9FAFB;
         }
+        span, strong, em, b, i, a {
+          font-size: inherit !important;
+        }
         .hero {
           background: url('https://image.email.netafim.com/lib/fe3a11717564047b751776/m/1/7cee6a62-4ac9-433b-9c17-94bae07295f7.png');
           background-size: contain;
@@ -1205,7 +1208,7 @@ export async function exportChartsAsHTML(
       <div style="margin: ${cropIndex > 0 ? '40px' : '0'} 0 20px 0;">
         <div style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px 8px 12px; background: ${cropColor}; color: #fff; font-weight: 600; border-radius: 2px; clip-path: polygon(0 0, 92% 0, 100% 100%, 0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 18px;">
           ${cropSVG}
-          <span>${cropName}</span>
+          <span style="font-size: 18px;">${cropName}</span>
         </div>
       </div>
       
