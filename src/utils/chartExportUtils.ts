@@ -1215,13 +1215,13 @@ export async function exportChartsAsHTML(
             <table width="100%" cellpadding="12" cellspacing="0" border="0" style="border: 1px solid #E5E7EB; border-collapse: collapse;">
               <!-- Header Row -->
               <tr style="background-color: #353750;">
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 19px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: left; font-weight: 600; text-transform: uppercase;">Location</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 19px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Actual (${actualsDateRangeText})</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 19px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Actual (${actualsDateRangeText})</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 19px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Kc</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 19px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Forecast (${dateRangeText})</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 19px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Forecast (${dateRangeText})</th>
-                <th style="background-color: #353750; color: #FFFFFF; font-size: 19px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Water Need</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: left; font-weight: 600; text-transform: uppercase;">Location</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Actual (${actualsDateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Actual (${actualsDateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Kc</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ET₀ Forecast (${dateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">ETc Forecast (${dateRangeText})</th>
+                <th style="background-color: #353750; color: #FFFFFF; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #4A4E69; text-align: center; font-weight: 600; text-transform: uppercase;">Water Need</th>
               </tr>
               <!-- Data Rows for this crop -->
               ${locationsWithCrop.map((loc, locIdx) => {
@@ -1328,7 +1328,7 @@ export async function exportChartsAsHTML(
                     <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_sum.toFixed(2)}</td>
                     <td style="color: #0EA5E9; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${etc_forecast_sum.toFixed(2)}</td>
                     <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
-                      <span style="background-color: ${waterNeedBg}; color: ${waterNeedColor}; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
+                      <span style="background-color: ${waterNeedBg}; color: ${waterNeedColor}; padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
                         ${waterNeedCategory}
                       </span>
                     </td>
@@ -1412,7 +1412,7 @@ export async function exportChartsAsHTML(
                     return `
                       <td style="padding: 8px 8px 16px 8px; border: 1px solid #E5E7EB; vertical-align: bottom;">
                         <div style="text-align: center; margin-bottom: 4px;">
-                          <span style="font-size: 16px; color: #1F2937; font-weight: 700;">${dataPoint.avgEtc}"</span>
+                          <span style="font-size: 20px; color: #1F2937; font-weight: 600;">${dataPoint.avgEtc}"</span>
                         </div>
                         <div style="background-color: #DBEAFE; border-radius: 4px; height: 120px; position: relative; overflow: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                           <div style="background-color: #3B82F6; width: 100%; height: ${barPercentage.toFixed(1)}%; border-radius: 4px; min-height: 8px;"></div>
@@ -1422,8 +1422,8 @@ export async function exportChartsAsHTML(
                   }).join('')}
                   <td style="padding: 8px 8px 16px 8px; border: 1px solid #E5E7EB; vertical-align: bottom;">
                     <div style="text-align: center; margin-bottom: 4px;">
-                      <span style="font-size: 14px; color: #1F2937; font-weight: 600;">Total</span><br/>
-                      <span style="font-size: 16px; color: #1F2937; font-weight: 700;">${totalSum.toFixed(2)}"</span>
+                      <span style="font-size: 18px; color: #1F2937; font-weight: 600;">Total</span><br/>
+                      <span style="font-size: 20px; color: #1F2937; font-weight: 600;">${totalSum.toFixed(2)}"</span>
                     </div>
                     <div style="background-color: #DBEAFE; border-radius: 4px; height: 120px; position: relative; overflow: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                       <div style="background-color: #3B82F6; width: 100%; height: 100%; border-radius: 4px;"></div>
@@ -1432,7 +1432,7 @@ export async function exportChartsAsHTML(
                 </tr>
               </tbody>
             </table>
-            <p style="margin: 15px 0 0 0; font-size: 12px; color: #6B7280; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.5;">
+            <p style="margin: 15px 0 0 0; font-size: 18px; color: #6B7280; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.5;">
               Shows the average crop water use (ETc) across all ${locationsWithCrop.length} location${locationsWithCrop.length !== 1 ? 's' : ''} growing ${cropName.toLowerCase()}. Values are in inches per day.
             </p>
           </div>
@@ -1511,7 +1511,7 @@ export async function exportChartsAsHTML(
                     return `
                       <td style="padding: 8px 8px 16px 8px; border: 1px solid #FDE68A; vertical-align: bottom;">
                         <div style="text-align: center; margin-bottom: 4px;">
-                          <span style="font-size: 16px; color: #78350F; font-weight: 700;">${dataPoint.avgEtc}"</span>
+                          <span style="font-size: 20px; color: #78350F; font-weight: 600;">${dataPoint.avgEtc}"</span>
                         </div>
                         <div style="background-color: #FEF3C7; border-radius: 4px; height: 120px; position: relative; overflow: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                           <div style="background-color: #F59E0B; width: 100%; height: ${barPercentage.toFixed(1)}%; border-radius: 4px; min-height: 8px;"></div>
@@ -1521,8 +1521,8 @@ export async function exportChartsAsHTML(
                   }).join('')}
                   <td style="padding: 8px 8px 16px 8px; border: 1px solid #FDE68A; vertical-align: bottom;">
                     <div style="text-align: center; margin-bottom: 4px;">
-                      <span style="font-size: 14px; color: #78350F; font-weight: 600;">Total</span><br/>
-                      <span style="font-size: 16px; color: #78350F; font-weight: 700;">${totalSum.toFixed(2)}"</span>
+                      <span style="font-size: 18px; color: #78350F; font-weight: 600;">Total</span><br/>
+                      <span style="font-size: 20px; color: #78350F; font-weight: 600;">${totalSum.toFixed(2)}"</span>
                     </div>
                     <div style="background-color: #FEF3C7; border-radius: 4px; height: 120px; position: relative; overflow: visible; display: flex; flex-direction: column; justify-content: flex-end;">
                       <div style="background-color: #F59E0B; width: 100%; height: 100%; border-radius: 4px;"></div>
@@ -1531,7 +1531,7 @@ export async function exportChartsAsHTML(
                 </tr>
               </tbody>
             </table>
-            <p style="margin: 15px 0 0 0; font-size: 12px; color: #92400E; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.5;">
+            <p style="margin: 15px 0 0 0; font-size: 18px; color: #92400E; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; line-height: 1.5;">
               Shows the forecasted average crop water use (ETc) across all ${locationsWithCrop.length} location${locationsWithCrop.length !== 1 ? 's' : ''} growing ${cropName.toLowerCase()}. Values are in inches per day.
             </p>
           </div>
@@ -1541,10 +1541,10 @@ export async function exportChartsAsHTML(
       <!-- Weekly Summary for this Crop -->
       ${additionalData?.cropWeeklySummaries?.[cropId] ? `
         <div style="margin: 20px 0; padding: 20px; background-color: #F0FDF4; border: 1px solid #86EFAC; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; font-size: 15px; font-weight: 600; color: #166534; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+          <h4 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #166534; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
             Weekly Summary - ${cropName}
           </h4>
-          <p style="margin: 0; font-size: 14px; color: #166534; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; white-space: pre-wrap;">
+          <p style="margin: 0; font-size: 18px; color: #166534; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; white-space: pre-wrap;">
             ${additionalData.cropWeeklySummaries[cropId]}
           </p>
         </div>
