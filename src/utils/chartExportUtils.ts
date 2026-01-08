@@ -774,7 +774,7 @@ export async function exportChartsAsHTML(
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
           line-height: 1.6;
           color: #353750;
-          font-size: 16px;
+          font-size: 20px;
           max-width: 100%;
           margin: 0;
           padding: 0;
@@ -813,7 +813,7 @@ export async function exportChartsAsHTML(
         .content-wrapper {
           max-width: 800px;
           margin: 0 auto;
-          padding: 30px 20px;
+          padding: 30px 0;
         }
         .metadata {
           background: #FFFFFF;
@@ -1028,11 +1028,11 @@ export async function exportChartsAsHTML(
       <div class="hero">
       </div>
       ${additionalData?.waterUseNotes ? `
-      <div style="max-width: 800px; margin: 30px auto 20px; padding: 0 20px;">
-        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.waterUseNotes.replace(/\{first name\}/gi, '%%First Name%%')}</div>
+      <div style="max-width: 800px; margin: 30px auto 20px; padding: 0;">
+        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.waterUseNotes.replace(/\{first name\}/gi, '%%First Name%%')}</div>
       </div>
       ` : ''}
-      <div style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
+      <div style="max-width: 800px; margin: 40px auto; padding: 0;">
         <h2 style="font-size: 24px; font-weight: 600; color: #1F2937; margin: 0 0 12px 0;">${(() => {
           // Get the date range from the first location's forecast data
           const firstLocation = locations[0];
@@ -1054,7 +1054,7 @@ export async function exportChartsAsHTML(
           }
           return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
         })()}</h2>
-        <p style="font-size: 16px; color: #4B5563; margin: 0; line-height: 1.6;">ET trends and irrigation water demand outlook for ${selectedCrops.length > 0 ? selectedCrops.join(', ') : 'selected crops'} across ${locations.map(loc => loc.name).join(', ')}</p>
+        <p style="font-size: 20px; color: #4B5563; margin: 0; line-height: 1.6;">ET trends and irrigation water demand outlook for ${selectedCrops.length > 0 ? selectedCrops.join(', ') : 'selected crops'} across ${locations.map(loc => loc.name).join(', ')}</p>
       </div>
       <div class="content-wrapper">
   `;
@@ -1574,8 +1574,8 @@ export async function exportChartsAsHTML(
 
   htmlContent += `
       ${additionalData?.closingMessage ? `
-      <div style="max-width: 800px; margin: 40px auto 30px; padding: 0 20px;">
-        <div style="font-size: 16px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.closingMessage.replace(/\{first name\}/gi, '%%First Name%%')}</div>
+      <div style="max-width: 800px; margin: 40px auto 30px; padding: 0;">
+        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.closingMessage.replace(/\{first name\}/gi, '%%First Name%%')}</div>
       </div>
       ` : ''}
       </div>
