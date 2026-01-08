@@ -1054,7 +1054,7 @@ export async function exportChartsAsHTML(
           }
           return new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
         })()}</h2>
-        <p style="font-size: 16px; color: #4B5563; margin: 0; line-height: 1.6;">Today's Weather Stats, ET trends and irrigation updates for ${selectedCrops.length > 0 ? selectedCrops.join(', ') : 'selected crops'} across ${locations.map(loc => loc.name).join(', ')}</p>
+        <p style="font-size: 16px; color: #4B5563; margin: 0; line-height: 1.6;">ET trends and irrigation water demand outlook for ${selectedCrops.length > 0 ? selectedCrops.join(', ') : 'selected crops'} across ${locations.map(loc => loc.name).join(', ')}</p>
       </div>
       <div class="content-wrapper">
   `;
