@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { LocationWithWeather } from '../types/weather';
+import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 
 /**
  * Chart Export Utilities
@@ -1252,6 +1253,9 @@ export async function exportChartsAsHTML(
                 let etc_forecast_sum = 0; // Sum of daily ETc forecast
                 let kc_values_set = new Set<number>(); // Track unique Kc values
 
+                // Get crop data for monthly Kc lookup
+                const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropInstance.cropId);
+
                 locForecast.forEach((day) => {
                   // Get Kc for this specific day
                   const dateMonth = new Date(day.date + 'T12:00:00').getMonth() + 1;
@@ -1260,6 +1264,9 @@ export async function exportChartsAsHTML(
                   
                   if (customKc !== undefined) {
                     dailyKc = customKc;
+                  } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
+                    const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
+                    dailyKc = monthData?.kc !== undefined ? monthData.kc : 1.0;
                   } else {
                     dailyKc = cropInstance.currentStage === 2 ? 1.15 : 
                              cropInstance.currentStage === 1 ? 0.70 : 0.50;
