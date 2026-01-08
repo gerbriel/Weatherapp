@@ -740,10 +740,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
       }
     });
     
-    // Quick export with weather data and crop calculations
+    // Quick export with weather data, CMIS data, and crop calculations
     const quickOptions: ComprehensiveExportOptions = {
       includeWeatherData: true,
-      includeCMISData: false,
+      includeCMISData: cmisData.size > 0, // Include CMIS data if available
       includeCropData: selectedCrops.length > 0,
       includeCalculatorResults: false,
       includeFieldBlocks: false,

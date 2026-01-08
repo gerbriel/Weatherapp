@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { LocationWithWeather } from '../types/weather';
+import type { CMISETCData } from '../services/cmisService';
 import { exportChartsToExcel, exportChartsAsHTML } from './chartExportUtils';
 import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 
@@ -373,7 +374,8 @@ export function prepareComprehensiveWeatherData(
 export function prepareCropExportData(
   locations: LocationWithWeather[],
   cropInstances: any[] = [],
-  selectedCrops: string[] = []
+  selectedCrops: string[] = [],
+  cmisData?: Map<string, CMISETCData[]>
 ): CropExportData[] {
   const exportData: CropExportData[] = [];
   
@@ -447,7 +449,18 @@ export function prepareCropExportData(
                     cropInstance.currentStage === 1 ? 0.70 : 0.50;
         }
         
-        const etcCalculated = et0 * kcValue;
+        // Use CMIS actual ET₀ data when available (for California locations)
+        let actualET0 = et0; // Default to Open-Meteo ET₀
+        const locationCmisData = cmisData?.get(location.id);
+        if (locationCmisData && locationCmisData.length > 0) {
+          // Find matching CMIS data for this date
+          const cmisDay = locationCmisData.find(d => d.date === date);
+          if (cmisDay && cmisDay.etc_actual !== undefined && cmisDay.etc_actual !== null) {
+            actualET0 = cmisDay.etc_actual; // Use CMIS actual ET₀
+          }
+        }
+        
+        const etcCalculated = actualET0 * kcValue;
         
         exportData.push({
           crop_name: cropName, // CROP NAME FIRST for grouping
@@ -601,7 +614,7 @@ export function exportComprehensiveData(
     }
 
     if (options.includeCropData && selectedCrops.length > 0) {
-      const cropData = prepareCropExportData(locations, cropInstances, selectedCrops);
+      const cropData = prepareCropExportData(locations, cropInstances, selectedCrops, cmisData);
       const csv = convertToCSV(cropData);
       downloadFile(csv, `crop-data-${timestamp}.csv`, 'text/csv');
     }
@@ -648,7 +661,7 @@ export function exportComprehensiveData(
     }
 
     if (options.includeCropData && selectedCrops.length > 0) {
-      const cropData = prepareCropExportData(locations, cropInstances, selectedCrops);
+      const cropData = prepareCropExportData(locations, cropInstances, selectedCrops, cmisData);
       const worksheet = XLSX.utils.json_to_sheet(cropData);
       XLSX.utils.book_append_sheet(workbook, worksheet, "Crop Calculations");
     }
