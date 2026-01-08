@@ -189,9 +189,10 @@ export const Dashboard: React.FC = () => {
   // Auto-select all locations for reports view on initial load
   useEffect(() => {
     if (availableLocations.length > 0 && reportSelectedLocationIds.size === 0) {
+      console.log('🎯 Auto-selecting all locations:', availableLocations.length);
       setReportSelectedLocationIds(new Set(availableLocations.map(loc => loc.id)));
     }
-  }, [availableLocations.length]); // Only run when locations are loaded
+  }, [availableLocations, reportSelectedLocationIds.size]); // Watch locations and current selection size
 
   // Track if we've cleaned up custom Kc values to prevent infinite loops
   const hasCleanedKcRef = React.useRef(false);
