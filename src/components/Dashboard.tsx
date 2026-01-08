@@ -186,6 +186,13 @@ export const Dashboard: React.FC = () => {
     cropInstances
   );
 
+  // Auto-select all locations for reports view on initial load
+  useEffect(() => {
+    if (availableLocations.length > 0 && reportSelectedLocationIds.size === 0) {
+      setReportSelectedLocationIds(new Set(availableLocations.map(loc => loc.id)));
+    }
+  }, [availableLocations.length]); // Only run when locations are loaded
+
   // Track if we've cleaned up custom Kc values to prevent infinite loops
   const hasCleanedKcRef = React.useRef(false);
 
