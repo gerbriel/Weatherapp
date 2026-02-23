@@ -43,6 +43,9 @@ verify-*.sql
 check-*.sql
 MAKE_ME_SUPERUSER.sql
 
+# Supabase CLI temp files (contain project refs and connection URLs)
+supabase/.temp/
+
 # Debug markdown documentation with sensitive data
 MIGRATION_INSTRUCTIONS.md
 WORKAROUND_TEST.md
