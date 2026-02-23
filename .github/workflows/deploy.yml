@@ -1,0 +1,140 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main, development ]
+
+# Permissions needed for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Validate environment variables
+      run: |
+        echo "🔍 Checking environment variables..."
+        echo "VITE_SUPABASE_URL length: ${#VITE_SUPABASE_URL}"
+        echo "VITE_SUPABASE_ANON_KEY length: ${#VITE_SUPABASE_ANON_KEY}"
+        if [ -z "${{ secrets.VITE_SUPABASE_URL }}" ]; then
+          echo "❌ VITE_SUPABASE_URL secret is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.VITE_SUPABASE_ANON_KEY }}" ]; then
+          echo "❌ VITE_SUPABASE_ANON_KEY secret is not set"
+          exit 1
+        fi
+        # CMIS API key is optional - log status but don't fail build
+        if [ -z "${{ secrets.VITE_CMIS_API_KEY }}" ]; then
+          echo "⚠️  VITE_CMIS_API_KEY secret is not set - will use mock data"
+        else
+          echo "✅ VITE_CMIS_API_KEY secret is configured"
+        fi
+        echo "✅ Environment variables validated"
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_CMIS_API_KEY: ${{ secrets.VITE_CMIS_API_KEY }}
+
+    - name: Build application
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_CMIS_API_KEY: ${{ secrets.VITE_CMIS_API_KEY }}
+      run: |
+        echo "🔨 Building application with Vite..."
+        echo "📍 Base URL will be: /Weatherapp/"
+        echo "🔧 Environment variables for build:"
+        echo "VITE_SUPABASE_URL length: ${#VITE_SUPABASE_URL}"
+        echo "VITE_SUPABASE_ANON_KEY length: ${#VITE_SUPABASE_ANON_KEY}"
+        echo "VITE_CMIS_API_KEY length: ${#VITE_CMIS_API_KEY}"
+        npm run build
+        echo "✅ Build completed successfully"
+
+    - name: Prepare GitHub Pages deployment
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
+      run: |
+        echo "📁 Preparing dist folder for GitHub Pages..."
+        
+        # Ensure dist directory exists
+        if [ ! -d "dist" ]; then
+          echo "❌ dist directory not found!"
+          exit 1
+        fi
+        
+        # Copy nojekyll file
+        if [ -f ".nojekyll" ]; then
+          cp .nojekyll dist/.nojekyll
+          echo "✅ Copied .nojekyll"
+        else
+          echo "⚠️  .nojekyll file not found, creating one"
+          touch dist/.nojekyll
+        fi
+        
+        # Copy .htaccess for MIME type and routing fixes
+        if [ -f "public/.htaccess" ]; then
+          cp public/.htaccess dist/.htaccess
+          echo "✅ Copied .htaccess for proper MIME types and routing"
+        else
+          echo "⚠️  .htaccess file not found in public/"
+        fi
+        
+        # Copy web.config for IIS compatibility
+        if [ -f "public/web.config" ]; then
+          cp public/web.config dist/web.config
+          echo "✅ Copied web.config for IIS compatibility"
+        fi
+        
+        # Copy _headers file for Netlify-style hosting
+        if [ -f "public/_headers" ]; then
+          cp public/_headers dist/_headers
+          echo "✅ Copied _headers for Netlify-style hosting"
+        fi
+        
+        # Create 404.html for SPA routing
+        cp dist/index.html dist/404.html
+        echo "✅ Created 404.html for SPA routing"
+        
+        echo "📋 Final dist contents:"
+        ls -la dist/
+
+    - name: Setup Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
+      uses: actions/upload-pages-artifact@v4
+      with:
+        path: ./dist
+
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
+      id: deployment
+      uses: actions/deploy-pages@v4

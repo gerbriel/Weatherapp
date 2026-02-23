@@ -1,0 +1,1255 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line } from 'recharts';
+import { Eye, EyeOff, Calendar, TrendingUp, BarChart3, LineChart as LineChartIcon, Settings } from 'lucide-react';
+import ChartAIInsights from './ChartAIInsights';
+
+interface CropETCData {
+  cropId: string;
+  cropName: string;
+  location: string;
+  currentStage: string;
+  etc: number; // Actual crop evapotranspiration (mm/day)
+  eto: number; // Reference evapotranspiration (mm/day)
+  kc: number;  // Crop coefficient
+  plantingDate: string;
+  fieldName?: string;
+}
+
+interface WeatherData {
+  daily: {
+    temperature_2m_max?: number[];
+    temperature_2m_min?: number[];
+    wind_speed_10m_max?: number[];
+    relative_humidity_2m?: number[];
+    precipitation_sum?: number[];
+  };
+}
+
+interface CropETCChartsProps {
+  cropInstances: any[];
+  locations: any[];
+  location?: any; // Single location for location-specific display
+  weatherData?: any; // Optional weather data for current location
+  className?: string;
+  dateRange?: { startDate: string; endDate: string; };
+  reportMode?: 'current' | 'historical' | 'future';
+  forecastPreset?: 'today' | '7day' | '14day';
+  reportDate?: string; // The specific date to center the report around
+  showAIInsights?: boolean;
+  insights?: { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  };
+  onInsightsChange?: (insights: { 
+    precipitationChart: string;
+    temperatureChart: string; 
+    cropCoefficientsChart: string;
+    etcEtoComparisonChart: string;
+    dataTable: string;
+    general: string;
+  }) => void;
+}
+
+// Helper function to calculate ETO using simplified Penman equation
+const calculateETO = (weather: WeatherData, dayIndex: number = 0): number => {
+  if (!weather?.daily) return 4.0; // Default ETO value
+
+  const tempMax = weather.daily.temperature_2m_max?.[dayIndex] || 25;
+  const tempMin = weather.daily.temperature_2m_min?.[dayIndex] || 15;
+  const windSpeed = weather.daily.wind_speed_10m_max?.[dayIndex] || 2;
+  const humidity = weather.daily.relative_humidity_2m?.[dayIndex] || 65;
+
+  // Simplified ETO calculation (Penman-Monteith approximation)
+  const tempMean = (tempMax + tempMin) / 2;
+  const windFactor = 1 + (windSpeed / 10);
+  const humidityFactor = (100 - humidity) / 100;
+  
+  // Basic ETO calculation (mm/day)
+  const eto = Math.max(0.5, (tempMean * 0.17 * windFactor * humidityFactor));
+  
+  return Math.round(eto * 100) / 100;
+};
+
+// Helper function to generate dates between start and end
+const generateDateRange = (startDate: string, endDate: string): string[] => {
+  const dates: string[] = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  
+  return dates;
+};
+
+// Helper function to get crop coefficient based on stage
+const getCropCoefficient = (cropId: string, stage: string): number => {
+  const kcValues: Record<string, Record<string, number>> = {
+    almonds: { 'Initial': 0.40, 'Development': 0.75, 'Mid-season': 1.11, 'Late season': 0.85 },
+    walnuts: { 'Initial': 0.50, 'Development': 0.80, 'Mid-season': 1.05, 'Late season': 0.75 },
+    pistachios: { 'Initial': 0.40, 'Development': 0.70, 'Mid-season': 1.05, 'Late season': 0.80 },
+    grapes: { 'Initial': 0.30, 'Development': 0.70, 'Mid-season': 0.85, 'Late season': 0.45 },
+    citrus: { 'Initial': 0.55, 'Development': 0.75, 'Mid-season': 0.75, 'Late season': 0.55 },
+    tomatoes: { 'Initial': 0.60, 'Development': 0.80, 'Mid-season': 1.15, 'Late season': 0.80 },
+    corn: { 'Initial': 0.30, 'Development': 0.70, 'Mid-season': 1.20, 'Late season': 0.60 },
+    cotton: { 'Initial': 0.35, 'Development': 0.70, 'Mid-season': 1.15, 'Late season': 0.50 }
+  };
+  
+  return kcValues[cropId]?.[stage] || 0.75; // Default Kc
+};
+
+export const CropETCCharts: React.FC<CropETCChartsProps> = ({
+  cropInstances,
+  locations,
+  location,
+  weatherData,
+  className = "",
+  dateRange,
+  reportMode = 'current',
+  forecastPreset = '7day',
+  reportDate,
+  showAIInsights = false,
+  insights = { 
+    precipitationChart: '', 
+    temperatureChart: '', 
+    cropCoefficientsChart: '', 
+    etcEtoComparisonChart: '', 
+    dataTable: '', 
+    general: '' 
+  },
+  onInsightsChange = () => {}
+}) => {
+  // Get all available crop types
+  const availableCrops = useMemo(() => {
+    const targetLocations = location ? [location] : locations;
+    const targetLocationIds = targetLocations.map(loc => loc.id);
+    
+    const cropTypes = new Set(
+      cropInstances
+        .filter(crop => targetLocationIds.includes(crop.locationId))
+        .map(crop => crop.cropId)
+    );
+    
+    return Array.from(cropTypes).map(cropId => ({
+      id: cropId,
+      name: cropId.charAt(0).toUpperCase() + cropId.slice(1)
+    }));
+  }, [cropInstances, locations, location]);
+
+  // State for managing which crops are visible
+  const [visibleCrops, setVisibleCrops] = useState<Set<string>>(
+    new Set(availableCrops.map(crop => crop.id))
+  );
+
+  // State for chart rendering readiness
+  const [isChartsReady, setIsChartsReady] = useState(false);
+
+  // Update visible crops when available crops change
+  React.useEffect(() => {
+    setVisibleCrops(new Set(availableCrops.map(crop => crop.id)));
+  }, [availableCrops]);
+
+  // Delay chart rendering to ensure containers have proper dimensions
+  useEffect(() => {
+    // Use longer delay and ensure DOM is ready
+    const timer = setTimeout(() => {
+      // Double-check that container elements exist before enabling charts
+      const containers = document.querySelectorAll('[style*="minHeight"]');
+      if (containers.length > 0) {
+        setIsChartsReady(true);
+      } else {
+        // Retry after additional delay if containers aren't ready
+        setTimeout(() => setIsChartsReady(true), 200);
+      }
+    }, 250);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  const etcData = useMemo(() => {
+    const data: CropETCData[] = [];
+    
+    // Filter for single location if provided
+    const targetLocations = location ? [location] : locations;
+    const targetLocationIds = targetLocations.map(loc => loc.id);
+    
+    const filteredCrops = cropInstances.filter(crop => targetLocationIds.includes(crop.locationId));
+    
+    filteredCrops
+      .filter(crop => visibleCrops.has(crop.cropId)) // Filter by visible crops
+      .forEach(crop => {
+        const cropLocation = targetLocations.find(loc => loc.id === crop.locationId);
+        if (!cropLocation) return;
+        
+        const eto = calculateETO(weatherData || cropLocation.weatherData);
+        const kc = getCropCoefficient(crop.cropId, crop.currentStage);
+        const etc = eto * kc;
+        
+        data.push({
+          cropId: crop.cropId,
+          cropName: crop.cropId.charAt(0).toUpperCase() + crop.cropId.slice(1),
+          location: cropLocation.name,
+          currentStage: crop.currentStage,
+          etc: Math.round(etc * 100) / 100,
+          eto: eto,
+          kc: kc,
+          plantingDate: crop.plantingDate,
+          fieldName: crop.fieldName
+        });
+      });
+
+    return data;
+  }, [cropInstances, locations, location, visibleCrops]);
+
+  // Don't render anything if there are no crops for this location
+  if (etcData.length === 0) {
+    return null;
+  }
+
+  // Prepare time-series data for individual crop water use comparison chart
+  const cropWaterUseTimeSeriesData = useMemo(() => {
+    // Determine the date range to use
+    let startDate: string;
+    let endDate: string;
+    
+    if (reportMode === 'historical' && dateRange?.startDate && dateRange?.endDate) {
+      // Use provided historical date range
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    } else {
+      // In current or future mode, generate date range based on forecastPreset and reportDate
+      // Format dates in local timezone
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      const daysToShow = forecastPreset === 'today' ? 1 : 
+                        forecastPreset === '7day' ? 7 : 14;
+      
+      // In future mode, use reportDate. In current mode, always use today
+      startDate = reportMode === 'future' ? reportDate! : formatDateLocal(new Date());
+      
+      const endDateObj = new Date(startDate);
+      endDateObj.setDate(endDateObj.getDate() + daysToShow - 1);
+      endDate = formatDateLocal(endDateObj);
+    }
+
+    // Generate comprehensive time-series data for crop water use
+    const dates = generateDateRange(startDate, endDate);
+    const timeSeriesData: any[] = [];
+    
+    dates.forEach((date, dayIndex) => {
+      const dataPoint: any = {
+        date,
+        day: dayIndex + 1,
+        displayDate: new Date(date).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        })
+      };
+
+      // Add water use data for each crop
+      etcData.forEach((crop) => {
+        // Simulate realistic daily variation (in real app, this would come from historical weather data)
+        const baseETO = crop.eto;
+        const baseETC = crop.etc;
+        
+        // Add realistic daily variation with seasonal patterns
+        const dayOfYear = dayIndex / dates.length;
+        const seasonalVariation = Math.sin(dayOfYear * Math.PI * 2) * 0.15;
+        const dailyNoise = (Math.sin(dayIndex * 0.2) + Math.cos(dayIndex * 0.3)) * 0.1;
+        const weatherVariation = Math.sin(dayIndex * 0.1) * 0.2;
+        
+        const totalVariation = 1 + seasonalVariation + dailyNoise + weatherVariation;
+        
+        const dailyETO = Math.max(0.5, Math.round((baseETO * totalVariation) * 100) / 100);
+        const dailyETC = Math.max(0.3, Math.round((baseETC * totalVariation) * 100) / 100);
+        
+        // Use crop name + location as unique identifier for this chart
+        const cropKey = `${crop.cropName}_${crop.location}`;
+        dataPoint[`${cropKey}_ETC`] = dailyETC;
+        dataPoint[`${cropKey}_ETO`] = dailyETO;
+        
+        // Store crop metadata
+        if (!dataPoint.crops) dataPoint.crops = [];
+        dataPoint.crops.push({
+          cropId: crop.cropId,
+          cropName: crop.cropName,
+          location: crop.location,
+          key: cropKey
+        });
+      });
+
+      timeSeriesData.push(dataPoint);
+    });
+
+    return timeSeriesData;
+  }, [etcData, dateRange, reportMode, forecastPreset, reportDate]);
+
+  // Get line configurations for individual crop water use chart
+  const cropWaterUseLineConfigs = useMemo(() => {
+    // Use different colors than the comparison chart
+    const etcColors = ['#DC2626', '#7C3AED', '#059669', '#EA580C', '#0891B2', '#BE123C', '#7C2D12', '#581C87'];
+    const etoColors = ['#16A34A', '#2563EB', '#CA8A04', '#C2410C', '#0E7490', '#BE185D', '#A16207', '#6D28D9'];
+    
+    const configs = etcData.map((item, index) => ({
+      key: `${item.cropName}_${item.location}`,
+      name: `${item.cropName} (${item.location})`,
+      cropId: item.cropId,
+      location: item.location,
+      etcColor: etcColors[index % etcColors.length],
+      etoColor: etoColors[index % etoColors.length],
+      etcKey: `${item.cropName}_${item.location}_ETC`,
+      etoKey: `${item.cropName}_${item.location}_ETO`,
+      index: index
+    }));
+    
+    return configs;
+  }, [etcData]);
+
+  // Prepare data for individual crop comparison chart (fallback bar chart view)
+  const cropComparisonData = useMemo(() => {
+    return etcData.map((item) => ({
+      name: `${item.cropName}`,
+      fullName: `${item.cropName} (${item.location})`,
+      ETC: item.etc,
+      ETO: item.eto,
+      KC: item.kc,
+      location: item.location
+    }));
+  }, [etcData]);
+
+
+
+  // Prepare time-series data for ETC vs ETO comparison chart
+  const etcVsEtoData = useMemo(() => {
+    // Determine the date range to use
+    let startDate: string;
+    let endDate: string;
+    
+    if (reportMode === 'historical' && dateRange?.startDate && dateRange?.endDate) {
+      // Use provided historical date range
+      startDate = dateRange.startDate;
+      endDate = dateRange.endDate;
+    } else {
+      // In current or future mode, generate date range based on forecastPreset and reportDate
+      // Format dates in local timezone
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+      
+      const daysToShow = forecastPreset === 'today' ? 1 : 
+                        forecastPreset === '7day' ? 7 : 14;
+      
+      // In future mode, use reportDate. In current mode, always use today
+      startDate = reportMode === 'future' ? reportDate! : formatDateLocal(new Date());
+      
+      const endDateObj = new Date(startDate);
+      endDateObj.setDate(endDateObj.getDate() + daysToShow - 1);
+      endDate = formatDateLocal(endDateObj);
+    }
+
+    // Generate time-series data
+    const dates = generateDateRange(startDate, endDate);
+    const timeSeriesData: any[] = [];
+    
+    dates.forEach((date, dayIndex) => {
+      const dataPoint: any = {
+        date,
+        day: dayIndex + 1,
+        displayDate: new Date(date).toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric' 
+        })
+      };
+
+      // Add data for each crop
+      etcData.forEach((crop, cropIndex) => {
+        // Simulate daily variation (in real app, this would come from historical weather data)
+        const baseETO = crop.eto;
+        const baseETC = crop.etc;
+        
+        // Add some realistic daily variation (±10-20%)
+        const variation = 0.8 + (Math.sin(dayIndex * 0.1 + cropIndex) * 0.2);
+        const seasonalFactor = 0.9 + (Math.sin((dayIndex / dates.length) * Math.PI * 2) * 0.1);
+        
+        const dailyETO = Math.round((baseETO * variation * seasonalFactor) * 100) / 100;
+        const dailyETC = Math.round((baseETC * variation * seasonalFactor) * 100) / 100;
+        
+        // Use crop name + location as unique identifier
+        const cropKey = `${crop.cropName}_${crop.location}`;
+        dataPoint[`${cropKey}_ETO`] = dailyETO;
+        dataPoint[`${cropKey}_ETC`] = dailyETC;
+        dataPoint[`${cropKey}_KC`] = Math.round(crop.kc * 100) / 100;
+        
+        // Store crop metadata
+        if (!dataPoint.crops) dataPoint.crops = [];
+        dataPoint.crops.push({
+          cropId: crop.cropId,
+          cropName: crop.cropName,
+          location: crop.location,
+          key: cropKey
+        });
+      });
+
+      timeSeriesData.push(dataPoint);
+    });
+
+    return timeSeriesData;
+  }, [etcData, dateRange, reportMode, forecastPreset, reportDate]);
+
+  // Get individual crop line configurations for the comparison chart
+  const cropLineConfigs = useMemo(() => {
+    // ETC colors (Blues and Purples)
+    const etcColors = ['#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#C084FC', '#1D4ED8', '#2563EB', '#3730A3'];
+    // ETO colors (Greens and Teals)  
+    const etoColors = ['#10B981', '#06B6D4', '#14B8A6', '#059669', '#047857', '#0D9488', '#15803D', '#166534'];
+    // KC colors (Oranges and Reds)
+    const kcColors = ['#F59E0B', '#EF4444', '#F97316', '#DC2626', '#EA580C', '#D97706', '#B45309', '#92400E'];
+    
+    return etcData.map((item, index) => ({
+      key: `${item.cropName}_${item.location}`,
+      name: `${item.cropName} (${item.location})`,
+      cropId: item.cropId,
+      location: item.location,
+      etcColor: etcColors[index % etcColors.length],
+      etoColor: etoColors[index % etoColors.length],
+      kcColor: kcColors[index % kcColors.length],
+      etcKey: `${item.cropName}_${item.location}_ETC`,
+      etoKey: `${item.cropName}_${item.location}_ETO`,
+      kcKey: `${item.cropName}_${item.location}_KC`,
+      index: index
+    }));
+  }, [etcData]);
+
+  // State for managing which crops are selected for line visibility
+  const [selectedCropsForLines, setSelectedCropsForLines] = useState<Set<string>>(new Set());
+  
+  // State for which line types are enabled (ETC, ETO, KC)
+  const [enabledLineTypes, setEnabledLineTypes] = useState<{
+    etc: boolean;
+    eto: boolean;
+    kc: boolean;
+  }>({ etc: true, eto: true, kc: true });
+
+  // Computed visible lines based on crop selection and line type filters
+  const visibleLines = React.useMemo(() => {
+    const lines = new Set<string>();
+    cropLineConfigs.forEach(config => {
+      if (selectedCropsForLines.has(config.key)) {
+        if (enabledLineTypes.etc) lines.add(config.etcKey);
+        if (enabledLineTypes.eto) lines.add(config.etoKey);
+        if (enabledLineTypes.kc) lines.add(config.kcKey);
+      }
+    });
+    return lines;
+  }, [cropLineConfigs, selectedCropsForLines, enabledLineTypes]);
+
+  // Initialize selected crops when crop configs change
+  React.useEffect(() => {
+    setSelectedCropsForLines(new Set(cropLineConfigs.map(config => config.key)));
+  }, [cropLineConfigs]);
+
+  // Handle crop visibility toggle
+  const toggleCropVisibility = (cropId: string) => {
+    const newVisibleCrops = new Set(visibleCrops);
+    if (newVisibleCrops.has(cropId)) {
+      newVisibleCrops.delete(cropId);
+    } else {
+      newVisibleCrops.add(cropId);
+    }
+    setVisibleCrops(newVisibleCrops);
+  };
+
+  // Toggle all crops visibility
+  const toggleAllCrops = () => {
+    if (visibleCrops.size === availableCrops.length) {
+      setVisibleCrops(new Set()); // Hide all
+    } else {
+      setVisibleCrops(new Set(availableCrops.map(crop => crop.id))); // Show all
+    }
+  };
+
+  // Toggle crop selection for line visibility
+  const toggleCropSelection = (cropKey: string) => {
+    const newSelectedCrops = new Set(selectedCropsForLines);
+    if (newSelectedCrops.has(cropKey)) {
+      newSelectedCrops.delete(cropKey);
+    } else {
+      newSelectedCrops.add(cropKey);
+    }
+    setSelectedCropsForLines(newSelectedCrops);
+  };
+
+  // Toggle line type filter
+  const toggleLineTypeFilter = (lineType: 'etc' | 'eto' | 'kc') => {
+    setEnabledLineTypes(prev => ({
+      ...prev,
+      [lineType]: !prev[lineType]
+    }));
+  };
+
+  // Multi-select preset configurations
+  const togglePreset = (preset: string) => {
+    switch (preset) {
+      case 'etc':
+        setEnabledLineTypes(prev => ({ ...prev, etc: !prev.etc }));
+        break;
+      case 'eto':
+        setEnabledLineTypes(prev => ({ ...prev, eto: !prev.eto }));
+        break;
+      case 'kc':
+        setEnabledLineTypes(prev => ({ ...prev, kc: !prev.kc }));
+        break;
+      case 'all':
+        const allEnabled = enabledLineTypes.etc && enabledLineTypes.eto && enabledLineTypes.kc;
+        if (allEnabled) {
+          setEnabledLineTypes({ etc: false, eto: false, kc: false });
+        } else {
+          setEnabledLineTypes({ etc: true, eto: true, kc: true });
+        }
+        break;
+    }
+  };
+
+  // Select all/none crops for line visibility 
+  const toggleAllCropsForLines = () => {
+    if (selectedCropsForLines.size === cropLineConfigs.length) {
+      setSelectedCropsForLines(new Set());
+    } else {
+      setSelectedCropsForLines(new Set(cropLineConfigs.map(config => config.key)));
+    }
+  };
+
+  // Show crop selection controls even when no crops are visible
+  if (availableCrops.length === 0) {
+    return (
+      <div className={`bg-gray-50 dark:bg-gray-700 p-6 rounded-lg ${className}`}>
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+          🌾 Crop Water Use Analysis
+          {location && <span className="text-sm font-normal text-gray-500">for {location.name}</span>}
+        </h4>
+        <p className="text-gray-500 dark:text-gray-400 text-center">
+          No active crops found for ETC analysis
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`space-y-6 ${className}`}>
+      {/* Crop Selection Controls */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border-l-4 border-blue-500">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Eye className="h-4 w-4 text-blue-500" />
+            Chart Visibility Controls 
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+              ({visibleCrops.size}/{availableCrops.length} visible)
+            </span>
+          </h4>
+          <button
+            onClick={toggleAllCrops}
+            className="text-xs px-3 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            {visibleCrops.size === availableCrops.length ? (
+              <>
+                <EyeOff className="h-3 w-3 inline mr-1" />
+                Hide All
+              </>
+            ) : (
+              <>
+                <Eye className="h-3 w-3 inline mr-1" />
+                Show All ({availableCrops.length})
+              </>
+            )}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+          {availableCrops.map(crop => (
+            <label
+              key={crop.id}
+              className={`flex items-center gap-2 p-2 rounded border cursor-pointer transition-all duration-200 ${
+                visibleCrops.has(crop.id)
+                  ? 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600'
+                  : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={visibleCrops.has(crop.id)}
+                onChange={() => toggleCropVisibility(crop.id)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className={`text-sm font-medium transition-colors ${
+                visibleCrops.has(crop.id)
+                  ? 'text-blue-700 dark:text-blue-300'
+                  : 'text-gray-700 dark:text-gray-300'
+              }`}>
+                {crop.name}
+              </span>
+            </label>
+          ))}
+        </div>
+        {etcData.length === 0 && (
+          <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded text-sm text-yellow-700 dark:text-yellow-300">
+            <EyeOff className="h-4 w-4 inline mr-1" />
+            No crops selected for display. Select crops above to view charts.
+          </div>
+        )}
+      </div>
+
+      {/* Individual Crop Water Use Time Series */}
+      {etcData.length > 0 && (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2">
+          📊 Individual Crop Water Use - Time Series
+          {location && <span className="text-sm font-normal text-gray-500"> • {location.name}</span>}
+        </h4>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+          <span>📡 Time-Series Data:</span>
+          <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
+            NOAA GFS Global & NAM CONUS via Open-Meteo API
+          </span>
+          <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">
+            CMIS API (CA Irrigation)
+          </span>
+          <span className="bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">
+            FAO-56 Coefficients
+          </span>
+        </div>
+        
+        <div className="h-80 w-full" style={{ minHeight: '320px', minWidth: '360px' }}>
+          {!isChartsReady ? (
+            <div className="w-full h-full bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+              <div className="text-center text-gray-600 dark:text-gray-400">
+                <div className="text-lg mb-2">📊</div>
+                <div>Loading charts...</div>
+              </div>
+            </div>
+          ) : dateRange?.startDate && dateRange?.endDate ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
+              <LineChart 
+                data={cropWaterUseTimeSeriesData} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis 
+                  dataKey="displayDate" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                />
+                <YAxis 
+                  label={{ value: 'Water Use (mm/day)', angle: -90, position: 'insideLeft' }}
+                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'var(--tooltip-bg)',
+                    border: '1px solid var(--tooltip-border)',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: number, name: string) => {
+                    const isETC = name.includes('ETC');
+                    const cropName = name.replace('_ETC', '').replace('_ETO', '');
+                    return [
+                      `${value} mm/day`,
+                      `${cropName} ${isETC ? 'ETC' : 'ETO'}`
+                    ];
+                  }}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                />
+                
+                {/* Render ETC lines for each visible crop */}
+                {cropWaterUseLineConfigs
+                  .filter(config => visibleCrops.has(config.cropId))
+                  .map((config) => (
+                  <Line 
+                    key={config.etcKey}
+                    type="monotone" 
+                    dataKey={config.etcKey}
+                    stroke={config.etcColor} 
+                    strokeWidth={3}
+                    dot={false}
+                    name={`${config.name} ETC`}
+                    connectNulls={false}
+                  />
+                ))}
+                
+                {/* Render ETO lines for each visible crop */}
+                {cropWaterUseLineConfigs
+                  .filter(config => visibleCrops.has(config.cropId))
+                  .map((config) => (
+                  <Line 
+                    key={config.etoKey}
+                    type="monotone" 
+                    dataKey={config.etoKey}
+                    stroke={config.etoColor} 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name={`${config.name} ETO`}
+                    connectNulls={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            /* Fallback: Bar chart view when no date range selected */
+            <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
+              <BarChart data={cropComparisonData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis 
+                  dataKey="fullName" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                />
+                <YAxis 
+                  label={{ value: 'Water Use (mm/day)', angle: -90, position: 'insideLeft' }}
+                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'var(--tooltip-bg)',
+                    border: '1px solid var(--tooltip-border)',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: number, name: string) => [
+                    `${value} mm/day`,
+                    name === 'ETC' ? 'Crop ET' : 'Reference ET'
+                  ]}
+                  labelFormatter={(label) => `${label}`}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="ETC" 
+                  fill="#DC2626" 
+                  name="Crop ETC"
+                  radius={[2, 2, 0, 0]}
+                />
+                <Bar 
+                  dataKey="ETO" 
+                  fill="#16A34A" 
+                  name="Reference ETO"
+                  radius={[2, 2, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+        
+        {/* Centered AI Insights for Individual Crop Water Use */}
+        {showAIInsights && (
+          <div className="mt-6 mb-4">
+            <ChartAIInsights
+              chartType="crop-water-use"
+              chartData={cropWaterUseTimeSeriesData}
+              cropType={visibleCrops.size === 1 ? Array.from(visibleCrops)[0] : 'Mixed Crops'}
+              cropTypes={Array.from(visibleCrops)}
+              location={location?.name || 'Field Location'}
+              className="w-full"
+              compact={true}
+              enabledLineTypes={enabledLineTypes}
+            />
+          </div>
+        )}
+        
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+          {dateRange?.startDate && dateRange?.endDate ? (
+            <>
+              <p>• <strong>Time-Series View:</strong> ETC and ETO trends over the selected date range ({dateRange.startDate} to {dateRange.endDate})</p>
+              <p>• <strong>Line Types:</strong> ETC (solid lines), ETO (dashed lines) - each crop with distinct colors</p>
+              <p>• <strong>Interactive:</strong> Use crop visibility controls above to show/hide specific crops</p>
+            </>
+          ) : (
+            <>
+              <p>• <strong>Current Day View:</strong> Real-time ETC and ETO values for active crops</p>
+              <p>• <strong>Time-Series:</strong> Select a date range above to view trends over time</p>
+            </>
+          )}
+          <p>• <strong>Data Source:</strong> NOAA weather models via Open-Meteo API with FAO-56 calculations</p>
+        </div>
+        
+
+      </div>
+      )}
+
+      {/* ETC vs ETO Comparison Chart */}
+      {etcData.length > 0 && (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="text-center mb-2">
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center justify-center gap-2">
+            📈 Crop vs Reference ET Comparison
+            {location && <span className="text-sm font-normal text-gray-500">• {location.name}</span>}
+          </h4>
+        </div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          � Time Series: ETC = ETO × Kc (crop coefficient) over selected date range • Using NOAA weather data via Open-Meteo + FAO-56 standards
+        </div>
+
+        {/* Simplified Chart Controls: Crop Selection + Line Type Filters */}
+        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded border space-y-4">
+          
+          {/* Header with summary */}
+          <div className="flex items-center justify-between">
+            <h5 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <Eye className="h-4 w-4 text-blue-500" />
+              Chart Controls
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                ({visibleLines.size} lines visible)
+              </span>
+            </h5>
+          </div>
+
+          {/* Quick Presets - Multi-Select */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Quick Presets (multi-select):</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => togglePreset('etc')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.etc 
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
+              >
+                📊 ETC
+              </button>
+              <button
+                onClick={() => togglePreset('eto')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.eto 
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
+              >
+                🌡️ ETO
+              </button>
+              <button
+                onClick={() => togglePreset('kc')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.kc 
+                    ? 'border-blue-500 bg-blue-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
+              >
+                🔢 KC
+              </button>
+              <button
+                onClick={() => togglePreset('all')}
+                className={`text-xs px-3 py-1 rounded-full border transition-all duration-200 ${
+                  enabledLineTypes.etc && enabledLineTypes.eto && enabledLineTypes.kc 
+                    ? 'border-emerald-500 bg-emerald-500 text-white shadow-md' 
+                    : 'border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30'
+                }`}
+              >
+                👁️ Toggle All
+              </button>
+            </div>
+          </div>
+
+          {/* Crop Selection */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                Select Crops ({selectedCropsForLines.size}/{cropLineConfigs.length}):
+              </label>
+              <button
+                onClick={toggleAllCropsForLines}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                {selectedCropsForLines.size === cropLineConfigs.length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {cropLineConfigs.map(config => (
+                <label
+                  key={config.key}
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full border cursor-pointer transition-all text-xs ${
+                    selectedCropsForLines.has(config.key)
+                      ? 'border-blue-300 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedCropsForLines.has(config.key)}
+                    onChange={() => toggleCropSelection(config.key)}
+                    className="w-3 h-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
+                  />
+                  <span className="font-medium">
+                    {config.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Line Type Filters */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">Show Line Types:</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enabledLineTypes.etc}
+                  onChange={() => toggleLineTypeFilter('etc')}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-1"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-1 bg-blue-500 rounded"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">ETC (Crop)</span>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enabledLineTypes.eto}
+                  onChange={() => toggleLineTypeFilter('eto')}
+                  className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-1"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-1 border-dashed border-2 border-green-500"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">ETO (Reference)</span>
+                </div>
+              </label>
+              
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={enabledLineTypes.kc}
+                  onChange={() => toggleLineTypeFilter('kc')}
+                  className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 focus:ring-1"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-1 border-dotted border-2 border-orange-500"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">KC (Coefficient)</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div className="h-80 w-full" style={{ minHeight: '320px', minWidth: '360px' }}>
+          {!isChartsReady ? (
+            <div className="w-full h-full bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+              <div className="text-center text-gray-600 dark:text-gray-400">
+                <div className="text-lg mb-2">📊</div>
+                <div>Loading charts...</div>
+              </div>
+            </div>
+          ) : visibleLines.size > 0 ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={360} minHeight={320}>
+              <LineChart 
+                data={etcVsEtoData} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis 
+                  dataKey="displayDate" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                />
+                <YAxis 
+                  yAxisId="left"
+                  label={{ value: 'Water Use (mm/day)', angle: -90, position: 'insideLeft' }}
+                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                />
+                <YAxis 
+                  yAxisId="right"
+                  orientation="right"
+                  label={{ value: 'Crop Coefficient (Kc)', angle: 90, position: 'insideRight' }}
+                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                  domain={[0, 'dataMax + 0.2']}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: 'var(--tooltip-bg)',
+                    border: '1px solid var(--tooltip-border)',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: number, name: string) => {
+                    // Parse crop info from dataKey
+                    const isETC = name.includes('ETC');
+                    const isETO = name.includes('ETO');
+                    const isKC = name.includes('KC');
+                    
+                    let unit = '';
+                    let type = '';
+                    
+                    if (isETC) {
+                      unit = 'mm/day';
+                      type = 'ETC';
+                    } else if (isETO) {
+                      unit = 'mm/day'; 
+                      type = 'ETO';
+                    } else if (isKC) {
+                      unit = '';
+                      type = 'KC';
+                    }
+                    
+                    return [
+                      `${value} ${unit}`,
+                      `${name.split(' ').slice(0, -1).join(' ')} ${type}`
+                    ];
+                  }}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
+                />
+                
+                {/* Render ETC lines for each visible line */}
+                {cropLineConfigs
+                  .filter(config => visibleLines.has(config.etcKey))
+                  .map((config) => (
+                  <Line 
+                    key={config.etcKey}
+                    type="monotone" 
+                    dataKey={config.etcKey}
+                    yAxisId="left"
+                    stroke={config.etcColor} 
+                    strokeWidth={3}
+                    dot={false}
+                    name={`${config.name} ETC`}
+                    connectNulls={false}
+                  />
+                ))}
+                
+                {/* Render ETO lines for each visible line */}
+                {cropLineConfigs
+                  .filter(config => visibleLines.has(config.etoKey))
+                  .map((config) => (
+                  <Line 
+                    key={config.etoKey}
+                    type="monotone" 
+                    dataKey={config.etoKey}
+                    yAxisId="left"
+                    stroke={config.etoColor} 
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                    name={`${config.name} ETO`}
+                    connectNulls={false}
+                  />
+                ))}
+                
+                {/* Render KC lines for each visible line */}
+                {cropLineConfigs
+                  .filter(config => visibleLines.has(config.kcKey))
+                  .map((config) => (
+                  <Line 
+                    key={config.kcKey}
+                    type="monotone" 
+                    dataKey={config.kcKey}
+                    yAxisId="right"
+                    stroke={config.kcColor} 
+                    strokeWidth={2}
+                    strokeDasharray="2 2"
+                    dot={false}
+                    name={`${config.name} KC`}
+                    connectNulls={false}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-700 rounded">
+              <div className="text-center text-gray-500 dark:text-gray-400">
+                <EyeOff className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No lines selected for comparison</p>
+                <p className="text-xs mt-1">Select individual lines above to view ET comparison over time</p>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* AI Insights - Full Width */}
+        {showAIInsights && (
+          <div className="mt-6 mb-4">
+            <ChartAIInsights
+              chartType="etc-comparison"
+              chartData={etcVsEtoData}
+            cropType={visibleCrops.size === 1 ? Array.from(visibleCrops)[0] : 'Mixed Crops'}
+            cropTypes={Array.from(visibleCrops)}
+            location={location?.name || 'Field Location'}
+              className="w-full"
+              compact={true}
+              enabledLineTypes={enabledLineTypes}
+            />
+          </div>
+        )}
+        
+        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+          <p>• <strong>Time Series:</strong> Shows ETC, ETO, and KC values over the selected date range</p>
+          <p>• <strong>Line Types:</strong> ETC (solid), ETO (dashed), KC (dotted) - each with distinct colors</p>
+          <p>• <strong>Dual Y-Axis:</strong> Left axis for water use (mm/day), right axis for crop coefficient</p>
+          <p>• <strong>Data Source:</strong> NOAA weather models via Open-Meteo API with FAO-56 calculations</p>
+        </div>
+        
+
+      </div>
+      )}
+
+      {/* Detailed Crop Table - Comprehensive ET Summary */}
+      {etcData.length > 0 && (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+          � Comprehensive ET Summary - All Locations
+        </h4>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+          Real-time calculations using current weather conditions and scientifically-validated crop coefficients
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 border-r border-gray-300 dark:border-gray-600">
+                  Location
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Kc
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  ET₀ (in)
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  ETc (in)
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  Water Need
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {(() => {
+                const targetLocations = location ? [location] : locations;
+                const filteredCrops = cropInstances.filter(crop => 
+                  targetLocations.some(loc => loc.id === crop.locationId) &&
+                  visibleCrops.has(crop.cropId)
+                );
+
+                return targetLocations.map((loc, locIdx) => {
+                  const weather = loc.weatherData;
+                  if (!weather || !weather.daily) return null;
+
+                  const locationCrops = filteredCrops.filter(crop => crop.locationId === loc.id);
+                  if (locationCrops.length === 0) return null;
+
+                  // Use the first crop's data (assuming same dates for all crops at location)
+                  const crop = locationCrops[0];
+                  const kc = getCropCoefficient(crop.cropId, crop.currentStage);
+
+                  // Get date range (show next 7 days)
+                  const today = new Date().toISOString().split('T')[0];
+                  const startIdx = weather.daily.time.findIndex((d: string) => d >= today);
+                  const dateRows = [];
+
+                  for (let i = startIdx; i < Math.min(startIdx + 7, weather.daily.time.length); i++) {
+                    const date = weather.daily.time[i];
+                    const et0_inches = weather.daily.et0_fao_evapotranspiration?.[i] || 0; // API already returns in inches
+                    const etc_inches = et0_inches * kc;
+
+                    let waterNeedCategory = 'Low';
+                    if (etc_inches > 0.25) waterNeedCategory = 'High';
+                    else if (etc_inches >= 0.15) waterNeedCategory = 'Med';
+
+                    dateRows.push({
+                      date,
+                      kc,
+                      et0: et0_inches,
+                      etc: etc_inches,
+                      waterNeed: waterNeedCategory
+                    });
+                  }
+
+                  return (
+                    <React.Fragment key={loc.id}>
+                      {dateRows.map((row, dateIdx) => (
+                        <tr 
+                          key={`${loc.id}-${row.date}`}
+                          className={locIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50'}
+                        >
+                          {dateIdx === 0 ? (
+                            <td 
+                              rowSpan={dateRows.length}
+                              className="px-4 py-2 text-sm font-semibold text-gray-900 dark:text-white sticky left-0 bg-blue-50 dark:bg-blue-900/20 border-r border-gray-300 dark:border-gray-600 align-top"
+                            >
+                              <div className="flex items-center">
+                                <svg className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span>{loc.name}</span>
+                              </div>
+                            </td>
+                          ) : null}
+                          
+                          <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
+                            {new Date(row.date + 'T12:00:00').toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              weekday: 'short'
+                            })}
+                          </td>
+                          
+                          <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
+                            {row.kc.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-center text-gray-900 dark:text-white font-mono">
+                            {row.et0.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
+                            {row.etc.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 text-sm text-center font-semibold">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              row.waterNeed === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                              row.waterNeed === 'Med' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            }`}>
+                              {row.waterNeed}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                });
+              })()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      )}
+    </div>
+  );
+};
+
+export default CropETCCharts;

@@ -1,0 +1,47 @@
+/*
+  X-Content-Type-Options: nosniff
+
+/*.js
+  Content-Type: text/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.mjs  
+  Content-Type: text/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.ts
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.jsx
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.tsx
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.css
+  Content-Type: text/css; charset=utf-8
+
+/*.html
+  Content-Type: text/html; charset=utf-8
+
+/*.json
+  Content-Type: application/json; charset=utf-8
+
+/*.woff2
+  Content-Type: font/woff2
+  Cache-Control: public, max-age=31536000
+
+/*.woff
+  Content-Type: font/woff
+  Cache-Control: public, max-age=31536000
+
+/*.ttf
+  Content-Type: font/ttf
+  Cache-Control: public, max-age=31536000
+
+/*.otf
+  Content-Type: font/otf
+  Cache-Control: public, max-age=31536000

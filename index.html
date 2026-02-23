@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    
+    <!-- Cache busting headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
+    <!-- Security and CORS headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:; style-src 'self' 'unsafe-inline' data: blob: https:; img-src 'self' data: blob: https:; font-src 'self' data: blob: https:; connect-src 'self' data: blob: https: wss:; worker-src 'self' data: blob:;">
+    
+    <!-- Ensure proper module loading -->
+    <script>
+      // Fallback for module loading issues
+      if (!('noModule' in HTMLScriptElement.prototype)) {
+        document.documentElement.classList.add('no-modules');
+      }
+    </script>
+    
+    <title>ET Weather - Live</title>
+    
+    <!-- Debug script for troubleshooting -->
+    <script src="./debug-localStorage.js"></script>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Loading fallback -->
+      <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, -apple-system, sans-serif;">
+        <div style="text-align: center;">
+          <div style="font-size: 18px; margin-bottom: 8px;">Loading ET Weather...</div>
+          <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 2s linear infinite; margin: 0 auto;"></div>
+        </div>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
+    <script type="module" src="./src/main.tsx"></script>
+    
+    <!-- Error handling for module loading -->
+    <script>
+      window.addEventListener('error', function(e) {
+        if (e.message && e.message.includes('module script')) {
+          console.error('Module loading error detected:', e.message);
+          // Reload once to try again
+          if (!sessionStorage.getItem('moduleRetry')) {
+            sessionStorage.setItem('moduleRetry', 'true');
+            location.reload();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

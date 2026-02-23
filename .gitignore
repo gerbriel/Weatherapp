@@ -1,0 +1,51 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Debug/Migration SQL files with sensitive data
+*.sql
+!supabase/migrations/20*.sql
+# Exclude all standalone debug SQL files
+confirm-email-manually.sql
+debug-*.sql
+diagnose-*.sql
+disable-*.sql
+fix-*.sql
+reset-*.sql
+verify-*.sql
+check-*.sql
+MAKE_ME_SUPERUSER.sql
+
+# Debug markdown documentation with sensitive data
+MIGRATION_INSTRUCTIONS.md
+WORKAROUND_TEST.md
+FRESH_START_INSTRUCTIONS.md
+FIXES_APPLIED.md
+PASSWORD_RESET_SETUP.md

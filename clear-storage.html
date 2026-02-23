@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear ET Weather Storage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1e293b;
+            color: white;
+        }
+        button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #dc2626;
+        }
+        .success {
+            background: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+        .info {
+            background: #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧹 Clear ET Weather Storage</h1>
+    <div class="info">
+        <strong>This will clear:</strong>
+        <ul>
+            <li>All saved locations (weatherLocations)</li>
+            <li>Weather cache data (weather_cache)</li>
+            <li>Trial mode settings</li>
+        </ul>
+        <p>After clearing, refresh your app to load the new 3-location default set.</p>
+    </div>
+    
+    <button onclick="clearStorage()">Clear All Storage</button>
+    <button onclick="clearWeatherOnly()">Clear Weather Cache Only</button>
+    
+    <div class="success" id="success">
+        ✅ Storage cleared successfully! Please refresh your app now.
+    </div>
+    
+    <script>
+        function clearStorage() {
+            localStorage.removeItem('weatherLocations');
+            localStorage.removeItem('weather_cache');
+            localStorage.removeItem('etweather_trial_mode');
+            localStorage.removeItem('etweather_trial_locations');
+            document.getElementById('success').style.display = 'block';
+        }
+        
+        function clearWeatherOnly() {
+            localStorage.removeItem('weather_cache');
+            document.getElementById('success').style.display = 'block';
+            document.getElementById('success').innerHTML = '✅ Weather cache cleared! Refresh your app.';
+        }
+    </script>
+</body>
+</html>
