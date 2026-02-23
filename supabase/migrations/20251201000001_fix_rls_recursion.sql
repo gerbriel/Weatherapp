@@ -17,6 +17,7 @@ DROP POLICY IF EXISTS "Users can view organization members based on role" ON org
 -- CRITICAL FIX: Allow users to view their own profile
 -- =====================================================
 -- This is the most important policy - users MUST be able to see their own profile
+DROP POLICY IF EXISTS "Users can view their own profile" ON user_profiles;
 CREATE POLICY "Users can view their own profile" ON user_profiles
 FOR SELECT TO authenticated
 USING (id = auth.uid());
@@ -24,6 +25,7 @@ USING (id = auth.uid());
 -- =====================================================
 -- Allow users to view profiles in their organization
 -- =====================================================
+DROP POLICY IF EXISTS "Users can view org profiles" ON user_profiles;
 CREATE POLICY "Users can view org profiles" ON user_profiles
 FOR SELECT TO authenticated
 USING (
@@ -45,11 +47,13 @@ USING (
 -- =====================================================
 -- UPDATE POLICIES
 -- =====================================================
+DROP POLICY IF EXISTS "Users can update own profile" ON user_profiles;
 CREATE POLICY "Users can update own profile" ON user_profiles
 FOR UPDATE TO authenticated
 USING (id = auth.uid())
 WITH CHECK (id = auth.uid());
 
+DROP POLICY IF EXISTS "Superusers can update any profile" ON user_profiles;
 CREATE POLICY "Superusers can update any profile" ON user_profiles
 FOR UPDATE TO authenticated
 USING (
@@ -70,6 +74,7 @@ WITH CHECK (
 -- =====================================================
 -- ORGANIZATION POLICIES
 -- =====================================================
+DROP POLICY IF EXISTS "Users can view their organizations" ON organizations;
 CREATE POLICY "Users can view their organizations" ON organizations
 FOR SELECT TO authenticated
 USING (
@@ -88,6 +93,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Users can view org members" ON organization_members;
 CREATE POLICY "Users can view org members" ON organization_members
 FOR SELECT TO authenticated
 USING (

@@ -5,7 +5,7 @@
 -- ============================================
 -- CRITICAL: Enable RLS on location_crops table
 -- ============================================
-ALTER TABLE public.location_crops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_crops ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- PERFORMANCE: Optimize RLS policies with subqueries

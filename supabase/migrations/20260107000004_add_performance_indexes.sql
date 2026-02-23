@@ -23,10 +23,10 @@ CREATE INDEX IF NOT EXISTS idx_user_locations_user_id
 -- INDEX: location_crops for common queries
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_location_crops_location_id 
-  ON public.location_crops(location_id);
+  ON public.user_crops(location_id);
 
 CREATE INDEX IF NOT EXISTS idx_location_crops_user_lookup 
-  ON public.location_crops(location_id, crop_id);
+  ON public.user_crops(location_id, variety_id);
 
 -- ============================================
 -- INDEX: user_profiles for auth lookups
@@ -40,7 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_email
 -- ============================================
 ANALYZE public.user_settings;
 ANALYZE public.user_locations;
-ANALYZE public.location_crops;
+ANALYZE public.user_crops;
 ANALYZE public.user_profiles;
 
 -- ============================================

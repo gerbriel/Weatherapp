@@ -14,9 +14,14 @@ CREATE INDEX IF NOT EXISTS idx_user_locations_sort ON user_locations(user_id, so
 CREATE INDEX IF NOT EXISTS idx_user_locations_favorite ON user_locations(user_id, is_favorite) WHERE is_favorite = true;
 
 -- Update existing locations to have a default sort order
-UPDATE user_locations 
-SET sort_order = row_number() OVER (PARTITION BY user_id ORDER BY created_at)
-WHERE sort_order = 0;
+UPDATE user_locations ul
+SET sort_order = sub.rn
+FROM (
+  SELECT id, row_number() OVER (PARTITION BY user_id ORDER BY created_at) AS rn
+  FROM user_locations
+  WHERE sort_order = 0
+) sub
+WHERE ul.id = sub.id;
 
 COMMENT ON COLUMN user_locations.is_favorite IS 'Whether this location is marked as a favorite by the user';
 COMMENT ON COLUMN user_locations.sort_order IS 'User-defined sort order for organizing locations';

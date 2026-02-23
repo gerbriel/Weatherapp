@@ -8,48 +8,48 @@
 -- ============================================
 
 -- Drop existing policies
-DROP POLICY IF EXISTS "Users can view crops for their locations" ON public.location_crops;
-DROP POLICY IF EXISTS "Users can insert crops for their locations" ON public.location_crops;
-DROP POLICY IF EXISTS "Users can update crops for their locations" ON public.location_crops;
-DROP POLICY IF EXISTS "Users can delete crops for their locations" ON public.location_crops;
+DROP POLICY IF EXISTS "Users can view crops for their locations" ON public.user_crops;
+DROP POLICY IF EXISTS "Users can insert crops for their locations" ON public.user_crops;
+DROP POLICY IF EXISTS "Users can update crops for their locations" ON public.user_crops;
+DROP POLICY IF EXISTS "Users can delete crops for their locations" ON public.user_crops;
 
 -- Recreate with optimized auth.uid() calls
-CREATE POLICY "Users can view crops for their locations" ON public.location_crops
+CREATE POLICY "Users can view crops for their locations" ON public.user_crops
   FOR SELECT
   USING (
     EXISTS (
       SELECT 1 FROM public.user_locations
-      WHERE user_locations.id = location_crops.location_id
+      WHERE user_locations.id = user_crops.location_id
       AND user_locations.user_id = (SELECT auth.uid())
     )
   );
 
-CREATE POLICY "Users can insert crops for their locations" ON public.location_crops
+CREATE POLICY "Users can insert crops for their locations" ON public.user_crops
   FOR INSERT
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.user_locations
-      WHERE user_locations.id = location_crops.location_id
+      WHERE user_locations.id = user_crops.location_id
       AND user_locations.user_id = (SELECT auth.uid())
     )
   );
 
-CREATE POLICY "Users can update crops for their locations" ON public.location_crops
+CREATE POLICY "Users can update crops for their locations" ON public.user_crops
   FOR UPDATE
   USING (
     EXISTS (
       SELECT 1 FROM public.user_locations
-      WHERE user_locations.id = location_crops.location_id
+      WHERE user_locations.id = user_crops.location_id
       AND user_locations.user_id = (SELECT auth.uid())
     )
   );
 
-CREATE POLICY "Users can delete crops for their locations" ON public.location_crops
+CREATE POLICY "Users can delete crops for their locations" ON public.user_crops
   FOR DELETE
   USING (
     EXISTS (
       SELECT 1 FROM public.user_locations
-      WHERE user_locations.id = location_crops.location_id
+      WHERE user_locations.id = user_crops.location_id
       AND user_locations.user_id = (SELECT auth.uid())
     )
   );
