@@ -122,7 +122,10 @@ export const TrialDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'reports'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'reports'>(() => {
+    const saved = localStorage.getItem('current_view');
+    return (saved === 'reports' ? 'reports' : 'overview') as 'overview' | 'reports';
+  });
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   
   // Load selected crops from localStorage on mount
@@ -203,6 +206,11 @@ export const TrialDashboard: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('crop_instances', JSON.stringify(cropInstances));
   }, [cropInstances]);
+
+  // Persist current view tab so refresh restores the same tab
+  useEffect(() => {
+    localStorage.setItem('current_view', currentView);
+  }, [currentView]);
 
   // Save selected location ID to localStorage whenever it changes
   useEffect(() => {
