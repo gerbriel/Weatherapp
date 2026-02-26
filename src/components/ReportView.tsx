@@ -340,7 +340,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   // Fetch CMIS data for a specific location with retry logic
-  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 1) => {
+  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 2) => {
     const location = displayLocations.find(loc => loc.id === locationId);
     if (!location) return;
     
@@ -357,9 +357,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
       });
     }
     
-    // Add timeout to prevent hanging (8 seconds - give server more time)
+    // Add timeout to prevent hanging (15 seconds)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('CIMIS request timeout')), 8000)
+      setTimeout(() => reject(new Error('CIMIS request timeout')), 15000)
     );
     
     try {
@@ -413,13 +413,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
         throw new Error('No CIMIS station found');
       }
     } catch (error) {
-      // Silently handle CIMIS failures - service is blocked by WAF
-      // App continues to work using Open-Meteo data
-      
       // Retry if we haven't exceeded max retries
       if (retryCount < maxRetries) {
-        // Wait longer before retrying (2-4 seconds to give server breathing room)
-        const delay = 2000 * (retryCount + 1);
+        // Wait before retrying (1s, 2s, ...)
+        const delay = 1000 * (retryCount + 1);
         await new Promise(resolve => setTimeout(resolve, delay));
         return fetchLocationCMISData(locationId, retryCount + 1, maxRetries);
       } else {
@@ -1711,6 +1708,34 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           id={`weekly-summary-${cropId}`}
                           data-version="3.0"
                           defaultValue={cropWeeklySummaries?.[cropId] ?? ''}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Tab') {
+                              e.preventDefault();
+                              const target = e.target as HTMLTextAreaElement;
+                              const start = target.selectionStart;
+                              const end = target.selectionEnd;
+                              const indent = '    '; // 4 spaces
+                              if (e.shiftKey) {
+                                // Shift+Tab: remove leading 4 spaces from current line
+                                const lineStart = target.value.lastIndexOf('\n', start - 1) + 1;
+                                if (target.value.substring(lineStart, lineStart + 4) === indent) {
+                                  target.value = target.value.substring(0, lineStart) + target.value.substring(lineStart + 4);
+                                  target.selectionStart = Math.max(lineStart, start - 4);
+                                  target.selectionEnd = Math.max(lineStart, end - 4);
+                                }
+                              } else {
+                                // Tab: insert 4 spaces at cursor
+                                target.value = target.value.substring(0, start) + indent + target.value.substring(end);
+                                target.selectionStart = target.selectionEnd = start + 4;
+                              }
+                              // Trigger onChange so parent state updates
+                              const updatedSummaries = {
+                                ...cropWeeklySummaries,
+                                [cropId]: target.value
+                              };
+                              onCropWeeklySummariesChange(updatedSummaries);
+                            }
+                          }}
                           onBlur={(e) => {
                             const updatedSummaries = {
                               ...cropWeeklySummaries,
