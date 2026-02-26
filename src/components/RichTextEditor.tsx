@@ -104,7 +104,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white overflow-auto"
-        style={{ minHeight }}
+        style={{ minHeight, resize: 'vertical' }}
         data-placeholder={placeholder}
       />
 

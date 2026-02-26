@@ -747,6 +747,16 @@ export async function exportChartsAsHTML(
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
   const chartDataMap = generateComprehensiveChartUrls(locations, selectedCrops, cropInstances);
   
+  // Helper: convert contentEditable HTML (with &nbsp; indentation) to email-safe HTML
+  // Replaces groups of 4 &nbsp; (one Tab press) with a proper inline padding span
+  const sanitizeRichText = (html: string): string => {
+    return html
+      .replace(/\{first name\}/gi, '%%First Name%%')
+      // Replace each run of 4 &nbsp; with a 2em indent span (email-safe)
+      .replace(/(&nbsp;){4}/g, '<span style="display:inline-block;width:2em">&nbsp;</span>')
+      // Any leftover isolated &nbsp; pairs stay as-is (they still render as spaces)
+  };
+  
   // Helper function to get insights for a specific location
   const getLocationInsights = (locationId: string) => {
     if (!additionalData?.insights) return null;
@@ -1032,7 +1042,7 @@ export async function exportChartsAsHTML(
       </div>
       ${additionalData?.waterUseNotes ? `
       <div style="max-width: 800px; margin: 30px auto 20px; padding: 0;">
-        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.waterUseNotes.replace(/\{first name\}/gi, '%%First Name%%')}</div>
+        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${sanitizeRichText(additionalData.waterUseNotes)}</div>
       </div>
       ` : ''}
       <div style="max-width: 800px; margin: 40px auto; padding: 0;">
@@ -1255,6 +1265,7 @@ export async function exportChartsAsHTML(
                 let etc_actual_sum = 0; // Sum of daily ETc (ET₀ × Kc per day)
                 let etc_forecast_sum = 0; // Sum of daily ETc forecast
                 let kc_values_set = new Set<number>(); // Track unique Kc values
+                let et0_forecast_by_month = new Map<number, number>(); // month → ET₀ forecast sum
 
                 // Get crop data for monthly Kc lookup
                 const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropInstance.cropId);
@@ -1283,6 +1294,10 @@ export async function exportChartsAsHTML(
                     et0_forecast_sum += et0_forecast_inches;
                     const dailyEtc = et0_forecast_inches * dailyKc;
                     etc_forecast_sum += dailyEtc;
+                    
+                    // Track ET₀ by month for split display when Kc differs across months
+                    const dayMonth = new Date(day.date + 'T12:00:00').getMonth() + 1;
+                    et0_forecast_by_month.set(dayMonth, (et0_forecast_by_month.get(dayMonth) || 0) + et0_forecast_inches);
                   }
 
                   // Sum actual ET₀ and ETc for dates BEFORE the reference date (past days from CIMIS)
@@ -1302,6 +1317,14 @@ export async function exportChartsAsHTML(
                 const kc_display = kc_values_array.length === 1 
                   ? kc_values_array[0].toFixed(2)
                   : `${kc_values_array[0].toFixed(2)} - ${kc_values_array[kc_values_array.length - 1].toFixed(2)}`;
+
+                // ET₀ forecast display — split by month when Kc differs across months
+                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                let et0_forecast_display = et0_forecast_sum.toFixed(2);
+                if (kc_values_array.length > 1 && et0_forecast_by_month.size > 1) {
+                  const sortedMonths = Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]);
+                  et0_forecast_display = sortedMonths.map(([month, val]) => `${monthNames[month - 1]}: ${val.toFixed(2)}`).join(', ');
+                }
 
                 const hasActualData = actualDaysCount > 0;
 
@@ -1328,7 +1351,7 @@ export async function exportChartsAsHTML(
                     <td style="color: #353750; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
                     <td style="color: #0A7DD6; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
                     <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${kc_display}</td>
-                    <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_sum.toFixed(2)}</td>
+                    <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_display}</td>
                     <td style="color: #0EA5E9; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${etc_forecast_sum.toFixed(2)}</td>
                     <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
                       <span style="background-color: ${waterNeedBg}; color: ${waterNeedColor}; padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
@@ -1578,7 +1601,7 @@ export async function exportChartsAsHTML(
   htmlContent += `
       ${additionalData?.closingMessage ? `
       <div style="max-width: 800px; margin: 40px auto 30px; padding: 0;">
-        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.closingMessage.replace(/\{first name\}/gi, '%%First Name%%')}</div>
+        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${sanitizeRichText(additionalData.closingMessage)}</div>
       </div>
       ` : ''}
       </div>

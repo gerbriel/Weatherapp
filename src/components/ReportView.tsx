@@ -1340,6 +1340,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let etc_forecast_by_kc = new Map<number, number>();
                               let etc_actual_by_kc = new Map<number, number>();
                               
+                              // Track ET₀ forecast sums per month (for split display when Kc differs across months)
+                              let et0_forecast_by_month = new Map<number, number>(); // month → et0 sum
+                              
                               const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                               
                               // Determine the reference date for splitting actuals vs forecasts
@@ -1382,6 +1385,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   
                                   // Track ETc by Kc value for range display
                                   etc_forecast_by_kc.set(dailyKc, (etc_forecast_by_kc.get(dailyKc) || 0) + dailyEtc);
+                                  
+                                  // Track ET₀ by month (for split display when Kc differs across months)
+                                  et0_forecast_by_month.set(dateMonth, (et0_forecast_by_month.get(dateMonth) || 0) + et0_forecast);
                                   
                                   forecastDates.push(date);
                                 }
@@ -1426,6 +1432,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 const sortedKcs = kc_values_array.sort((a, b) => a - b);
                                 const etcValues = sortedKcs.map(kc => etc_forecast_by_kc.get(kc) || 0);
                                 etc_forecast_display = `(${etcValues.map(v => v.toFixed(2)).join(', ')})`;
+                              }
+                              
+                              // Format ET₀ forecast display - split by month when Kc differs across months
+                              let et0_forecast_display = et0_forecast_sum.toFixed(2);
+                              if (kc_values_array.length > 1 && et0_forecast_by_month.size > 1) {
+                                // Show ET₀ per month in order
+                                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                const sortedMonths = Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]);
+                                et0_forecast_display = sortedMonths.map(([month, val]) => `${monthNames[month - 1]}: ${val.toFixed(2)}`).join(', ');
                               }
                               
                               // Format ETc actual display - show as range if multiple Kc values
@@ -1521,7 +1536,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   
                                   {/* ET₀ Forecast */}
                                   <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                    {et0_forecast_sum.toFixed(2)}
+                                    {et0_forecast_display}
                                   </td>
                                   
                                   {/* ETc Forecast */}
