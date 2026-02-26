@@ -757,12 +757,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Always Visible Location Filter Controls */}
-      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex flex-col gap-3 w-full">
-            <div className="flex items-center gap-4">
+      <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex flex-col gap-2 w-full">
+            <div className="flex items-center gap-3">
               <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Select Locations:
@@ -867,7 +867,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </label>
             </div>
             
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 <input
                   type="checkbox"
@@ -907,9 +907,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-3">
         {/* Report Mode Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-3">
           <ReportModeToggle 
             mode={reportMode}
             onModeChange={handleReportModeChange}
@@ -928,8 +928,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
               isLoading={isLoadingHistorical}
             />
           ) : reportMode === 'future' ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+              <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-green-500" />
                 Future Report Configuration
               </h4>
@@ -960,7 +960,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </div>
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 flex items-center justify-center">
               <div className="text-center text-gray-500 dark:text-gray-400">
                 <TrendingUp className="h-8 w-8 mx-auto mb-2 text-green-500" />
                 <div className="text-sm font-medium">Live Data Mode</div>
@@ -973,10 +973,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </div>
 
         {/* Data Sources Information Panel */}
-        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 mb-6 overflow-hidden">
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700 mb-3 overflow-hidden">
           <button
             onClick={() => toggleSectionCollapse('dataSourcesApis')}
-            className="w-full px-4 py-3 flex items-center justify-between hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            className="w-full px-3 py-2 flex items-center justify-between hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
           >
             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 flex items-center gap-2">
               📡 Data Sources & APIs
@@ -1039,18 +1039,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
       {/* Comprehensive Water Use Data Tables by Crop */}
       {locationsWithWeather.length > 0 && (
-        <div className="mb-6 space-y-6">
+        <div className="mb-3 space-y-3">
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden">
             <button
               onClick={() => toggleSectionCollapse('waterUseData')}
-              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-750"
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-750"
             >
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                  <Droplets className="h-6 w-6 mr-2 text-blue-600 dark:text-blue-400" />
+                <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center">
+                  <Droplets className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                   Comprehensive Water Use Data by Crop
                 </h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
                   Detailed Kc, ET₀, ETc, and irrigation needs for all locations and dates
                 </p>
               </div>
@@ -1062,7 +1062,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             </button>
             
             {!collapsedSections.has('waterUseData') && (
-              <div className="p-6 space-y-8">
+              <div className="p-3 space-y-4">
               {/* Introduction message field for email */}
               <RichTextEditor
                 value={waterUseNotes}
@@ -1070,18 +1070,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 label="Introduction Message"
                 placeholder="Write an introduction message for your irrigation report email. Example: 'This week's irrigation report shows water needs for all locations. Please review the recommendations and adjust schedules accordingly.'"
                 helperText="This message will be included in the HTML email export sent via Marketing Cloud."
-                minHeight="150px"
+                minHeight="100px"
               />
               
               {/* Closing message field for email */}
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <RichTextEditor
                   value={closingMessage}
                   onChange={setClosingMessage}
                   label="Closing Message / Signature"
                   placeholder="Add a closing message, P.S., or email signature. Example: 'Best regards, Your Irrigation Team'"
                   helperText="This message will be saved automatically and appear at the bottom of the email."
-                  minHeight="120px"
+                  minHeight="80px"
                 />
               </div>
               
@@ -1176,10 +1176,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
                   return (
                     <div key={`${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`} className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 px-3 py-2 border-b border-gray-200 dark:border-gray-700">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                            <Sprout className="h-5 w-5 mr-2 text-green-600 dark:text-green-400" />
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-white flex items-center">
+                            <Sprout className="h-4 w-4 mr-1.5 text-green-600 dark:text-green-400" />
                             {cropName}
                           </h3>
                           
@@ -1647,8 +1647,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                         if (chartData.length === 0) return null;
                         
                         return (
-                          <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-                            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                          <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
                               <TrendingUp className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
                               Average ETc Across All Locations
                             </h4>
@@ -1697,10 +1697,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       })()}
                       
                       {/* Weekly Summary Input Field */}
-                      <div className="p-4 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-600">
+                      <div className="p-3 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-600">
                         <label 
                           htmlFor={`weekly-summary-${cropId}`}
-                          className="block text-sm font-medium text-gray-900 dark:text-white mb-2"
+                          className="block text-xs font-medium text-gray-900 dark:text-white mb-1"
                         >
                           Weekly Summary
                         </label>
@@ -1754,10 +1754,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
               })()}
               
               {/* Comprehensive Export Button */}
-              <div className="flex justify-center pt-6">
+              <div className="flex justify-center pt-3">
                 <button
                   onClick={() => setIsExportModalOpen(true)}
-                  className="flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white text-base font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+                  className="flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
                 >
                   <Settings className="h-5 w-5 mr-2" />
                   Comprehensive Export
@@ -1771,18 +1771,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
       {/* Custom view when no location is selected */}
       {selectedLocationIds.size === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 mb-6 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-3 text-center">
           <div className="max-w-md mx-auto">
-            <MapPin className="h-16 w-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+            <MapPin className="h-10 w-10 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">
               Select a Location to View Weather Data
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
               Choose a specific location from the dropdown above to see detailed weather forecasts, 
               charts, and agricultural data for that area.
             </p>
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 dark:text-white mb-2">Available Options:</h4>
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+              <h4 className="font-medium text-gray-900 dark:text-white mb-1 text-sm">Available Options:</h4>
               <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <li>• Select a specific location for detailed weather data</li>
                 <li>• Check "All Locations" to compare multiple areas</li>
@@ -1866,107 +1866,104 @@ export const ReportView: React.FC<ReportViewProps> = ({
               key={`${location.id}-${reportMode}-${forecastPreset}-${futureStartDate}`}
               className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden"
             >
-              {/* Location Header */}
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-750">
+              {/* Location Header - trial */}
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-750">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center gap-2 flex-1">
                     {/* Collapse/Expand Button */}
                     <button
                       onClick={() => toggleLocationCollapse(location.id)}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-0.5"
                       title={isCollapsed ? "Expand section" : "Collapse section"}
                     >
                       {isCollapsed ? (
-                        <ChevronDown className="h-5 w-5" />
+                        <ChevronDown className="h-4 w-4" />
                       ) : (
-                        <ChevronUp className="h-5 w-5" />
+                        <ChevronUp className="h-4 w-4" />
                       )}
                     </button>
                     
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                        <MapPin className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                        <MapPin className="h-4 w-4 mr-1.5 text-blue-600 dark:text-blue-400" />
                         {location.name || 'Unknown Location'}
                       </h3>
-                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          NOAA Weather Data (GFS Global & NAM CONUS via Open-Meteo API)
-                        </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        NOAA Weather Data (GFS Global & NAM CONUS via Open-Meteo API)
                       </div>
                     </div>
                     
                     {/* Weather Stats in Header */}
-                    <div className="hidden lg:flex items-center gap-3">
+                    <div className="hidden lg:flex items-center gap-2">
                       {/* High */}
                       <div className="text-center">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Thermometer className="h-3 w-3 text-red-500" />
                           <span>HIGH</span>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {todayData.tempMax}°F
                         </div>
                       </div>
                       
                       {/* Low */}
                       <div className="text-center">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Thermometer className="h-3 w-3 text-blue-500" />
                           <span>LOW</span>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {todayData.tempMin}°F
                         </div>
                       </div>
                       
                       {/* Precip */}
                       <div className="text-center">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Droplets className="h-3 w-3 text-blue-500" />
                           <span>PRECIP</span>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {todayData.precipitation} in
                         </div>
                       </div>
                       
                       {/* ET₀ */}
                       <div className="text-center">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Gauge className="h-3 w-3 text-green-500" />
                           <span>ET₀</span>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {Number(todayData.et0).toFixed(2)} in
                         </div>
                       </div>
                       
                       {/* ET₀ Sum */}
                       <div className="text-center">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Gauge className="h-3 w-3 text-green-600" />
                           <span>ET₀ SUM</span>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {Number(todayData.et0_sum).toFixed(2)} in
                         </div>
                       </div>
                       
                       {/* ETC Actual */}
                       <div className="text-center">
-                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <TrendingUp className="h-3 w-3 text-green-500" />
                           <span>ETC ACTUAL</span>
                         </div>
-                        <div className="text-lg font-bold text-gray-900 dark:text-white">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white">
                           {getETCDisplayText(location, todayData.date)}
                         </div>
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div className="text-xs font-medium text-gray-900 dark:text-white">
                       Location {locationIndex + 1} of {displayLocations.length}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -1991,77 +1988,77 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 </div>
               )}
               
-              {/* Today's Metrics Grid */}
-              <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
-                <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2" />
+              {/* Today's Metrics Grid - trial */}
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/50">
+                <h4 className="text-xs font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                  <Calendar className="h-3 w-3 mr-1" />
                   {reportMode === 'current' ? "Today's Weather Stats" : 
                    reportMode === 'future' ? "Future Period Start Stats" : 
                    "Period Start Weather Stats"}
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                   {/* High Temp */}
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center mb-2">
-                      <Thermometer className="h-4 w-4 text-red-500 mr-1" />
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-1">
+                      <Thermometer className="h-3 w-3 text-red-500 mr-1" />
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">High</span>
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">
                       {todayData.tempMax}°F
                     </div>
                   </div>
 
                   {/* Low Temp */}
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center mb-2">
-                      <Thermometer className="h-4 w-4 text-blue-500 mr-1" />
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-1">
+                      <Thermometer className="h-3 w-3 text-blue-500 mr-1" />
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Low</span>
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">
                       {todayData.tempMin}°F
                     </div>
                   </div>
 
                   {/* Precipitation */}
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center mb-2">
-                      <Droplets className="h-4 w-4 text-blue-500 mr-1" />
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-1">
+                      <Droplets className="h-3 w-3 text-blue-500 mr-1" />
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Precip</span>
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">
                       {todayData.precipitation} in
                     </div>
                   </div>
 
                   {/* ET₀ Daily */}
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center mb-2">
-                      <Gauge className="h-4 w-4 text-green-500 mr-1" />
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-1">
+                      <Gauge className="h-3 w-3 text-green-500 mr-1" />
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀</span>
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {Number(todayData.et0).toFixed(2)} inches
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">
+                      {Number(todayData.et0).toFixed(2)} in
                     </div>
                   </div>
 
                   {/* ET₀ Sum */}
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center mb-2">
-                      <Gauge className="h-4 w-4 text-green-600 mr-1" />
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-1">
+                      <Gauge className="h-3 w-3 text-green-600 mr-1" />
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀ Sum</span>
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
-                      {Number(todayData.et0_sum).toFixed(2)} inches
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">
+                      {Number(todayData.et0_sum).toFixed(2)} in
                     </div>
                   </div>
 
                   {/* ETC Actual */}
-                  <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center mb-2">
-                      <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center mb-1">
+                      <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
                       <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
                     </div>
-                    <div className="text-lg font-bold text-gray-900 dark:text-white">
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">
                       {getETCDisplayText(location, todayData.date)}
                     </div>
                   </div>
@@ -2069,11 +2066,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </div>
 
               {/* Forecast Table */}
-              <div className="p-6">
-                <div className="text-center mb-2">
-                  <h4 className="text-md font-medium text-gray-900 dark:text-white">
+              <div className="p-3">
+                <div className="text-center mb-1">
+                  <h4 className="text-xs font-medium text-gray-900 dark:text-white">
                     <div className="flex items-center gap-1">
-                      <TrendingUp className="h-4 w-4" />
+                      <TrendingUp className="h-3 w-3" />
                       {reportMode === 'current' 
                         ? `Current Period Data (${forecastPreset === 'today' ? 'Today' : '7 Days (Past)'})`
                         : reportMode === 'future'
@@ -2082,9 +2079,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     </div>
                   </h4>
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
                   <span>📡 API:</span>
-                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Open-Meteo</span>
+                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded">Open-Meteo</span>
                   <span>•</span>
                   <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">CMIS (CA)</span>
                   <span>• GFS Model • FAO-56 ET₀</span>
@@ -2158,7 +2155,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 
                 {/* Centered AI Insights for Weather Summary Table */}
                 {showAIInsights && (
-                  <div className="flex justify-center mt-6 mb-4">
+                  <div className="flex justify-center mt-3 mb-2">
                     <ChartAIInsights
                       chartType="weather-summary"
                       chartData={weather?.daily ? weather.daily.time.map((date: string, index: number) => ({
@@ -2178,7 +2175,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
               </div>
 
               {/* Weather Charts */}
-              <div className="mt-6">
+              <div className="mt-3">
                 <ChartErrorBoundary>
                   <SimpleWeatherCharts 
                     location={location} 
@@ -2195,7 +2192,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
               {/* Crop Insights for this Location */}
               {showCropInsights && (
-                <div className="mt-6">
+                <div className="mt-3">
                   <ChartErrorBoundary>
                     <CropETCCharts 
                       cropInstances={cropInstances}
@@ -2302,106 +2299,103 @@ export const ReportView: React.FC<ReportViewProps> = ({
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden"
           >
             {/* Location Header */}
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-750">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-750">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 flex-1">
+                <div className="flex items-center gap-2 flex-1">
                   {/* Collapse/Expand Button */}
                   <button
                     onClick={() => toggleLocationCollapse(location.id)}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-1"
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors p-0.5"
                     title={isCollapsed ? "Expand section" : "Collapse section"}
                   >
                     {isCollapsed ? (
-                      <ChevronDown className="h-5 w-5" />
+                      <ChevronDown className="h-4 w-4" />
                     ) : (
-                      <ChevronUp className="h-5 w-5" />
+                      <ChevronUp className="h-4 w-4" />
                     )}
                   </button>
                   
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                      <MapPin className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center">
+                      <MapPin className="h-4 w-4 mr-1.5 text-blue-600 dark:text-blue-400" />
                       {location.name}
                     </h3>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
-                      </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
                     </div>
                   </div>
                   
                   {/* Weather Stats in Header */}
-                  <div className="hidden lg:flex items-center gap-3">
+                  <div className="hidden lg:flex items-center gap-2">
                     {/* High */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         <Thermometer className="h-3 w-3 text-red-500" />
                         <span>HIGH</span>
                       </div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white">
                         {todayData.tempMax}°F
                       </div>
                     </div>
                     
                     {/* Low */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         <Thermometer className="h-3 w-3 text-blue-500" />
                         <span>LOW</span>
                       </div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white">
                         {todayData.tempMin}°F
                       </div>
                     </div>
                     
                     {/* Precip */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         <Droplets className="h-3 w-3 text-blue-500" />
                         <span>PRECIP</span>
                       </div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white">
                         {todayData.precipitation} in
                       </div>
                     </div>
                     
                     {/* ET₀ */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         <Gauge className="h-3 w-3 text-green-500" />
                         <span>ET₀</span>
                       </div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white">
                         {Number(todayData.et0).toFixed(2)} in
                       </div>
                     </div>
                     
                     {/* ET₀ Sum */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         <Gauge className="h-3 w-3 text-green-600" />
                         <span>ET₀ SUM</span>
                       </div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white">
                         {Number(todayData.et0_sum).toFixed(2)} in
                       </div>
                     </div>
                     
                     {/* ETC Actual */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         <TrendingUp className="h-3 w-3 text-green-500" />
                         <span>ETC ACTUAL</span>
                       </div>
-                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                      <div className="text-sm font-bold text-gray-900 dark:text-white">
                         {getETCDisplayText(location, todayData.date)}
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-xs font-medium text-gray-900 dark:text-white">
                     Location {locationIndex + 1} of {displayLocations.length}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -2416,7 +2410,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             <>
             {/* Loading Indicator for CIMIS Data */}
             {loadingCmisLocations.has(location.id) && (
-              <div className="px-6 py-4 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700">
+              <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700">
                 <div className="flex items-center gap-3">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                   <div className="text-sm text-blue-700 dark:text-blue-300">
@@ -2427,76 +2421,76 @@ export const ReportView: React.FC<ReportViewProps> = ({
             )}
             
             {/* Today's Metrics Grid */}
-            <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
-              <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-                <Calendar className="h-4 w-4 mr-2" />
+            <div className="p-3 bg-gray-50 dark:bg-gray-800/50">
+              <h4 className="text-xs font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
                 {reportMode === 'current' ? "Today's Weather Stats" : 
                  reportMode === 'future' ? "Future Period Start Stats" : 
                  "Period Start Weather Stats"}
               </h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                 {/* High Temp */}
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center mb-2">
-                    <Thermometer className="h-4 w-4 text-red-500 mr-1" />
+                <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center mb-1">
+                    <Thermometer className="h-3 w-3 text-red-500 mr-1" />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">High</span>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
                     {todayData.tempMax}°F
                   </div>
                 </div>
 
                 {/* Low Temp */}
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center mb-2">
-                    <Thermometer className="h-4 w-4 text-blue-500 mr-1" />
+                <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center mb-1">
+                    <Thermometer className="h-3 w-3 text-blue-500 mr-1" />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Low</span>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
                     {todayData.tempMin}°F
                   </div>
                 </div>
 
                 {/* Precipitation */}
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center mb-2">
-                    <Droplets className="h-4 w-4 text-blue-500 mr-1" />
+                <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center mb-1">
+                    <Droplets className="h-3 w-3 text-blue-500 mr-1" />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">Precip</span>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
                     {todayData.precipitation} in
                   </div>
                 </div>
 
                 {/* ET₀ Daily */}
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center mb-2">
-                    <Gauge className="h-4 w-4 text-green-500 mr-1" />
+                <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center mb-1">
+                    <Gauge className="h-3 w-3 text-green-500 mr-1" />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀</span>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {Number(todayData.et0).toFixed(2)} inches
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
+                    {Number(todayData.et0).toFixed(2)} in
                   </div>
                 </div>
 
                 {/* ET₀ Sum */}
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center mb-2">
-                    <Gauge className="h-4 w-4 text-green-600 mr-1" />
+                <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center mb-1">
+                    <Gauge className="h-3 w-3 text-green-600 mr-1" />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ET₀ Sum</span>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
-                    {Number(todayData.et0_sum).toFixed(2)} inches
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
+                    {Number(todayData.et0_sum).toFixed(2)} in
                   </div>
                 </div>
 
                 {/* ETC Actual */}
-                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center mb-2">
-                    <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
+                <div className="bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center mb-1">
+                    <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400 uppercase">ETC Actual</span>
                   </div>
-                  <div className="text-lg font-bold text-gray-900 dark:text-white">
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">
                     {getETCDisplayText(location, weather.daily.time[0])}
                   </div>
                 </div>
@@ -2504,11 +2498,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
             </div>
 
             {/* Forecast Table */}
-            <div className="p-6">
-              <div className="text-center mb-2">
-                <h4 className="text-md font-medium text-gray-900 dark:text-white">
+            <div className="p-3">
+              <div className="text-center mb-1">
+                <h4 className="text-xs font-medium text-gray-900 dark:text-white">
                   <div className="flex items-center gap-1">
-                    <TrendingUp className="h-4 w-4" />
+                    <TrendingUp className="h-3 w-3" />
                     {reportMode === 'current' 
                       ? `Current Period Data (${forecastPreset === 'today' ? 'Today' : '7 Days (Past)'})`
                       : reportMode === 'future'
@@ -2517,11 +2511,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   </div>
                 </h4>
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mb-4 flex items-center gap-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-2">
                 <span>📡 API:</span>
-                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Open-Meteo</span>
+                <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded">Open-Meteo</span>
                 <span>•</span>
-                <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">CMIS (CA)</span>
+                <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-0.5 rounded">CMIS (CA)</span>
                 <span>• GFS Model • FAO-56 ET₀</span>
               </div>
               <div className="overflow-x-auto">
@@ -2593,7 +2587,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
               
               {/* Centered AI Insights for Weather Summary Table */}
               {showAIInsights && (
-                <div className="flex justify-center mt-6 mb-4">
+                <div className="flex justify-center mt-3 mb-2">
                   <ChartAIInsights
                     chartType="weather-summary"
                     chartData={weather?.daily ? weather.daily.time.map((date: string, index: number) => ({
@@ -2613,7 +2607,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             </div>
 
             {/* Weather Charts */}
-            <div className="mt-6">
+            <div className="mt-3">
               <ChartErrorBoundary>
                 <SimpleWeatherCharts 
                   location={location} 
@@ -2630,7 +2624,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
             {/* Crop Insights for this Location */}
             {showCropInsights && (
-              <div className="mt-6">
+              <div className="mt-3">
                 <ChartErrorBoundary>
                   <CropETCCharts 
                     cropInstances={cropInstances}
@@ -2658,7 +2652,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
       {/* Summary Footer - only show when locations are displayed */}
       {selectedLocationIds.size > 0 && (
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 text-center">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3 text-center">
         <div className="text-sm text-blue-700 dark:text-blue-300 mb-2">
           <div className="flex items-center gap-2 justify-center">
             <BarChart3 className="h-5 w-5" />

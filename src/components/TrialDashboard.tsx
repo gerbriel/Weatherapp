@@ -1002,7 +1002,7 @@ export const TrialDashboard: React.FC = () => {
             lg:translate-x-0 lg:static lg:inset-0
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           `}>
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between h-12 px-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-2">
               <Gauge className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               <h1 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -1032,7 +1032,7 @@ export const TrialDashboard: React.FC = () => {
           {/* Header */}
           <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors">
             {/* Desktop Header */}
-            <div className="hidden lg:block px-6 py-4">
+            <div className="hidden lg:block px-3 py-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   {/* Show ET Weather branding only when NOT in overview mode (since overview has sidebar with branding) */}
@@ -1083,7 +1083,7 @@ export const TrialDashboard: React.FC = () => {
             {/* Mobile Header */}
             <div className="lg:hidden">
               {/* Top row with location and menu */}
-              <div className="px-4 py-3 flex items-center justify-between">
+              <div className="px-3 py-2 flex items-center justify-between">
                 {/* Show ET Weather branding only when NOT in overview mode (since overview has sidebar with branding) */}
                 {currentView !== 'overview' && (
                   <div className="flex items-center space-x-2">
@@ -1150,12 +1150,12 @@ export const TrialDashboard: React.FC = () => {
           </header>
 
           {/* Content */}
-          <main className="flex-1 overflow-y-auto p-4 w-full">
+          <main className="flex-1 overflow-y-auto p-2 w-full">
             {currentView === 'overview' ? (
               <>
                     {/* Current Location Weather Overview */}
-                    <div className="mb-3 bg-gradient-to-r from-blue-900/30 to-green-900/30 border border-blue-700/50 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
+                    <div className="mb-2 bg-gradient-to-r from-blue-900/30 to-green-900/30 border border-blue-700/50 rounded-lg p-2">
+                      <div className="flex items-center justify-between mb-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                           <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                           <span>System Overview - {selectedLocation.name}</span>
@@ -1637,10 +1637,10 @@ export const TrialDashboard: React.FC = () => {
                         const etcInches = etc; // Already in inches
 
                         return (
-                          <div key={instance.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                            <div className="flex items-center justify-between mb-4">
+                          <div key={instance.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-2">
                               <div>
-                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{crop.name}</h3>
+                                <h3 className="text-base font-semibold text-gray-900 dark:text-white">{crop.name}</h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">{crop.category}</p>
                                 {instance.fieldName && (
                                   <p className="text-xs text-gray-500 dark:text-gray-500">{instance.fieldName}</p>
@@ -1808,9 +1808,9 @@ export const TrialDashboard: React.FC = () => {
             ) : currentView === 'reports' ? (
               <>
                 {/* Weather Reports with Crop Data */}
-                <div className="mb-4">
+                <div className="mb-2">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                       {displayedLocations.length === 0 ? (
                         'Weather Reports Dashboard - Select Location to View Data'
                       ) : displayedLocations.length > 1 ? (
@@ -1896,8 +1896,8 @@ export const TrialDashboard: React.FC = () => {
       {/* Profile Management Modal */}
       {showProfileModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-white mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base font-bold text-white mb-2">
               {editingProfile ? 'Edit Profile' : 'Create New Profile'}
             </h3>
             
@@ -1919,7 +1919,7 @@ export const TrialDashboard: React.FC = () => {
               setShowProfileModal(false);
               setEditingProfile(null);
             }}>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Profile Name *
@@ -1935,7 +1935,7 @@ export const TrialDashboard: React.FC = () => {
                 </div>
 
                 {!editingProfile && (
-                  <div className="bg-gray-700 p-4 rounded-lg">
+                  <div className="bg-gray-700 p-2 rounded-lg">
                     <h4 className="text-sm font-medium text-gray-300 mb-2">Current Configuration:</h4>
                     <div className="text-sm text-gray-400 space-y-1">
                       <div>Crop: {calculatorInputs.crop || 'None selected'}</div>
@@ -1998,14 +1998,14 @@ export const TrialDashboard: React.FC = () => {
       {showEditCropModal && editingCropInstance && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="p-3 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                    <Sprout className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <div className="flex items-center space-x-2">
+                  <div className="p-1.5 bg-green-100 dark:bg-green-900 rounded-lg">
+                    <Sprout className="w-4 h-4 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">
                       Edit {availableCrops.find(c => c.id === editingCropInstance.cropId)?.name} Instance
                     </h2>
                     <p className="text-sm text-gray-400">
@@ -2062,7 +2062,7 @@ export const TrialDashboard: React.FC = () => {
                 setEditingCropInstance(null);
                 setEditingKcValues({});
               }}
-              className="p-6 space-y-6"
+              className="p-4 space-y-4"
             >
               <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
                 <div className="flex items-center space-x-2 text-blue-300">
