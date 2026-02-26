@@ -1150,13 +1150,13 @@ export const TrialDashboard: React.FC = () => {
           </header>
 
           {/* Content */}
-          <main className="flex-1 overflow-y-auto p-6 w-full">
+          <main className="flex-1 overflow-y-auto p-4 w-full">
             {currentView === 'overview' ? (
               <>
                     {/* Current Location Weather Overview */}
-                    <div className="mb-6 bg-gradient-to-r from-blue-900/30 to-green-900/30 border border-blue-700/50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                    <div className="mb-3 bg-gradient-to-r from-blue-900/30 to-green-900/30 border border-blue-700/50 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                           <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                           <span>System Overview - {selectedLocation.name}</span>
                         </h3>
@@ -1173,60 +1173,56 @@ export const TrialDashboard: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-red-400">
+                          <div className="text-lg font-bold text-red-400">
                             {(() => {
                               const weatherData = (selectedLocation as any)?.weatherData;
                               if (!weatherData?.daily?.temperature_2m_max?.[0]) return '--';
-                              // Index 0 is always today since forecast API uses past_days=0
                               return weatherData.daily.temperature_2m_max[0]?.toFixed(0);
                             })()}°F
                           </div>
-                          <div className="text-gray-400">High Temp</div>
+                          <div className="text-xs text-gray-400">High Temp</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-400">
+                          <div className="text-lg font-bold text-blue-400">
                             {(() => {
                               const weatherData = (selectedLocation as any)?.weatherData;
                               if (!weatherData?.daily?.temperature_2m_min?.[0]) return '--';
-                              // Index 0 is always today since forecast API uses past_days=0
                               return weatherData.daily.temperature_2m_min[0]?.toFixed(0);
                             })()}°F
                           </div>
-                          <div className="text-gray-400">Low Temp</div>
+                          <div className="text-xs text-gray-400">Low Temp</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-green-400">
+                          <div className="text-lg font-bold text-green-400">
                             {(() => {
                               const weatherData = (selectedLocation as any)?.weatherData;
                               if (!weatherData?.daily?.et0_fao_evapotranspiration?.[0]) return '--';
-                              // Index 0 is always today since forecast API uses past_days=0
-                              // API already returns in inches (precipitation_unit: 'inch')
                               return weatherData.daily.et0_fao_evapotranspiration[0]?.toFixed(2);
                             })()}
                           </div>
-                          <div className="text-gray-400">ET₀ (in/day)</div>
+                          <div className="text-xs text-gray-400">ET₀ (in/day)</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-yellow-400">
+                          <div className="text-lg font-bold text-yellow-400">
                             {((selectedLocation as any)?.weatherData?.hourly?.relative_humidity_2m?.[0]?.toFixed(0)) || '--'}%
                           </div>
-                          <div className="text-gray-400">Humidity</div>
+                          <div className="text-xs text-gray-400">Humidity</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-purple-400">
+                          <div className="text-lg font-bold text-purple-400">
                             {((selectedLocation as any)?.weatherData?.daily?.wind_speed_10m_max?.[0]?.toFixed(1)) || '--'}
                           </div>
-                          <div className="text-gray-400">Wind (mph)</div>
+                          <div className="text-xs text-gray-400">Wind (mph)</div>
                         </div>
                       </div>
                     </div>
 
                     {/* 24-Hour Hourly Forecast */}
                     {(selectedLocation as any)?.weatherData?.hourly ? (
-                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">24-Hour Forecast</h3>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">24-Hour Forecast</h3>
                         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-700">
                           <div className="flex space-x-4 pb-2">
                             {(selectedLocation as any).weatherData.hourly.time.slice(0, 24).map((time: string, index: number) => {
@@ -1253,21 +1249,21 @@ export const TrialDashboard: React.FC = () => {
                               return (
                                 <div
                                   key={time}
-                                  className={`flex-shrink-0 text-center min-w-[80px] p-3 rounded-lg transition-colors ${
+                                  className={`flex-shrink-0 text-center min-w-[64px] p-2 rounded-lg transition-colors ${
                                     isNow 
                                       ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-500' 
                                       : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
                                   }`}
                                 >
-                                  <div className={`text-xs font-medium mb-2 ${
+                                  <div className={`text-xs font-medium mb-1 ${
                                     isNow ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'
                                   }`}>
                                     {isNow ? 'Now' : hour.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })}
                                   </div>
-                                  <div className="text-2xl mb-2">
+                                  <div className="text-xl mb-1">
                                     {getWeatherEmoji(weatherCode)}
                                   </div>
-                                  <div className="text-lg font-bold text-gray-900 dark:text-white mb-1">
+                                  <div className="text-base font-bold text-gray-900 dark:text-white mb-1">
                                     {Math.round(temp)}°
                                   </div>
                                   {precip > 0 && (
@@ -1287,8 +1283,8 @@ export const TrialDashboard: React.FC = () => {
                         </div>
                       </div>
                     ) : (selectedLocation as any)?.weatherData && (
-                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">24-Hour Forecast</h3>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">24-Hour Forecast</h3>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">
                           Hourly forecast data is loading... Please refresh the page or select a different location.
                         </p>
@@ -1297,8 +1293,8 @@ export const TrialDashboard: React.FC = () => {
 
                     {/* 7-Day Forecast */}
                     {(selectedLocation as any)?.weatherData?.daily && (
-                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
-                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">7-Day Forecast</h3>
+                      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 mb-3">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">7-Day Forecast</h3>
                         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-700">
                           <div className="flex space-x-3 pb-2">
                             {(() => {
@@ -1335,7 +1331,7 @@ export const TrialDashboard: React.FC = () => {
                                 return (
                                   <div
                                     key={date}
-                                    className={`flex-shrink-0 text-center min-w-[100px] p-3 rounded-lg transition-colors ${
+                                    className={`flex-shrink-0 text-center min-w-[80px] p-2 rounded-lg transition-colors ${
                                       index === 0 
                                         ? 'bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-400 dark:border-blue-500' 
                                         : 'bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600'
@@ -1346,14 +1342,14 @@ export const TrialDashboard: React.FC = () => {
                                     }`}>
                                       {dayName}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-2">
+                                    <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1">
                                       {monthDay}
                                     </div>
-                                    <div className="text-2xl mb-2">
+                                    <div className="text-xl mb-1">
                                       {getWeatherEmoji(weatherCode)}
                                     </div>
-                                    <div className="mb-2">
-                                      <div className="text-lg font-bold text-gray-900 dark:text-white">
+                                    <div className="mb-1">
+                                      <div className="text-base font-bold text-gray-900 dark:text-white">
                                         {Math.round(tempMax)}°
                                       </div>
                                       <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -1412,106 +1408,103 @@ export const TrialDashboard: React.FC = () => {
                     )}
 
                 {/* Weather Overview */}
-                <div className="mb-8">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Current Weather - {selectedLocation.name}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-red-600 dark:text-red-400">
-                            <Thermometer className="h-5 w-5" />
+                <div className="mb-4">
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Current Weather - {selectedLocation.name}</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-red-600 dark:text-red-400">
+                            <Thermometer className="h-4 w-4" />
                           </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Temperature</h3>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Temperature</h3>
                         </div>
                       </div>
-                      <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <div className="flex items-baseline space-x-2 mb-1">
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">
                           {((selectedLocation as any)?.weatherData?.hourly?.temperature_2m?.[0]?.toFixed(1)) || '--'}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">°F</span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Above average for this time of year</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Above average for this time of year</p>
                     </div>
                     
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-blue-600 dark:text-blue-400">
-                            <Droplets className="h-5 w-5" />
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-blue-600 dark:text-blue-400">
+                            <Droplets className="h-4 w-4" />
                           </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Humidity</h3>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Humidity</h3>
                         </div>
                       </div>
-                      <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <div className="flex items-baseline space-x-2 mb-1">
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">
                           {((selectedLocation as any)?.weatherData?.hourly?.relative_humidity_2m?.[0]?.toFixed(0)) || '--'}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">%</span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Optimal range for most crops</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Optimal range for most crops</p>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
-                            <Wind className="h-5 w-5" />
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-400">
+                            <Wind className="h-4 w-4" />
                           </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Wind Speed</h3>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Wind Speed</h3>
                         </div>
                       </div>
-                      <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <div className="flex items-baseline space-x-2 mb-1">
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">
                           {((selectedLocation as any)?.weatherData?.hourly?.wind_speed_10m?.[0]?.toFixed(1)) || '--'}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">mph</span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Light breeze conditions</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Light breeze conditions</p>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-indigo-600 dark:text-indigo-400">
-                            <Droplets className="h-5 w-5" />
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-indigo-600 dark:text-indigo-400">
+                            <Droplets className="h-4 w-4" />
                           </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Precipitation</h3>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Precipitation</h3>
                         </div>
                       </div>
-                      <div className="flex items-baseline space-x-2 mb-2">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <div className="flex items-baseline space-x-2 mb-1">
+                        <span className="text-xl font-bold text-gray-900 dark:text-white">
                           {(() => {
                             const weatherData = (selectedLocation as any)?.weatherData;
                             if (!weatherData?.daily?.precipitation_sum?.[0]) return '0.00';
-                            // Index 0 is always today since forecast API uses past_days=0
                             const precip = weatherData.daily.precipitation_sum[0];
                             return precip ? precip.toFixed(2) : '0.00';
                           })()}
                         </span>
                         <span className="text-sm text-gray-600 dark:text-gray-400 font-mono">in</span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Recent rainfall recorded</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Recent rainfall recorded</p>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-green-600 dark:text-green-400">
-                            <Sprout className="h-5 w-5" />
+                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 bg-gray-100 dark:bg-gray-700 rounded-lg text-green-600 dark:text-green-400">
+                            <Sprout className="h-4 w-4" />
                           </div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-white">Reference ET₀</h3>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Reference ET₀</h3>
                         </div>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Daily</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Daily</p>
                           <div className="flex items-baseline space-x-2">
-                            <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                            <span className="text-xl font-bold text-gray-900 dark:text-white">
                               {(() => {
                                 const weatherData = (selectedLocation as any)?.weatherData;
                                 if (!weatherData?.daily?.et0_fao_evapotranspiration?.[0]) return '--';
-                                // Index 0 is always today since forecast API uses past_days=0
-                                // API already returns in inches (precipitation_unit: 'inch')
                                 const et0Raw = weatherData.daily.et0_fao_evapotranspiration[0];
                                 return et0Raw.toFixed(2);
                               })()}
@@ -1520,14 +1513,12 @@ export const TrialDashboard: React.FC = () => {
                           </div>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cumulative Sum</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Cumulative Sum</p>
                           <div className="flex items-baseline space-x-2">
-                            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                            <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                               {(() => {
                                 const weatherData = (selectedLocation as any)?.weatherData;
                                 if (!weatherData?.daily?.et0_fao_evapotranspiration_sum?.[0]) return '--';
-                                // Index 0 is always today since forecast API uses past_days=0
-                                // API already returns in inches (precipitation_unit: 'inch')
                                 const et0Sum = weatherData.daily.et0_fao_evapotranspiration_sum[0];
                                 return et0Sum.toFixed(2);
                               })()}
@@ -1536,16 +1527,16 @@ export const TrialDashboard: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Base for Kc calculations</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Base for Kc calculations</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Crop Management Section */}
-                <div className="mb-8">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Crop Management</h2>
+                      <h2 className="text-base font-semibold text-gray-900 dark:text-white">Crop Management</h2>
                       {/* Global crop summary */}
                       {cropInstances.length > 0 && (
                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -1567,9 +1558,9 @@ export const TrialDashboard: React.FC = () => {
                   </div>
                   
                   {getLocationCropInstances().length === 0 ? (
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
-                      <Sprout className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Crop Plantings Yet</h3>
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-center">
+                      <Sprout className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                      <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No Crop Plantings Yet</h3>
                       <p className="text-gray-600 dark:text-gray-400 mb-4">
                         Add crops to your location to start tracking their water requirements and growth stages.
                       </p>
@@ -1603,20 +1594,20 @@ export const TrialDashboard: React.FC = () => {
 
                 {/* Your Crop Plantings - Enhanced with Detailed Coefficients (Unified Section) */}
                 {getLocationCropInstances().length > 0 && (
-                  <div className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold text-white">Your Crop Plantings</h2>
-                      <div className="text-sm text-gray-400">
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h2 className="text-base font-semibold text-white">Your Crop Plantings</h2>
+                      <div className="text-xs text-gray-400">
                         ET₀ × Kc = ETc (Crop Water Requirement)
                       </div>
                     </div>
-                    <div className="bg-blue-50 dark:bg-gray-800 border border-blue-200 dark:border-gray-700 rounded-lg p-4 mb-6">
+                    <div className="bg-blue-50 dark:bg-gray-800 border border-blue-200 dark:border-gray-700 rounded-lg p-3 mb-3">
                       <p className="text-gray-700 dark:text-gray-300 text-sm">
                         <strong className="text-gray-900 dark:text-white">Crop coefficients (Kc)</strong> adjust reference evapotranspiration (ET₀) to calculate actual crop water requirements (ETc). 
                         Values vary by month based on seasonal crop water needs and are automatically selected based on the current month.
                       </p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {getLocationCropInstances().map((instance) => {
                         const crop = availableCrops.find(c => c.id === instance.cropId);
                         if (!crop) return null;
@@ -1646,7 +1637,7 @@ export const TrialDashboard: React.FC = () => {
                         const etcInches = etc; // Already in inches
 
                         return (
-                          <div key={instance.id} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                          <div key={instance.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                             <div className="flex items-center justify-between mb-4">
                               <div>
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{crop.name}</h3>
