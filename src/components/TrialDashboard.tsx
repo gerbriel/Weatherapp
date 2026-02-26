@@ -117,14 +117,7 @@ export const TrialDashboard: React.FC = () => {
   // State for enhanced trial locations with weather data - only for display enhancement
   const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>([]);
   
-  const [selectedLocation, setSelectedLocation] = useState(() => {
-    const savedId = localStorage.getItem('selected_location_id');
-    if (savedId) {
-      const found = availableLocations.find(loc => loc.id === savedId);
-      if (found) return found;
-    }
-    return availableLocations[0] || null;
-  });
+  const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -283,12 +276,27 @@ export const TrialDashboard: React.FC = () => {
   const [weatherFetched, setWeatherFetched] = useState(false);
   const weatherFetchedRef = React.useRef(false); // Use ref to prevent re-fetches across renders
 
-  // Update selectedLocation when availableLocations changes
+  // Update selectedLocation when availableLocations changes:
+  // - Restore saved location ID on first load
+  // - Fall back to first location if no saved ID
+  const selectedLocationRestoredRef = React.useRef(false);
   useEffect(() => {
-    if (availableLocations.length > 0 && !selectedLocation) {
+    if (availableLocations.length === 0) return;
+    if (!selectedLocationRestoredRef.current) {
+      selectedLocationRestoredRef.current = true;
+      const savedId = localStorage.getItem('selected_location_id');
+      if (savedId) {
+        const found = availableLocations.find(loc => loc.id === savedId);
+        if (found) {
+          setSelectedLocation(found);
+          return;
+        }
+      }
+    }
+    if (!selectedLocation) {
       setSelectedLocation(availableLocations[0]);
     }
-  }, [availableLocations, selectedLocation]);
+  }, [availableLocations.length]);
 
   // Update selectedLocation with weather data when trialLocationsWithWeather is populated
   useEffect(() => {
@@ -342,12 +350,12 @@ export const TrialDashboard: React.FC = () => {
     fetchWeatherForAllLocations();
   }, [locationsContextLocations.map(l => l.id).join(',')]); // Re-fetch when location list changes
 
-  // Mock weather data for trial overview card
+  // Mock weather data for trial overview card — runs ONCE on mount only
   useEffect(() => {
     const mockWeatherData: WeatherData = {
       temperature: 22 + Math.random() * 10,
-      temperatureMax: 28 + Math.random() * 8, // Daily high
-      temperatureMin: 12 + Math.random() * 8, // Daily low  
+      temperatureMax: 28 + Math.random() * 8,
+      temperatureMin: 12 + Math.random() * 8,
       humidity: 60 + Math.random() * 20,
       windSpeed: 5 + Math.random() * 10,
       precipitation: Math.random() * 2,
@@ -356,19 +364,10 @@ export const TrialDashboard: React.FC = () => {
 
     setTimeout(() => {
       setWeatherData(mockWeatherData);
-      
-      // Always show the full comprehensive crop database for crop selection
       setAvailableCrops(COMPREHENSIVE_CROP_DATABASE);
-      
-      // Don't auto-select any crops - let users choose manually
-      setSelectedCrops(prev => {
-        // Keep existing selections but ensure they're valid crops
-        return prev.filter(cropId => COMPREHENSIVE_CROP_DATABASE.some(crop => crop.id === cropId));
-      });
-      
       setLoading(false);
     }, 1000);
-  }, [selectedLocation, organization]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch weather data on-demand when a location is selected (if it doesn't have data yet)
   useEffect(() => {
@@ -377,7 +376,7 @@ export const TrialDashboard: React.FC = () => {
     }
   }, [selectedLocation?.id]); // Only trigger when the selected location ID changes
 
-  // Reset calculator when location changes to avoid showing crops from other locations
+  // Reset calculator when location ID changes (not when weather data updates the object)
   useEffect(() => {
     setCalculatorInputs({
       crop: '',
@@ -391,7 +390,7 @@ export const TrialDashboard: React.FC = () => {
       systemType: ''
     });
     setCalculatorResult(null);
-  }, [selectedLocation]);
+  }, [selectedLocation?.id]);
 
   // Compute which crops are active at the currently selected location
   const activeCropsAtLocation = selectedLocation 
