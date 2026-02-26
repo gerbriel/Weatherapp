@@ -509,12 +509,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Remove auto-initialization to require explicit user selection
   
   // Apply location filter (memoized for performance)
+  // If no specific locations are selected, default to showing ALL locations
   const filteredLocations = useMemo(() => {
     if (selectedLocationIds.size > 0) {
       return locationsWithWeather.filter(loc => selectedLocationIds.has(loc.id));
     }
-    // If no locations are selected, return empty array to show selection prompt
-    return [];
+    // Empty set = show all (default state before user makes an explicit selection)
+    return locationsWithWeather;
   }, [locationsWithWeather, selectedLocationIds]);
   
   // For reports view, show all filtered locations regardless of selectedLocation
@@ -1170,8 +1171,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     };
                     
-                    dateRangeText = forecastDates.length > 0 ? `${formatDate(forecastStartDate)} - ${formatDate(forecastEndDate)}` : 'N/A';
-                    actualsDateRangeText = actualDates.length > 0 ? `${formatDate(actualsStartDate)} - ${formatDate(actualsEndDate)}` : 'N/A';
+                    // Comma-separated day numbers for forecast column header (e.g. "26, 27, 28, 1, 2")
+                    const forecastDaysList = forecastDates.map((d: string) => new Date(d + 'T12:00:00').getDate()).join(', ');
+                    const actualsDaysList = actualDates.map((d: string) => new Date(d + 'T12:00:00').getDate()).join(', ');
+
+                    dateRangeText = forecastDates.length > 0 ? forecastDaysList : 'N/A';
+                    actualsDateRangeText = actualDates.length > 0 ? actualsDaysList : 'N/A';
                   }
 
                   return (
