@@ -116,7 +116,25 @@ export const TrialDashboard: React.FC = () => {
   
   // State for enhanced trial locations with weather data - only for display enhancement
   const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>([]);
-  
+
+  // Merged locations for reports: prefer fresh weather data when available,
+  // but always fall back to cached weatherData from LocationsContext so tables
+  // render immediately on refresh instead of waiting for all fetches to complete.
+  const locationsForReports = React.useMemo(() => {
+    if (trialLocationsWithWeather.length === 0) {
+      // Weather fetch hasn't started yet — use cached context data as-is
+      return availableLocations;
+    }
+    // Merge: for each location, use the trial version if it already has fresh
+    // weatherData, otherwise keep the cached version from context.
+    return availableLocations.map(cached => {
+      const fresh = trialLocationsWithWeather.find(t => t.id === cached.id);
+      if (fresh?.weatherData) return fresh;          // fresh data ready — use it
+      if (cached?.weatherData) return { ...cached, loading: fresh?.loading ?? false }; // keep cache, mirror loading flag
+      return fresh ?? cached;                         // nothing cached yet
+    });
+  }, [availableLocations, trialLocationsWithWeather]);
+
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1841,7 +1859,7 @@ export const TrialDashboard: React.FC = () => {
                   calculatorResult={calculatorResult}
                   calculatorInputs={calculatorInputs}
                   selectedLocation={null}
-                  availableLocations={trialLocationsWithWeather.length > 0 ? trialLocationsWithWeather : availableLocations}
+                  availableLocations={locationsForReports}
                   onDisplayLocationsChange={setDisplayedLocations}
                   reportSelectedLocationIds={reportSelectedLocationIds}
                   onReportSelectedLocationIdsChange={setReportSelectedLocationIds}
