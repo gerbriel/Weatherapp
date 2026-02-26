@@ -201,6 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign in
   const signIn = async (email: string, password: string) => {
+    console.log('[Auth] signIn attempt:', email);
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -208,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
+        console.error('[Auth] signIn error:', { message: error.message, status: error.status, code: (error as any).code });
         // Provide user-friendly error message for network issues
         if (error.message && (error.message.includes('fetch') || error.message.includes('Failed to fetch'))) {
           return { error: { ...error, message: 'Unable to connect to authentication server. Please check your internet connection.' } };
@@ -215,6 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { error };
       }
 
+      console.log('[Auth] signIn success, user:', data.user?.id);
       if (data.user) {
         const userProfile = await fetchProfile(data.user.id);
         setProfile(userProfile);
@@ -222,6 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { error: null };
     } catch (error: any) {
+      console.error('[Auth] signIn exception:', error);
       // Handle network errors gracefully
       const message = error.message?.includes('aborted') || error.name === 'AbortError'
         ? 'Connection timeout. Please check your internet connection and try again.' 
@@ -232,6 +236,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sign up
   const signUp = async (email: string, password: string, userData?: { fullName?: string; company?: string; phone?: string }) => {
+    console.log('[Auth] signUp attempt:', email, userData);
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -246,18 +251,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
 
-      if (error) return { error };
+      console.log('[Auth] signUp response — error:', error, '| user:', data?.user?.id, '| session:', !!data?.session);
+      if (error) {
+        console.error('[Auth] signUp error detail:', { message: error.message, status: error.status, code: (error as any).code, full: error });
+        return { error };
+      }
 
       // Profile will be created automatically by trigger
       if (data.user) {
         // Wait a moment for trigger to complete
         await new Promise(resolve => setTimeout(resolve, 1000));
         const userProfile = await fetchProfile(data.user.id);
+        console.log('[Auth] signUp profile fetched:', userProfile);
         setProfile(userProfile);
       }
 
       return { error: null };
     } catch (error: any) {
+      console.error('[Auth] signUp exception:', error);
       return { error };
     }
   };

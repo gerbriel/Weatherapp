@@ -217,58 +217,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
     }
   }, []);
   
-  // Load closing message from Supabase if user is logged in (overrides localStorage)
-  useEffect(() => {
-    if (!profile?.id) return;
-    
-    const loadFromSupabase = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('setting_value')
-          .eq('user_id', profile.id)
-          .eq('setting_key', 'closing_message')
-          .maybeSingle();
-        
-        if (error) throw error;
-        
-        if (data && data.setting_value) {
-          setClosingMessage(data.setting_value as string);
-        }
-      } catch (error) {
-        console.error('Error loading closing message from Supabase:', error);
-      }
-    };
-    
-    loadFromSupabase();
-  }, [profile?.id]);
-  
-  // Load introduction message from Supabase if user is logged in (overrides localStorage)
-  useEffect(() => {
-    if (!profile?.id) return;
-    
-    const loadFromSupabase = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('setting_value')
-          .eq('user_id', profile.id)
-          .eq('setting_key', 'intro_message')
-          .maybeSingle();
-        
-        if (error) throw error;
-        
-        if (data && data.setting_value) {
-          setWaterUseNotes(data.setting_value as string);
-        }
-      } catch (error) {
-        console.error('Error loading introduction message from Supabase:', error);
-      }
-    };
-    
-    loadFromSupabase();
-  }, [profile?.id]);
-  
   // Save closing message to local storage when it changes
   useEffect(() => {
     if (closingMessage) {
@@ -282,56 +230,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
       localStorage.setItem('default_intro_message', waterUseNotes);
     }
   }, [waterUseNotes]);
-  
-  // Sync closing message to Supabase when user is logged in
-  useEffect(() => {
-    if (!profile?.id) return;
-    
-    const syncToSupabase = async () => {
-      try {
-        const { error } = await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: profile.id,
-            setting_key: 'closing_message',
-            setting_value: closingMessage
-        }, {
-          onConflict: 'user_id,setting_key'
-        });
-        
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error syncing closing message to Supabase:', error);
-      }
-    };
-    
-    syncToSupabase();
-  }, [closingMessage, profile?.id]);
-  
-  // Sync introduction message to Supabase when user is logged in
-  useEffect(() => {
-    if (!profile?.id) return;
-    
-    const syncToSupabase = async () => {
-      try {
-        const { error } = await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: profile.id,
-            setting_key: 'intro_message',
-            setting_value: waterUseNotes
-        }, {
-          onConflict: 'user_id,setting_key'
-        });
-        
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error syncing introduction message to Supabase:', error);
-      }
-    };
-    
-    syncToSupabase();
-  }, [waterUseNotes, profile?.id]);
 
   // Initialize default date range (last 14 days, ending yesterday to avoid CMIS API future date errors)
   useEffect(() => {

@@ -65,14 +65,25 @@ export const SimpleSignupForm: React.FC<SimpleSignupFormProps> = ({ onSuccess, o
         setTimeout(() => {
           onSwitchToLogin?.();
         }, 2000);
+      } else if (signUpError.message?.toLowerCase().includes('rate limit') || 
+                 signUpError.message?.toLowerCase().includes('over_email') ||
+                 signUpError.status === 429 || (signUpError as any)?.code === 429) {
+        setError('Too many sign-up attempts. Please wait a few minutes and try again.');
+        setLoading(false);
       } else {
         setError(signUpError.message || 'Failed to sign up');
         setLoading(false);
       }
     } else {
       setLoading(false);
-      setShowEmailConfirmation(true);
-      // Don't call onSuccess immediately - let user see the confirmation message
+      // If user has a session, email confirmation is disabled — go straight to dashboard
+      // If no session, email confirmation is enabled — show confirmation screen
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        onSuccess?.();
+      } else {
+        setShowEmailConfirmation(true);
+      }
     }
   };
 

@@ -54,7 +54,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     resetToTrialLocations: authResetToTrialLocations,
   } = useAuth();
   
-  const {
+  const { 
     locations: trialLocations,
     addLocation: trialAddLocation,
     removeLocation: trialRemoveLocation,
@@ -66,33 +66,33 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     loading: globalLoading
   } = useLocations();
 
-  // Always use fresh auth/trial locations (this updates immediately when locations are added/deleted)
-  // Then merge in weather data from locationsWithWeather if available
-  const baseLocations = user ? authLocations : trialLocations;
+  // Always use LocationsContext as the single source of truth
+  const baseLocations = trialLocations;
   
   // Deduplicate and merge weather data
   const locations = React.useMemo(() => {
     const seen = new Set<string>();
     
-    // Create a map of weather data by location ID for quick lookup
-    const weatherDataMap = new Map();
+    // Build a map keyed by both ID and station ID for reliable matching
+    const weatherDataById = new Map();
+    const weatherDataByStationId = new Map();
     if (locationsWithWeather) {
       locationsWithWeather.forEach(loc => {
         if (loc.weatherData) {
-          weatherDataMap.set(loc.id, loc.weatherData);
+          weatherDataById.set(loc.id, loc.weatherData);
+          const stationId = loc.weatherstationID || loc.weatherstation_id;
+          if (stationId) weatherDataByStationId.set(stationId, loc.weatherData);
         }
       });
     }
     
-    // Use base locations (always fresh), merge in weather data if available
     return baseLocations.filter(loc => {
-      if (seen.has(loc.id)) {
-        return false;
-      }
+      if (seen.has(loc.id)) return false;
       seen.add(loc.id);
       return true;
     }).map(loc => {
-      const weatherData = weatherDataMap.get(loc.id);
+      const stationId = (loc as any).weatherstationID || (loc as any).weatherstation_id;
+      const weatherData = weatherDataById.get(loc.id) || (stationId ? weatherDataByStationId.get(stationId) : undefined);
       return weatherData ? { ...loc, weatherData } : loc;
     });
   }, [baseLocations, locationsWithWeather]);
@@ -136,25 +136,11 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     weatherstation_id: ''
   });
 
-  // Sort locations: favorites first, then by sort_order or creation order
+  // Sort locations: favorites first, then by sort order
   const sortedLocations = [...locations].sort((a, b) => {
-    // For authenticated users, sort by favorites then sort_order
-    if (user) {
-      const aUserLocation = a as any; // UserLocation type
-      const bUserLocation = b as any; // UserLocation type
-      
-      if (aUserLocation.is_favorite !== bUserLocation.is_favorite) {
-        return aUserLocation.is_favorite ? -1 : 1;
-      }
-      return (aUserLocation.sort_order || 0) - (bUserLocation.sort_order || 0);
-    }
-    
-    // For trial users, sort by favorites then original order (with safe property access)
     const aFavorite = (a as any).isFavorite || (a as any).is_favorite || false;
     const bFavorite = (b as any).isFavorite || (b as any).is_favorite || false;
-    if (aFavorite !== bFavorite) {
-      return aFavorite ? -1 : 1;
-    }
+    if (aFavorite !== bFavorite) return aFavorite ? -1 : 1;
     const aSortOrder = (a as any).sortOrder || (a as any).sort_order || 0;
     const bSortOrder = (b as any).sortOrder || (b as any).sort_order || 0;
     return aSortOrder - bSortOrder;
@@ -176,36 +162,18 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
 
     // Update order
     const locationIds = reorderedLocations.map(loc => loc.id);
-    
-    if (user) {
-      await authReorderLocations(locationIds);
-    } else {
-      // For trial users, we'll need to implement reordering in LocationsContext
-      // For now, just update local state (won't persist)
-    }
+    trialReorderLocations(locationIds);
   };
 
   // Handle favorite toggle
   const handleToggleFavorite = async (id: string) => {
-    if (user) {
-      await authToggleFavorite(id);
-    } else {
-      trialToggleFavorite(id);
-    }
+    trialToggleFavorite(id);
   };
 
   // Handle location deletion with confirmation
   const handleDeleteLocation = async (location: any) => {
-    const confirmMessage = `Are you sure you want to delete "${location.name}"?${
-      user ? '' : '\\n\\nNote: As a trial user, this will only last for this session.'
-    }`;
-    
-    if (window.confirm(confirmMessage)) {
-      if (user) {
-        await authDeleteLocation(location.id);
-      } else {
-        trialRemoveLocation(location.id);
-      }
+    if (window.confirm(`Are you sure you want to delete "${location.name}"?`)) {
+      trialRemoveLocation(location.id);
     }
   };
 
@@ -247,11 +215,13 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
       return;
     }
 
-    if (user) {
-      await authUpdateLocation(editingLocation.id, updates);
-    } else {
-      // For trial users, we'll need to implement updating in LocationsContext
-    }
+    trialUpdateLocation(editingLocation.id, {
+      name: updates.name,
+      latitude: updates.latitude,
+      longitude: updates.longitude,
+      weatherstation: updates.weatherstation,
+      weatherstationID: updates.weatherstation_id
+    } as any);
 
     setEditingLocation(null);
   };
@@ -292,18 +262,14 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
       metadata: {}
     };
 
-    if (user) {
-      await authAddLocation(locationData);
-    } else {
-      trialAddLocation({
-        name: locationData.name,
-        latitude: locationData.latitude,
-        longitude: locationData.longitude,
-        weatherstation: locationData.weatherstation,
-        weatherstationID: locationData.weatherstation_id,
-        sortOrder: locationData.sort_order
-      });
-    }
+    trialAddLocation({
+      name: locationData.name,
+      latitude: locationData.latitude,
+      longitude: locationData.longitude,
+      weatherstation: locationData.weatherstation,
+      weatherstationID: locationData.weatherstation_id,
+      sortOrder: locationData.sort_order
+    });
 
     setNewLocation({
       name: '',
@@ -343,33 +309,17 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
         longitude: loc.longitude,
         weatherstation: loc.name,
         weatherstation_id: loc.cimisStationId,
-        description: `${loc.region} agricultural weather station`,
-        elevation: 100,
-        address: `${loc.name}, ${loc.state}`,
-        city: loc.name,
-        state: 'CA',
-        country: 'United States',
-        postal_code: '00000',
-        timezone: 'America/Los_Angeles',
-        is_default: false,
-        is_active: true,
-        is_favorite: false,
         sort_order: locations.length,
-        metadata: { cimisStationId: loc.cimisStationId, region: loc.region, source: 'default_locations' }
       };
 
-      if (user) {
-        authAddLocation(locationData);
-      } else {
-        trialAddLocation({
-          name: locationData.name,
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-          weatherstation: locationData.weatherstation,
-          weatherstationID: locationData.weatherstation_id,
-          sortOrder: locationData.sort_order
-        });
-      }
+      trialAddLocation({
+        name: locationData.name,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        weatherstation: locationData.weatherstation,
+        weatherstationID: locationData.weatherstation_id,
+        sortOrder: locationData.sort_order
+      });
     });
 
     setSelectedDefaultLocations(new Set());
@@ -382,37 +332,24 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     const confirmMessage = `This will replace all your current locations with your ${stationCount} favourited CIMIS station${stationCount !== 1 ? 's' : ''}. Are you sure?\n\n(Tip: heart stations in the Add Location picker to customise this list.)`;
     if (window.confirm(confirmMessage)) {
       try {
-        // Build location list from the user's custom default IDs
         const customDefaults = DEFAULT_CALIFORNIA_LOCATIONS.filter(
           loc => loc.cimisStationId && customDefaultIds.has(loc.cimisStationId)
         );
-
-        if (user) {
-          // For authenticated users, use the auth context reset
-          const result = await authResetToTrialLocations();
-          if (result.error) {
-            const errorMessage = (result.error as any)?.message || 'Unknown error';
-            alert('Failed to reset locations: ' + errorMessage);
-          } else {
-            alert(`✅ Successfully reset to ${stationCount} CIMIS station${stationCount !== 1 ? 's' : ''}!`);
-          }
-        } else {
-          // For trial users, replace localStorage with the custom defaults
-          const newLocations = customDefaults.map((loc, index) => ({
-            id: `trial-${loc.id}`,
-            name: loc.name,
-            latitude: loc.latitude,
-            longitude: loc.longitude,
-            weatherstation: loc.weatherstation || loc.name,
-            weatherstationID: loc.cimisStationId,
-            isFavorite: false,
-            sortOrder: index,
-            loading: false
-          }));
-          localStorage.setItem('weatherLocations', JSON.stringify(newLocations));
-          alert(`✅ Successfully reset to ${stationCount} default CIMIS station${stationCount !== 1 ? 's' : ''}!`);
-          window.location.reload();
-        }
+        // Replace localStorage with the custom defaults and reload
+        const newLocations = customDefaults.map((loc, index) => ({
+          id: `trial-${loc.id}`,
+          name: loc.name,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          weatherstation: loc.weatherstation || loc.name,
+          weatherstationID: loc.cimisStationId,
+          isFavorite: false,
+          sortOrder: index,
+          loading: false
+        }));
+        localStorage.setItem('weatherLocations', JSON.stringify(newLocations));
+        alert(`✅ Successfully reset to ${stationCount} default CIMIS station${stationCount !== 1 ? 's' : ''}!`);
+        window.location.reload();
       } catch (error) {
         console.error('Error resetting locations:', error);
         alert('Failed to reset locations. Please try again.');
@@ -428,7 +365,7 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
     dragHandleProps?: any;
   }> = ({ location, index, isDragging, dragHandleProps }) => {
     const isSelected = selectedLocationId === location.id;
-    const isFavorite = user ? (location as any).is_favorite : location.isFavorite;
+    const isFavorite = location.isFavorite || (location as any).is_favorite || false;
     const isEditing = editingLocation?.id === location.id;
     const locationStationId = location.weatherstation_id || location.weatherstationID || '';
     const isInDefaultList = !!locationStationId && customDefaultIds.has(locationStationId);
@@ -789,18 +726,14 @@ export const EnhancedLocationsList: React.FC<EnhancedLocationsListProps> = ({
               sort_order: locations.length,
               metadata: { cimisStationId: loc.cimisStationId, region: loc.region, source: 'default_locations' }
             };
-            if (user) {
-              authAddLocation(locationData);
-            } else {
-              trialAddLocation({
-                name: locationData.name,
-                latitude: locationData.latitude,
-                longitude: locationData.longitude,
-                weatherstation: locationData.weatherstation,
-                weatherstationID: locationData.weatherstation_id,
-                sortOrder: locationData.sort_order
-              });
-            }
+            trialAddLocation({
+              name: locationData.name,
+              latitude: locationData.latitude,
+              longitude: locationData.longitude,
+              weatherstation: locationData.weatherstation,
+              weatherstationID: locationData.weatherstation_id,
+              sortOrder: locationData.sort_order
+            });
           });
           if (toAdd.length > 0) {
             alert(`Added ${toAdd.length} new location${toAdd.length !== 1 ? 's' : ''}!`);

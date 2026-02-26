@@ -9,7 +9,11 @@ export default defineConfig(({ command }) => ({
     port: 5173,
     strictPort: false,
     host: true, // Allow external connections
-    hmr: true, // Let Vite handle HMR automatically
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+    },
     proxy: {
       // Proxy CMIS API requests to avoid CORS issues in development
       '/api/cmis': {

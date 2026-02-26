@@ -45,7 +45,7 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
 
   // Check and upgrade cache version for hourly data
   useEffect(() => {
-    const CACHE_VERSION = '2.1'; // Increment when API structure changes
+    const CACHE_VERSION = '2.2'; // Bumped: fixed Elk Grove coordinates, unified to LocationsContext
     const currentVersion = localStorage.getItem('weatherCacheVersion');
     
     if (currentVersion !== CACHE_VERSION) {
@@ -71,7 +71,7 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         console.error('Error parsing saved locations:', error);
       }
     } else {
-      // Add all 9 default CIMIS stations covering major agricultural regions
+      // Add all 10 default CIMIS stations covering major agricultural regions
       const defaultLocations = [
         { latitude: 35.205583, longitude: -118.77841, name: 'Bakersfield', weatherstation: 'Arvin-Edison', weatherstationID: '125', sortOrder: 0 },
         { latitude: 36.820833, longitude: -119.74231, name: 'Fresno', weatherstation: 'Fresno State', weatherstationID: '80', sortOrder: 1 },
@@ -82,7 +82,7 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         { latitude: 35.028281, longitude: -120.56003, name: 'Santa Maria', weatherstation: 'Nipomo', weatherstationID: '202', sortOrder: 6 },
         { latitude: 36.376917, longitude: -119.037972, name: 'Exeter', weatherstation: 'Lemon Cove', weatherstationID: '258', sortOrder: 7 },
         { latitude: 36.336222, longitude: -120.11291, name: 'Five Points', weatherstation: 'Five Points', weatherstationID: '2', sortOrder: 8 },
-        { latitude: 36.336222, longitude: -120.11291, name: 'Elk Grove', weatherstation: 'WildHawk', weatherstationID: '273', sortOrder: 9 }
+        { latitude: 38.479722, longitude: -121.314722, name: 'Elk Grove', weatherstation: 'WildHawk', weatherstationID: '273', sortOrder: 9 }
       ];
       
       // Create all locations at once with proper IDs (don't set loading initially)
@@ -90,7 +90,7 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
         ...loc,
         id: generateId(),
         isFavorite: false,
-        loading: false // Will be set to true when weather data is fetched
+        loading: false
       }));
       
       setLocations(newLocations);

@@ -11,7 +11,6 @@ import { CropManagementModal } from './CropManagementModal';
 import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
 import { supabase } from '../lib/supabase';
 
-import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { ReportView } from './ReportView';
 import FrostWarningDashboard from './FrostWarningDashboard';
 import FrostAlertSubscription from './FrostAlertSubscription';
@@ -90,63 +89,47 @@ interface RuntimeResult {
 }
 
 export const TrialDashboard: React.FC = () => {
+  // Auth context still used for profile/org data when available, but locations come from LocationsContext
   const { 
     user, 
     profile,
-    loading: authLoading,
-    signOut, 
     organization,
-    locations: authLocations,
-    addLocation,
-    deleteLocation: authDeleteLocation
   } = useAuth();
-  
-  // Show loading spinner while auth is initializing
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
   
   const { disableTrialMode } = useTrial();
   const { 
     locations: locationsContextLocations, 
-    removeLocation: removeUserLocation,
+    removeLocation,
     refreshLocation
   } = useLocations();
   
-  // Use same location source as EnhancedLocationsList for consistency
-  const rawAvailableLocations = user ? authLocations : locationsContextLocations;
-  
-  // Deduplicate locations by ID (safeguard against any duplication issues)
+  // Always use LocationsContext as the single source of truth for locations
   const availableLocations = React.useMemo(() => {
     const seen = new Set<string>();
-    return rawAvailableLocations.filter(loc => {
-      if (seen.has(loc.id)) {
-        return false;
-      }
+    return locationsContextLocations.filter(loc => {
+      if (seen.has(loc.id)) return false;
       seen.add(loc.id);
       return true;
     });
-  }, [rawAvailableLocations]);
-  
-  const removeLocation = user ? authDeleteLocation : removeUserLocation;
+  }, [locationsContextLocations]);
 
   
   // State for enhanced trial locations with weather data - only for display enhancement
   const [trialLocationsWithWeather, setTrialLocationsWithWeather] = useState<any[]>([]);
   
-  const [selectedLocation, setSelectedLocation] = useState(availableLocations[0] || null);
+  const [selectedLocation, setSelectedLocation] = useState(() => {
+    const savedId = localStorage.getItem('selected_location_id');
+    if (savedId) {
+      const found = availableLocations.find(loc => loc.id === savedId);
+      if (found) return found;
+    }
+    return availableLocations[0] || null;
+  });
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentView, setCurrentView] = useState<'overview' | 'calculator' | 'reports'>('overview');
+  const [currentView, setCurrentView] = useState<'overview' | 'reports'>('overview');
   const [availableCrops, setAvailableCrops] = useState<AvailableCrop[]>([]);
   
   // Load selected crops from localStorage on mount
@@ -161,54 +144,18 @@ export const TrialDashboard: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
   
-  // Load from Supabase if user is logged in (overrides localStorage)
-  useEffect(() => {
-    if (!user || !profile?.id) return;
-    
-    const loadFromSupabase = async () => {
-      try {
-        // Load selected crops
-        const { data: cropsData, error: cropsError } = await supabase
-          .from('user_settings')
-          .select('setting_value')
-          .eq('user_id', profile.id)
-          .eq('setting_key', 'selected_crops')
-          .maybeSingle();
-        
-        if (cropsError) throw cropsError;
-        
-        if (cropsData && cropsData.setting_value) {
-          setSelectedCrops(cropsData.setting_value as string[]);
-        }
-        
-        // Load crop instances
-        const { data: instancesData, error: instancesError } = await supabase
-          .from('user_settings')
-          .select('setting_value')
-          .eq('user_id', profile.id)
-          .eq('setting_key', 'crop_instances')
-          .maybeSingle();
-        
-        if (instancesError) throw instancesError;
-        
-        if (instancesData && instancesData.setting_value) {
-          setCropInstances(instancesData.setting_value as CropInstance[]);
-        }
-      } catch (error) {
-        console.error('Error loading from Supabase:', error);
-      }
-    };
-    
-    loadFromSupabase();
-  }, [user, profile?.id]);
-  
   const [showCropSelector, setShowCropSelector] = useState(false);
   const [showEditCropModal, setShowEditCropModal] = useState(false);
   const [editingCropInstance, setEditingCropInstance] = useState<CropInstance | null>(null);
   const [editingKcValues, setEditingKcValues] = useState<{[key: number]: number}>({});
 
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [cropProfiles, setCropProfiles] = useState<CropProfile[]>([]);
+  const [cropProfiles, setCropProfiles] = useState<CropProfile[]>(() => {
+    try {
+      const saved = localStorage.getItem('cropProfiles');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState<CropProfile | null>(null);
   const [calculatorInputs, setCalculatorInputs] = useState<CalculatorInputs>({
@@ -224,7 +171,12 @@ export const TrialDashboard: React.FC = () => {
   const [displayedLocations, setDisplayedLocations] = useState<any[]>(availableLocations);
 
   // Reports view persistent state
-  const [reportSelectedLocationIds, setReportSelectedLocationIds] = useState<Set<string>>(new Set());
+  const [reportSelectedLocationIds, setReportSelectedLocationIds] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('report_selected_locations');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
   const [reportInsights, setReportInsights] = useState<Map<string, { 
     precipitationChart: string;
     temperatureChart: string; 
@@ -258,52 +210,18 @@ export const TrialDashboard: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('crop_instances', JSON.stringify(cropInstances));
   }, [cropInstances]);
-  
-  // Sync selected crops to Supabase when user is logged in
+
+  // Save selected location ID to localStorage whenever it changes
   useEffect(() => {
-    if (!user || !profile?.id) return;
-    
-    const syncToSupabase = async () => {
-      try {
-        const { error } = await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: profile.id,
-            setting_key: 'selected_crops',
-            setting_value: selectedCrops
-        }, {
-          onConflict: 'user_id,setting_key'
-        });
-        
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error syncing crops to Supabase:', error);
-      }
-    };    syncToSupabase();
-  }, [selectedCrops, user, profile?.id]);
-  
-  // Sync crop instances to Supabase when user is logged in
+    if (selectedLocation?.id) {
+      localStorage.setItem('selected_location_id', selectedLocation.id);
+    }
+  }, [selectedLocation?.id]);
+
+  // Save report selected location IDs to localStorage whenever they change
   useEffect(() => {
-    if (!user || !profile?.id) return;
-    
-    const syncToSupabase = async () => {
-      try {
-        const { error } = await supabase
-          .from('user_settings')
-          .upsert({
-            user_id: profile.id,
-            setting_key: 'crop_instances',
-            setting_value: cropInstances
-        }, {
-          onConflict: 'user_id,setting_key'
-        });
-        
-        if (error) throw error;
-      } catch (error) {
-        console.error('Error syncing crop instances to Supabase:', error);
-      }
-    };    syncToSupabase();
-  }, [cropInstances, user, profile?.id]);
+    localStorage.setItem('report_selected_locations', JSON.stringify([...reportSelectedLocationIds]));
+  }, [reportSelectedLocationIds]);
 
   // Clean up custom Kc values that match defaults
   useEffect(() => {
@@ -382,68 +300,47 @@ export const TrialDashboard: React.FC = () => {
     }
   }, [trialLocationsWithWeather, selectedLocation?.id]);
 
-  // Fetch real weather data for all locations (trial and authenticated users)
+  // Fetch real weather data for all locations
   useEffect(() => {
-    //  Fetch if we have locations
-    const locationsToFetch = user ? authLocations : locationsContextLocations;
-    
-    if (locationsToFetch.length > 0) {
-      const fetchWeatherForAllLocations = async () => {
-        weatherFetchedRef.current = true; // Set ref immediately to prevent duplicate calls
-        setWeatherFetched(true);
-        
-        // Initialize with loading state for all locations
-        setTrialLocationsWithWeather(
-          locationsToFetch.map(loc => ({
-            ...loc,
-            loading: true,
-            error: undefined
-          }))
-        );
-        
-        // Process locations sequentially to respect rate limiting
-        // Update state progressively as each location loads
-        for (let i = 0; i < locationsToFetch.length; i++) {
-          const location = locationsToFetch[i];
-          try {
-            const weatherData = await weatherService.getWeatherData({
-              id: location.id,
-              name: location.name,
-              latitude: location.latitude,
-              longitude: location.longitude,
-              isFavorite: false
-            });
-            
-            // Update just this location in the state
-            setTrialLocationsWithWeather(prev => {
-              const updated = [...prev];
-              updated[i] = {
-                ...location,
-                weatherData,
-                loading: false,
-                error: undefined
-              };
-              return updated;
-            });
-          } catch (error) {
-            setTrialLocationsWithWeather(prev => {
-              const updated = [...prev];
-              updated[i] = {
-                ...location,
-                loading: false,
-                error: error instanceof Error ? error.message : 'Failed to fetch weather data'
-              };
-              return updated;
-            });
-          }
+    if (locationsContextLocations.length === 0) return;
+
+    const locationsSnapshot = [...locationsContextLocations];
+
+    const fetchWeatherForAllLocations = async () => {
+      setTrialLocationsWithWeather(
+        locationsSnapshot.map(loc => ({ ...loc, loading: true, error: undefined }))
+      );
+
+      for (const location of locationsSnapshot) {
+        try {
+          const weatherData = await weatherService.getWeatherData({
+            id: location.id,
+            name: location.name,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            isFavorite: false
+          });
+          setTrialLocationsWithWeather(prev =>
+            prev.map(loc =>
+              loc.id === location.id
+                ? { ...loc, weatherData, loading: false, error: undefined }
+                : loc
+            )
+          );
+        } catch (error) {
+          setTrialLocationsWithWeather(prev =>
+            prev.map(loc =>
+              loc.id === location.id
+                ? { ...loc, loading: false, error: error instanceof Error ? error.message : 'Failed to fetch' }
+                : loc
+            )
+          );
         }
-      };
-      
-      // Reset the ref before fetching
-      weatherFetchedRef.current = false;
-      fetchWeatherForAllLocations();
-    }
-  }, [user, authLocations.map(l => l.id).join(','), locationsContextLocations.map(l => l.id).join(',')]); // Depend on location IDs string
+      }
+    };
+
+    fetchWeatherForAllLocations();
+  }, [locationsContextLocations.map(l => l.id).join(',')]); // Re-fetch when location list changes
 
   // Mock weather data for trial overview card
   useEffect(() => {
@@ -884,18 +781,6 @@ export const TrialDashboard: React.FC = () => {
     }, 300);
   };
 
-  // Load crop profiles from localStorage
-  useEffect(() => {
-    const savedProfiles = localStorage.getItem('cropProfiles');
-    if (savedProfiles) {
-      try {
-        setCropProfiles(JSON.parse(savedProfiles));
-      } catch (error) {
-        console.error('Error loading crop profiles:', error);
-      }
-    }
-  }, []);
-
   // Save crop profiles to localStorage
   const saveProfilesToStorage = (profiles: CropProfile[]) => {
     localStorage.setItem('cropProfiles', JSON.stringify(profiles));
@@ -947,9 +832,6 @@ export const TrialDashboard: React.FC = () => {
     
     // Update last used timestamp
     updateCropProfile(profile.id, { lastUsed: new Date().toISOString() });
-    
-    // Switch to calculator view
-    setCurrentView('calculator');
   };
 
   // Save current calculator settings as profile
@@ -1117,7 +999,7 @@ export const TrialDashboard: React.FC = () => {
         {currentView === 'overview' && (
           <div className={`
             fixed inset-y-0 left-0 z-50 w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700
-            transform transition-transform duration-300 ease-in-out
+            transform transition-transform duration-300 ease-in-out flex flex-col
             lg:translate-x-0 lg:static lg:inset-0
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           `}>
@@ -1136,7 +1018,7 @@ export const TrialDashboard: React.FC = () => {
             </button>
           </div>
           
-          <div className="p-6 overflow-y-auto h-full">
+          <div className="flex-1 overflow-hidden">
             <EnhancedLocationsList
               onLocationSelect={setSelectedLocation}
               selectedLocationId={selectedLocation?.id}
@@ -1190,71 +1072,11 @@ export const TrialDashboard: React.FC = () => {
                       <FileText className="h-4 w-4 mr-1 inline" />
                       Reports
                     </button>
-                    <button
-                      onClick={() => setCurrentView('calculator')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'calculator'
-                          ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      <Gauge className="h-4 w-4 mr-1 inline" />
-                      Calculator
-                    </button>
                   </div>
                   
-                  {user ? (
-                    <div className="flex items-center space-x-3">
-                      <ThemeToggle />
-                      <OrganizationSwitcher selectedCropsCount={selectedCrops.length} />
-                      <span className="text-gray-600 dark:text-gray-300 text-sm">
-                        {user.email}
-                      </span>
-                      <button
-                        onClick={async (e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          try {
-                            await signOut();
-                            setTimeout(() => {
-                              window.location.href = '/';
-                            }, 100);
-                          } catch (error) {
-                            console.error('Sign out error:', error);
-                            window.location.href = '/';
-                          }
-                        }}
-                        className="flex items-center space-x-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        <span>Sign Out</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-3">
-                      <ThemeToggle />
-                      <OrganizationSwitcher selectedCropsCount={selectedCrops.length} />
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          try {
-                            disableTrialMode();
-                            // Redirect to home page
-                            setTimeout(() => {
-                              window.location.href = '/';
-                            }, 100);
-                          } catch (error) {
-                            console.error('Error calling disableTrialMode:', error);
-                            window.location.href = '/';
-                          }
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
-                      >
-                        Exit Trial
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-3">
+                    <ThemeToggle />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1274,7 +1096,6 @@ export const TrialDashboard: React.FC = () => {
                 )}
                 
                 <div className="flex items-center space-x-2">
-                  <OrganizationSwitcher selectedCropsCount={selectedCrops.length} />
                   <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     className="p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -1316,52 +1137,13 @@ export const TrialDashboard: React.FC = () => {
                       <FileText className="h-4 w-4 mr-3" />
                       Reports
                     </button>
-                    <button
-                      onClick={() => {
-                        setCurrentView('calculator');
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                        currentView === 'calculator'
-                          ? 'bg-blue-50 dark:bg-gray-800 text-blue-700 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <Gauge className="h-4 w-4 mr-3" />
-                      Calculator
-                    </button>
                   </div>
                   
                   {/* Mobile user actions */}
                   <div className="border-t border-gray-200 dark:border-gray-700 px-2 py-3">
-                    {user ? (
-                      <div className="space-y-2">
-                        <div className="px-3 py-2">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Signed in as</p>
-                          <p className="text-sm text-gray-900 dark:text-gray-300 truncate">{user.email}</p>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            await signOut();
-                            window.location.href = '/';
-                          }}
-                          className="w-full flex items-center px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-gray-700 rounded-md transition-colors"
-                        >
-                          <LogOut className="h-4 w-4 mr-3" />
-                          Sign Out
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => {
-                          disableTrialMode();
-                          setMobileMenuOpen(false);
-                        }}
-                        className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                      >
-                        Exit Trial
-                      </button>
-                    )}
+                    <div className="flex items-center justify-center px-3 py-2">
+                      <ThemeToggle />
+                    </div>
                   </div>
                 </div>
               )}
@@ -2032,413 +1814,6 @@ export const TrialDashboard: React.FC = () => {
                     </div>
                   </div>
                 )}
-              </>
-            ) : currentView === 'calculator' ? (
-              <>
-                {/* Irrigation Runtime Calculator */}
-                <div className="mb-8">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Irrigation Runtime Calculator</h2>
-                    <div className="flex items-center space-x-3">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Calculate exact irrigation runtimes for your specific setup</p>
-                      {!user && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded border border-gray-200 dark:border-gray-600">
-                          <button 
-                            onClick={disableTrialMode}
-                            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                          >
-                            Create account for saved calculations
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Saved Profiles Section */}
-                  {cropProfiles.length > 0 && (
-                    <div className="mb-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
-                          <Star className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
-                          <span>Saved Crop Profiles</span>
-                        </h3>
-                        <button
-                          onClick={() => setShowProfileModal(true)}
-                          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                        >
-                          Save Current Setup
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {cropProfiles.slice(0, 6).map(profile => (
-                          <div
-                            key={profile.id}
-                            className={`p-3 rounded-lg border transition-all ${
-                              calculatorInputs.crop === profile.cropName
-                                ? 'border-green-500 bg-green-100 dark:bg-green-900/20'
-                                : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="font-medium text-gray-900 dark:text-white text-sm">{profile.name}</h4>
-                              <div className="flex items-center space-x-1">
-                                {profile.isFavorite && <Star className="h-3 w-3 text-yellow-500 dark:text-yellow-400 fill-current" />}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingProfile(profile);
-                                    setShowProfileModal(true);
-                                  }}
-                                  className="p-1 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                  title="Edit profile"
-                                >
-                                  <Edit className="h-3 w-3" />
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm('Are you sure you want to delete this profile?')) {
-                                      deleteCropProfile(profile.id);
-                                    }
-                                  }}
-                                  className="p-1 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                                  title="Delete profile"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                            <div 
-                              className="text-xs text-gray-600 dark:text-gray-400 space-y-1 cursor-pointer"
-                              onClick={() => loadProfileToCalculator(profile)}
-                            >
-                              <div className="flex items-center space-x-1">
-                                <Sprout className="h-3 w-3" />
-                                <span>{profile.cropName}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Droplets className="h-3 w-3" />
-                                <span>{profile.irrigationMethod} • {profile.zoneFlowGPM} GPM</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{profile.areaSize} {profile.areaUnit} • {profile.soilType}</span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {cropProfiles.length > 6 && (
-                          <div className="p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                            <span className="text-gray-600 dark:text-gray-400 text-sm">+{cropProfiles.length - 6} more profiles</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 xl:grid-cols-5 gap-8">
-                    {/* Input Form */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 xl:col-span-2">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Input Parameters</h3>
-                      
-                      <div className="space-y-4">
-                        {/* Crop Selection */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Crop Type</label>
-                          
-                          {/* Quick Select from Dashboard Crops */}
-                          {selectedCrops.length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Quick select from your dashboard crops:</p>
-                              <div className="flex flex-wrap gap-2">
-                                {selectedCrops.slice(0, 4).map(cropId => {
-                                  const crop = availableCrops.find(c => c.id === cropId);
-                                  return crop ? (
-                                    <button
-                                      key={cropId}
-                                      onClick={() => setCalculatorInputs({...calculatorInputs, crop: crop.name})}
-                                      className={`px-3 py-1 text-xs rounded-lg transition-colors ${
-                                        calculatorInputs.crop === crop.name
-                                          ? 'bg-blue-600 text-white'
-                                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                                      }`}
-                                    >
-                                      {crop.name}
-                                    </button>
-                                  ) : null;
-                                })}
-                                {selectedCrops.length > 4 && (
-                                  <span className="text-xs text-gray-500 self-center">+{selectedCrops.length - 4} more</span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Quick Selection from Your Planted Crops */}
-                          {getLocationCropInstances().length > 0 && (
-                            <div className="mb-3">
-                              <p className="text-xs text-green-600 dark:text-green-400 mb-2">🌱 Your Planted Crops at {selectedLocation?.name}:</p>
-                              <div className="space-y-2 mb-3">
-                                {getLocationCropInstances().slice(0, 3).map(instance => {
-                                  const crop = availableCrops.find(c => c.id === instance.cropId);
-                                  if (!crop) return null;
-                                  
-                                  const currentStage = crop.stages[instance.currentStage];
-                                  const currentWateringCycle = crop.isPerennial && crop.wateringCycles ? 
-                                    crop.wateringCycles[instance.currentWateringCycle || 0] : null;
-                                  
-                                  return (
-                                    <button
-                                      key={instance.id}
-                                      onClick={() => {
-                                        // Auto-populate calculator with crop instance data
-                                        setCalculatorInputs({
-                                          ...calculatorInputs,
-                                          crop: crop.name,
-                                          kcValue: currentWateringCycle?.kc || currentStage?.kc || crop.stages[0]?.kc,
-                                          selectedMonth: new Date().getMonth() + 1, // Set to current month
-                                          area: 0, // Default area since field blocks are managed separately
-                                          areaUnit: 'acres'
-                                        });
-                                      }}
-                                      className="w-full flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors text-left"
-                                    >
-                                      <div className="flex-1">
-                                        <p className="text-green-700 dark:text-green-300 font-medium text-sm">{crop.name}</p>
-                                        <p className="text-green-600 dark:text-green-200 text-xs">
-                                          {instance.fieldName && `📍 ${instance.fieldName}`}
-                                        </p>
-                                        <p className="text-green-200 text-xs">
-                                          Stage: {currentWateringCycle ? 
-                                            `${currentWateringCycle.name} (${currentWateringCycle.season})` :
-                                            currentStage?.name
-                                          }
-                                        </p>
-                                        <p className="text-gray-400 text-xs">
-                                          Planted: {new Date(instance.plantingDate).toLocaleDateString()}
-                                        </p>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="text-green-400 text-sm font-mono">
-                                          Kc: {currentWateringCycle?.kc || currentStage?.kc || crop.stages[0]?.kc}
-                                        </p>
-
-                                      </div>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                          
-                          <select 
-                            value={calculatorInputs.crop}
-                            onChange={(e) => setCalculatorInputs({...calculatorInputs, crop: e.target.value})}
-                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">Select Crop</option>
-                            {availableCrops.map(crop => (
-                              <option key={crop.id} value={crop.name}>{crop.name}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        {/* Kc or Monthly Selection */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-300 mb-2">Monthly Kc Value or Custom</label>
-                          
-                          <div className="space-y-2">
-                            {calculatorInputs.crop && (
-                              <select 
-                                value={calculatorInputs.selectedMonth || ''}
-                                onChange={(e) => setCalculatorInputs({...calculatorInputs, selectedMonth: parseInt(e.target.value), kcValue: undefined})}
-                                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                              >
-                                <option value="">Select Month</option>
-                                {availableCrops.find(c => c.name === calculatorInputs.crop)?.monthlyKc?.map(monthKc => (
-                                  <option key={monthKc.month} value={monthKc.month}>
-                                    {monthKc.monthName} (Kc: {monthKc.kc})
-                                  </option>
-                                ))}
-                              </select>
-                            )}
-                            <div className="text-center text-gray-600 dark:text-gray-400 text-sm">or</div>
-                            <input
-                              type="number"
-                              step="0.01"
-                              placeholder="Enter Kc value manually"
-                              value={calculatorInputs.kcValue || ''}
-                              onChange={(e) => setCalculatorInputs({...calculatorInputs, kcValue: parseFloat(e.target.value), selectedMonth: undefined})}
-                              className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
-                            />
-                          </div>
-                        </div>
-
-                        {/* ET Source */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ET₀ Source</label>
-                          <div className="mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                            <div className="text-xs text-gray-600 dark:text-gray-400">Current Location: {selectedLocation.name}</div>
-                            <div className="text-xs text-blue-600 dark:text-blue-400">Live ET₀: {(weatherData?.et0 || 0).toFixed(3)} in/day</div>
-                          </div>
-                          <select 
-                            value={calculatorInputs.etSource}
-                            onChange={(e) => setCalculatorInputs({...calculatorInputs, etSource: e.target.value as 'weather-station' | 'cimis' | 'manual'})}
-                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="weather-station">Use Current Location Data ({(weatherData?.et0 || 0).toFixed(3)} in/day)</option>
-                            <option value="cimis">CIMIS Data</option>
-                            <option value="manual">Manual Entry</option>
-                          </select>
-                          {calculatorInputs.etSource === 'manual' && (
-                            <input
-                              type="number"
-                              step="0.1"
-                              placeholder="Enter ET₀ in in/day"
-                              value={calculatorInputs.manualET || ''}
-                              onChange={(e) => setCalculatorInputs({...calculatorInputs, manualET: parseFloat(e.target.value)})}
-                              className="mt-2 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
-                            />
-                          )}
-                        </div>
-
-                        {/* Irrigation System Type */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Irrigation System</label>
-                          <select 
-                            value={calculatorInputs.systemType}
-                            onChange={(e) => setCalculatorInputs({...calculatorInputs, systemType: e.target.value})}
-                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          >
-                            <option value="">Select System Type</option>
-                            <option value="drip">Drip Irrigation (90-95% efficient)</option>
-                            <option value="micro-spray">Micro-Spray (80-90% efficient)</option>
-                            <option value="sprinkler">Sprinkler (70-85% efficient)</option>
-                            <option value="surface">Surface/Flood (60-75% efficient)</option>
-                          </select>
-                        </div>
-
-                        {/* Zone Flow */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Zone Flow Rate (GPM)</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            placeholder="e.g., 15.5"
-                            value={calculatorInputs.zoneFlowGPM || ''}
-                            onChange={(e) => setCalculatorInputs({...calculatorInputs, zoneFlowGPM: parseFloat(e.target.value)})}
-                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-
-                        {/* Area */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Area</label>
-                          <div className="flex space-x-2">
-                            <input
-                              type="number"
-                              step="0.1"
-                              placeholder="e.g., 2.5"
-                              value={calculatorInputs.area || ''}
-                              onChange={(e) => setCalculatorInputs({...calculatorInputs, area: parseFloat(e.target.value)})}
-                              className="flex-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                            />
-                            <select 
-                              value={calculatorInputs.areaUnit}
-                              onChange={(e) => setCalculatorInputs({...calculatorInputs, areaUnit: e.target.value as 'acres' | 'sqft'})}
-                              className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-                            >
-                              <option value="acres">Acres</option>
-                              <option value="sqft">Sq Ft</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* Calculate Button */}
-                        <button
-                          onClick={() => {
-                            const result = calculateRuntime(calculatorInputs);
-                            setCalculatorResult(result);
-                          }}
-                          disabled={!calculatorInputs.crop || !calculatorInputs.zoneFlowGPM || !calculatorInputs.area || !calculatorInputs.systemType}
-                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                        >
-                          Calculate Runtime
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Results */}
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 xl:col-span-3">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Calculation Results</h3>
-                      
-                      {calculatorResult ? (
-                        <div className="space-y-6">
-                          {/* Runtime Results */}
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                              <p className="text-sm text-gray-600 dark:text-gray-400">Daily Runtime</p>
-                              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                {calculatorResult.runtimeHours}h {calculatorResult.runtimeMinutes}m
-                              </p>
-                            </div>
-                            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                              <p className="text-sm text-gray-600 dark:text-gray-400">Weekly Hours</p>
-                              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                {calculatorResult.weeklyHours.toFixed(1)}h
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Daily Water Need</p>
-                            <p className="text-xl font-bold text-gray-900 dark:text-white">
-                              {calculatorResult.dailyWaterNeed.toLocaleString()} gallons/day
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              At {calculatorResult.efficiency}% system efficiency
-                            </p>
-                          </div>
-
-                          {/* Formula Breakdown */}
-                          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-300 mb-2">Calculation Formula</h4>
-                            <pre className="text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap font-mono">
-                              {calculatorResult.formula}
-                            </pre>
-                          </div>
-
-                          {/* Template for App */}
-                          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                            <h4 className="text-sm font-semibold text-blue-600 dark:text-blue-400 mb-2">Template for Your App</h4>
-                            <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">Copy this configuration for your irrigation management system:</p>
-                            <pre className="text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 p-3 rounded whitespace-pre-wrap">
-{`{
-  "block_id": "block_001",
-  "crop": "${calculatorInputs.crop}",
-  "area": ${calculatorInputs.area},
-  "area_unit": "${calculatorInputs.areaUnit}",
-  "system_type": "${calculatorInputs.systemType}",
-  "flow_rate_gpm": ${calculatorInputs.zoneFlowGPM},
-  "efficiency": ${calculatorResult.efficiency / 100},
-  "runtime_formula": "Area × ETc × 0.623 ÷ (Efficiency × Flow × 60)",
-  "daily_runtime_hours": ${calculatorResult.runtimeHours + (calculatorResult.runtimeMinutes / 60)},
-  "update_frequency": "daily"
-}`}
-                            </pre>
-                          </div>
-                          
-
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <Calculator className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                          <p className="text-gray-400">Fill in the parameters and click Calculate to see your runtime results</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </>
             ) : currentView === 'reports' ? (
               <>
