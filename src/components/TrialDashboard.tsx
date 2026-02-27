@@ -246,6 +246,14 @@ export const TrialDashboard: React.FC = () => {
       setCropInstances(validInstances);
       setSelectedCrops(prev => prev.filter(id => remainingCropIds.has(id)));
     }
+
+    // Also reconcile reportSelectedLocationIds — drop stale IDs, add any new locations
+    // so the filter always shows all valid locations by default
+    setReportSelectedLocationIds(prev => {
+      const valid = new Set([...prev].filter(id => validIds.has(id)));
+      // If nothing survived (e.g. first load with empty set, or all stale), use all location IDs
+      return valid.size > 0 ? valid : new Set(validIds);
+    });
   }, [availableLocations.length]);
 
   // Persist current view tab so refresh restores the same tab

@@ -512,13 +512,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Remove auto-initialization to require explicit user selection
   
   // Apply location filter (memoized for performance)
-  // If no specific locations are selected, default to showing ALL locations
+  // If no specific locations are selected, OR if none of the saved IDs match
+  // current locations (e.g. on first load before locations finish populating),
+  // default to showing ALL locations.
   const filteredLocations = useMemo(() => {
     let result: any[];
     if (selectedLocationIds.size > 0) {
-      result = locationsWithWeather.filter(loc => selectedLocationIds.has(loc.id));
+      const matched = locationsWithWeather.filter(loc => selectedLocationIds.has(loc.id));
+      // If saved IDs don't match anything yet, show all (avoids blank on first load)
+      result = matched.length > 0 ? matched : locationsWithWeather;
     } else {
-      // Empty set = show all (default state before user makes an explicit selection)
+      // Empty set = show all
       result = locationsWithWeather;
     }
     console.log('[ReportView] selectedLocationIds:', [...selectedLocationIds]);
