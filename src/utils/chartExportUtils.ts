@@ -756,10 +756,15 @@ export async function exportChartsAsHTML(
       // Strip script/style tags for safety
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-      // Strip leading/trailing empty block elements that browsers insert automatically
-      // e.g. <div><br></div> at the start or end
-      .replace(/^(\s*<div>\s*<br\s*\/?>\s*<\/div>\s*)+/gi, '')
-      .replace(/(\s*<div>\s*<br\s*\/?>\s*<\/div>\s*)+$/gi, '')
+      // Convert <div>content</div> blocks to content + <br> so they render as
+      // plain line breaks without any block-level indentation
+      .replace(/<div(?:[^>]*)>([\s\S]*?)<\/div>/gi, (_, inner) => {
+        // Empty or just <br> → single line break
+        if (!inner || /^<br\s*\/?>$/i.test(inner.trim())) return '<br>';
+        return inner + '<br>';
+      })
+      // Collapse consecutive trailing <br>s at the end
+      .replace(/(<br\s*\/?>\s*)+$/gi, '')
       .trim();
   };
   

@@ -21,6 +21,12 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Use <br> for line breaks instead of <div> to prevent browser-default
+    // block indentation wrapping the first line of text
+    document.execCommand('defaultParagraphSeparator', false, 'br');
+  }, []);
+
+  useEffect(() => {
     if (editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value;
     }
@@ -104,7 +110,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
         onInput={handleInput}
         onKeyDown={handleKeyDown}
         className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-b-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white overflow-auto"
-        style={{ minHeight, resize: 'vertical' }}
+        style={{ minHeight, resize: 'vertical', position: 'relative' }}
         data-placeholder={placeholder}
       />
 
