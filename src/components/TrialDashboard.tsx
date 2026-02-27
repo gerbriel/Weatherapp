@@ -1853,6 +1853,19 @@ export const TrialDashboard: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                {/* DEBUG: ID matching check */}
+                {(() => {
+                  const locationIds = locationsForReports.map(l => l.id);
+                  const instanceLocationIds = [...new Set(cropInstances.map(i => i.locationId))];
+                  const matched = instanceLocationIds.filter(id => locationIds.includes(id));
+                  const unmatched = instanceLocationIds.filter(id => !locationIds.includes(id));
+                  console.log('[TrialDashboard→ReportView] locationsForReports IDs:', locationIds);
+                  console.log('[TrialDashboard→ReportView] cropInstance locationIds:', instanceLocationIds);
+                  console.log('[TrialDashboard→ReportView] MATCHED:', matched);
+                  console.log('[TrialDashboard→ReportView] UNMATCHED (broken links):', unmatched);
+                  console.log('[TrialDashboard→ReportView] locationsForReports[0] has weatherData?', !!locationsForReports[0]?.weatherData);
+                  return null;
+                })()}
                 <ReportView 
                   selectedCrops={selectedCrops}
                   cropInstances={cropInstances}
