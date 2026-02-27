@@ -1330,11 +1330,10 @@ export async function exportChartsAsHTML(
                   : `${kc_values_array[0].toFixed(2)} - ${kc_values_array[kc_values_array.length - 1].toFixed(2)}`;
 
                 // ET₀ forecast display — split by month when Kc differs across months
-                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
                 let et0_forecast_display = et0_forecast_sum.toFixed(2);
                 if (kc_values_array.length > 1 && et0_forecast_by_month.size > 1) {
                   const sortedMonths = Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]);
-                  et0_forecast_display = sortedMonths.map(([month, val]) => `${monthNames[month - 1]}: ${val.toFixed(2)}`).join(', ');
+                  et0_forecast_display = sortedMonths.map(([, val]) => val.toFixed(2)).join(', ');
                 }
 
                 const hasActualData = actualDaysCount > 0;
