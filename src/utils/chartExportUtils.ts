@@ -1646,7 +1646,15 @@ export async function exportChartsAsHTML(
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `weather-charts-report-${timestamp}.html`;
+
+  // Build filename: "Netafim California Nut Crop Weekly ET Update Week of <Monday> <Year>"
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...6=Sat
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // rewind to this week's Monday
+  const weekStartLabel = weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const safeFilename = `Netafim California Nut Crop Weekly ET Update Week of ${weekStartLabel}`.replace(/,/g, '');
+  link.download = `${safeFilename}.html`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
