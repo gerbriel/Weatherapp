@@ -499,12 +499,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // CHANGED: Show all locations in dropdown, even if weather data not loaded yet
   const locationsWithWeather = useMemo(() => {
     const result = locations.filter(loc => !loc.error);
-    console.log('[ReportView] locations (raw prop):', locations.map(l => ({
-      id: l.id, name: l.name, hasWeather: !!l.weatherData, loading: l.loading, error: l.error
-    })));
-    console.log('[ReportView] locationsWithWeather (after error filter):', result.map(l => ({
-      id: l.id, name: l.name, hasWeather: !!l.weatherData, loading: l.loading
-    })));
     return result;
   }, [locations]);
 
@@ -525,8 +519,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
       // Empty set = show all
       result = locationsWithWeather;
     }
-    console.log('[ReportView] selectedLocationIds:', [...selectedLocationIds]);
-    console.log('[ReportView] filteredLocations:', result.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
     return result;
   }, [locationsWithWeather, selectedLocationIds]);
   
@@ -541,7 +533,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
     } else {
       result = filteredLocations;
     }
-    console.log('[ReportView] displayLocations:', result.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
     return result;
   }, [filteredLocations, reportMode, historicalWeatherData, forecastPreset, futureStartDate]);
 
@@ -1109,12 +1100,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   cropGroups.set(instance.cropId, [...existing, instance]);
                 });
 
-                console.log('[ReportView] ── TABLE RENDER ──');
-                console.log('[ReportView] cropInstances count:', cropInstances.length, cropInstances.map(i => ({ cropId: i.cropId, locationId: i.locationId })));
-                console.log('[ReportView] selectedCrops:', selectedCrops);
-                console.log('[ReportView] displayLocations at render:', displayLocations.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
-                console.log('[ReportView] cropGroups keys:', [...cropGroups.keys()]);
-
                 return Array.from(cropGroups.entries()).map(([cropId, instances]) => {
                   // Find crop name from available crops
                   const cropName = selectedCrops.includes(cropId) 
@@ -1126,8 +1111,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   
                   // Get only the DISPLAYED locations that have this crop (intersection of crop locations and selected locations)
                   const cropLocations = displayLocations.filter(loc => cropLocationIds.has(loc.id));
-
-                  console.log(`[ReportView] crop="${cropName}" instanceLocationIds:`, [...cropLocationIds], 'cropLocations:', cropLocations.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
 
                   // Calculate date range for table headers by checking first location with weather data
                   let dateRangeText = '';
@@ -1297,16 +1280,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const locationInstances = instances.filter(inst => inst.locationId === location.id);
                               
                               if (locationInstances.length === 0) {
-                                console.log(`[ReportView] ROW SKIPPED — no instances for location="${location.name}" crop="${cropId}"`);
                                 return null;
                               }
 
                               const weather = location.weatherData;
                               if (!weather || !weather.daily) {
-                                console.log(`[ReportView] ROW SKIPPED — no weatherData for location="${location.name}" (id=${location.id}) loading=${location.loading}`);
                                 return null;
                               }
-                              console.log(`[ReportView] ROW RENDERING — location="${location.name}" crop="${cropId}" weatherDays=${weather.daily.time.length}`);
 
                               // Determine date range based on report mode
                               let startIdx = 0;
@@ -1664,7 +1644,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               kc = customKc;
                             } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
                               const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                              kc = monthData?.kc || 1.0;
+                              kc = monthData?.kc !== undefined ? monthData.kc : 1.0;
                             } else {
                               kc = locationInstances[0].currentStage === 2 ? 1.15 : 
                                    locationInstances[0].currentStage === 1 ? 0.70 : 0.50;

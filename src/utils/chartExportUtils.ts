@@ -1395,12 +1395,23 @@ export async function exportChartsAsHTML(
           const cropInstance = cropsForThisCrop.find(c => c.locationId === loc.id);
           if (!cropInstance) return;
           
-          const kc = cropInstance.currentStage === 2 ? 1.15 : 
-                    cropInstance.currentStage === 1 ? 0.70 : 0.50;
+          const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
           
           // Filter for PAST dates only (before today)
           locForecast.filter(day => day.date && day.date < today).slice(0, 7).forEach(day => {
             const et0_inches = Number(day.et0) || 0;
+            const dateMonth = day.date ? new Date(day.date + 'T12:00:00').getMonth() + 1 : new Date().getMonth() + 1;
+            const customKc = cropInstance.customKcValues?.[dateMonth];
+            let kc: number;
+            if (customKc !== undefined) {
+              kc = customKc;
+            } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
+              const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
+              kc = monthData?.kc !== undefined ? monthData.kc : 1.0;
+            } else {
+              kc = cropInstance.currentStage === 2 ? 1.15 :
+                   cropInstance.currentStage === 1 ? 0.70 : 0.50;
+            }
             const etc_inches = et0_inches * kc;
             
             const existing = dateMap.get(day.formattedDate) || { total: 0, count: 0 };
@@ -1494,12 +1505,23 @@ export async function exportChartsAsHTML(
           const cropInstance = cropsForThisCrop.find(c => c.locationId === loc.id);
           if (!cropInstance) return;
           
-          const kc = cropInstance.currentStage === 2 ? 1.15 : 
-                    cropInstance.currentStage === 1 ? 0.70 : 0.50;
+          const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
           
           // Filter for FUTURE dates only (today and after)
           locForecast.filter(day => day.date && day.date >= today).slice(0, 7).forEach(day => {
             const et0_inches = Number(day.et0) || 0;
+            const dateMonth = day.date ? new Date(day.date + 'T12:00:00').getMonth() + 1 : new Date().getMonth() + 1;
+            const customKc = cropInstance.customKcValues?.[dateMonth];
+            let kc: number;
+            if (customKc !== undefined) {
+              kc = customKc;
+            } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
+              const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
+              kc = monthData?.kc !== undefined ? monthData.kc : 1.0;
+            } else {
+              kc = cropInstance.currentStage === 2 ? 1.15 :
+                   cropInstance.currentStage === 1 ? 0.70 : 0.50;
+            }
             const etc_inches = et0_inches * kc;
             
             const existing = dateMap.get(day.formattedDate) || { total: 0, count: 0 };
