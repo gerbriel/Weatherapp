@@ -749,19 +749,18 @@ export async function exportChartsAsHTML(
   
   // Helper: convert contentEditable HTML (with &nbsp; indentation) to email-safe HTML
   // Replaces groups of 4 &nbsp; (one Tab press) with a proper inline padding span
-  const sanitizeRichText = (text: string): string => {
-    return text
+  const sanitizeRichText = (html: string): string => {
+    return html
+      // Replace merge token
       .replace(/\{first name\}/gi, '%%First Name%%')
-      // Escape any raw HTML to prevent injection, then re-apply formatting
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      // Convert tabs to 4 non-breaking spaces (email-safe indent)
-      .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-      // Convert multiple spaces to non-breaking spaces so they're preserved
-      .replace(/ {2,}/g, (match) => '&nbsp;'.repeat(match.length))
-      // Convert newlines to <br> so line breaks from the textarea appear in the email
-      .replace(/\n/g, '<br>');
+      // Strip script/style tags for safety
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+      // Strip leading/trailing empty block elements that browsers insert automatically
+      // e.g. <div><br></div> at the start or end
+      .replace(/^(\s*<div>\s*<br\s*\/?>\s*<\/div>\s*)+/gi, '')
+      .replace(/(\s*<div>\s*<br\s*\/?>\s*<\/div>\s*)+$/gi, '')
+      .trim();
   };
   
   // Helper function to get insights for a specific location
