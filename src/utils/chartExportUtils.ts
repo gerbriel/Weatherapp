@@ -1647,13 +1647,10 @@ export async function exportChartsAsHTML(
   const link = document.createElement('a');
   link.href = url;
 
-  // Build filename: "Netafim California Nut Crop Weekly ET Update Week of <Monday> <Year>"
+  // Build filename: "Netafim California Nut Crop Weekly ET Update Week of <export date>"
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon...6=Sat
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)); // rewind to this week's Monday
-  const weekStartLabel = weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const safeFilename = `Netafim California Nut Crop Weekly ET Update Week of ${weekStartLabel}`.replace(/,/g, '');
+  const exportDateLabel = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const safeFilename = `Netafim California Nut Crop Weekly ET Update Week of ${exportDateLabel}`.replace(/,/g, '');
   link.download = `${safeFilename}.html`;
   document.body.appendChild(link);
   link.click();
