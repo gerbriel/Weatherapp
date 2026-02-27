@@ -749,12 +749,19 @@ export async function exportChartsAsHTML(
   
   // Helper: convert contentEditable HTML (with &nbsp; indentation) to email-safe HTML
   // Replaces groups of 4 &nbsp; (one Tab press) with a proper inline padding span
-  const sanitizeRichText = (html: string): string => {
-    return html
+  const sanitizeRichText = (text: string): string => {
+    return text
       .replace(/\{first name\}/gi, '%%First Name%%')
-      // Replace each run of 4 &nbsp; with a 2em indent span (email-safe)
-      .replace(/(&nbsp;){4}/g, '<span style="display:inline-block;width:2em">&nbsp;</span>')
-      // Any leftover isolated &nbsp; pairs stay as-is (they still render as spaces)
+      // Escape any raw HTML to prevent injection, then re-apply formatting
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      // Convert tabs to 4 non-breaking spaces (email-safe indent)
+      .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+      // Convert multiple spaces to non-breaking spaces so they're preserved
+      .replace(/ {2,}/g, (match) => '&nbsp;'.repeat(match.length))
+      // Convert newlines to <br> so line breaks from the textarea appear in the email
+      .replace(/\n/g, '<br>');
   };
   
   // Helper function to get insights for a specific location
@@ -1042,7 +1049,7 @@ export async function exportChartsAsHTML(
       </div>
       ${additionalData?.waterUseNotes ? `
       <div style="max-width: 800px; margin: 30px auto 20px; padding: 0;">
-        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${sanitizeRichText(additionalData.waterUseNotes)}</div>
+        <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">${sanitizeRichText(additionalData.waterUseNotes)}</div>
       </div>
       ` : ''}
       <div style="max-width: 800px; margin: 40px auto; padding: 0;">
@@ -1601,7 +1608,7 @@ export async function exportChartsAsHTML(
   htmlContent += `
       ${additionalData?.closingMessage ? `
       <div style="max-width: 800px; margin: 40px auto 30px; padding: 0;">
-        <div style="font-size: 20px; color: #1F2937; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${sanitizeRichText(additionalData.closingMessage)}</div>
+        <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">${sanitizeRichText(additionalData.closingMessage)}</div>
       </div>
       ` : ''}
       </div>
