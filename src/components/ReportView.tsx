@@ -498,11 +498,14 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Handle both trial locations (no weatherData property) and user locations (with weatherData)
   // CHANGED: Show all locations in dropdown, even if weather data not loaded yet
   const locationsWithWeather = useMemo(() => {
-    return locations.filter(loc => {
-      // Show all locations, but filter out those with errors
-      // This allows new users to see all their locations in the dropdown
-      return !loc.error;
-    });
+    const result = locations.filter(loc => !loc.error);
+    console.log('[ReportView] locations (raw prop):', locations.map(l => ({
+      id: l.id, name: l.name, hasWeather: !!l.weatherData, loading: l.loading, error: l.error
+    })));
+    console.log('[ReportView] locationsWithWeather (after error filter):', result.map(l => ({
+      id: l.id, name: l.name, hasWeather: !!l.weatherData, loading: l.loading
+    })));
+    return result;
   }, [locations]);
 
   // Don't auto-select all locations - let users choose via dropdown
@@ -511,23 +514,31 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Apply location filter (memoized for performance)
   // If no specific locations are selected, default to showing ALL locations
   const filteredLocations = useMemo(() => {
+    let result: any[];
     if (selectedLocationIds.size > 0) {
-      return locationsWithWeather.filter(loc => selectedLocationIds.has(loc.id));
+      result = locationsWithWeather.filter(loc => selectedLocationIds.has(loc.id));
+    } else {
+      // Empty set = show all (default state before user makes an explicit selection)
+      result = locationsWithWeather;
     }
-    // Empty set = show all (default state before user makes an explicit selection)
-    return locationsWithWeather;
+    console.log('[ReportView] selectedLocationIds:', [...selectedLocationIds]);
+    console.log('[ReportView] filteredLocations:', result.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
+    return result;
   }, [locationsWithWeather, selectedLocationIds]);
   
   // For reports view, show all filtered locations regardless of selectedLocation
   const displayLocations = useMemo(() => {
+    let result: any[];
     if (reportMode === 'historical' && historicalWeatherData.size > 0) {
-      // Use historical data when available
-      return filteredLocations.map(location => {
+      result = filteredLocations.map(location => {
         const historicalData = historicalWeatherData.get(location.id);
         return historicalData || location;
       });
+    } else {
+      result = filteredLocations;
     }
-    return filteredLocations;
+    console.log('[ReportView] displayLocations:', result.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
+    return result;
   }, [filteredLocations, reportMode, historicalWeatherData, forecastPreset, futureStartDate]);
 
   // Notify parent component of the current filtered locations for header sync
@@ -1094,6 +1105,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   cropGroups.set(instance.cropId, [...existing, instance]);
                 });
 
+                console.log('[ReportView] ── TABLE RENDER ──');
+                console.log('[ReportView] cropInstances count:', cropInstances.length, cropInstances.map(i => ({ cropId: i.cropId, locationId: i.locationId })));
+                console.log('[ReportView] selectedCrops:', selectedCrops);
+                console.log('[ReportView] displayLocations at render:', displayLocations.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
+                console.log('[ReportView] cropGroups keys:', [...cropGroups.keys()]);
+
                 return Array.from(cropGroups.entries()).map(([cropId, instances]) => {
                   // Find crop name from available crops
                   const cropName = selectedCrops.includes(cropId) 
@@ -1105,6 +1122,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   
                   // Get only the DISPLAYED locations that have this crop (intersection of crop locations and selected locations)
                   const cropLocations = displayLocations.filter(loc => cropLocationIds.has(loc.id));
+
+                  console.log(`[ReportView] crop="${cropName}" instanceLocationIds:`, [...cropLocationIds], 'cropLocations:', cropLocations.map(l => ({ id: l.id, name: l.name, hasWeather: !!l.weatherData })));
 
                   // Calculate date range for table headers by checking first location with weather data
                   let dateRangeText = '';
@@ -1272,10 +1291,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               // Find crop instances for this location and crop
                               const locationInstances = instances.filter(inst => inst.locationId === location.id);
                               
-                              if (locationInstances.length === 0) return null;
+                              if (locationInstances.length === 0) {
+                                console.log(`[ReportView] ROW SKIPPED — no instances for location="${location.name}" crop="${cropId}"`);
+                                return null;
+                              }
 
                               const weather = location.weatherData;
-                              if (!weather || !weather.daily) return null;
+                              if (!weather || !weather.daily) {
+                                console.log(`[ReportView] ROW SKIPPED — no weatherData for location="${location.name}" (id=${location.id}) loading=${location.loading}`);
+                                return null;
+                              }
+                              console.log(`[ReportView] ROW RENDERING — location="${location.name}" crop="${cropId}" weatherDays=${weather.daily.time.length}`);
 
                               // Determine date range based on report mode
                               let startIdx = 0;
