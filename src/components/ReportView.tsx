@@ -1461,13 +1461,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 ? kc_values_array.map((v: number) => v.toFixed(2)).join(', ')
                                 : kc_values_array[0]?.toFixed(2) || '—';
                               
-                              // Format ETc forecast display - show as range if multiple Kc values
+                              // Format ETc forecast display - show as comma-separated if multiple Kc values
                               let etc_forecast_display = etc_forecast_sum.toFixed(2);
                               if (kc_values_array.length > 1 && etc_forecast_by_kc.size > 1) {
-                                // Sort Kc values and get corresponding ETc values
                                 const sortedKcs = kc_values_array.sort((a, b) => a - b);
                                 const etcValues = sortedKcs.map(kc => etc_forecast_by_kc.get(kc) || 0);
-                                etc_forecast_display = `(${etcValues.map(v => v.toFixed(2)).join(', ')})`;
+                                etc_forecast_display = etcValues.map(v => v.toFixed(2)).join(', ');
                               }
                               
                               // Format ET₀ forecast display - split by month when Kc differs across months
@@ -1478,13 +1477,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 et0_forecast_display = sortedMonths.map(([, val]) => val.toFixed(2)).join(', ');
                               }
                               
-                              // Format ETc actual display - show as range if multiple Kc values
+                              // Format ETc actual display - show as comma-separated if multiple Kc values
                               let etc_actual_display = etc_actual_sum.toFixed(2);
                               if (kc_values_array.length > 1 && etc_actual_by_kc.size > 1) {
-                                // Sort Kc values and get corresponding ETc values
                                 const sortedKcs = kc_values_array.sort((a, b) => a - b);
                                 const etcValues = sortedKcs.map(kc => etc_actual_by_kc.get(kc) || 0);
-                                etc_actual_display = `(${etcValues.map(v => v.toFixed(2)).join(', ')})`;
+                                etc_actual_display = etcValues.map(v => v.toFixed(2)).join(', ');
                               }
                               
                               // Determine water need category based on weekly forecast ETc
