@@ -49,8 +49,26 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
     const currentVersion = localStorage.getItem('weatherCacheVersion');
     
     if (currentVersion !== CACHE_VERSION) {
+      // Only clear the weather cache, NOT the location list.
+      // Preserving weatherLocations keeps the stable UUIDs that crop_instances reference.
+      // The weather data itself will be re-fetched fresh on next load.
       localStorage.removeItem('weatherCache');
-      localStorage.removeItem('weatherLocations');
+      const savedLocations = localStorage.getItem('weatherLocations');
+      if (savedLocations) {
+        try {
+          const locs = JSON.parse(savedLocations);
+          // Strip stale weather data but keep IDs, names, coordinates
+          const stripped = locs.map((loc: any) => ({
+            ...loc,
+            weatherData: undefined,
+            loading: false,
+            error: undefined
+          }));
+          localStorage.setItem('weatherLocations', JSON.stringify(stripped));
+        } catch {
+          localStorage.removeItem('weatherLocations');
+        }
+      }
       localStorage.setItem('weatherCacheVersion', CACHE_VERSION);
     }
   }, []);

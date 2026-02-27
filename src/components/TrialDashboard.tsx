@@ -148,14 +148,18 @@ export const TrialDashboard: React.FC = () => {
   
   // Load selected crops from localStorage on mount
   const [selectedCrops, setSelectedCrops] = useState<string[]>(() => {
-    const saved = localStorage.getItem('selected_crops');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('selected_crops');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
   
   // Load crop instances from localStorage on mount
   const [cropInstances, setCropInstances] = useState<CropInstance[]>(() => {
-    const saved = localStorage.getItem('crop_instances');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('crop_instances');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
   
   const [showCropSelector, setShowCropSelector] = useState(false);
@@ -219,11 +223,30 @@ export const TrialDashboard: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('selected_crops', JSON.stringify(selectedCrops));
   }, [selectedCrops]);
-  
+
   // Save crop instances to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('crop_instances', JSON.stringify(cropInstances));
   }, [cropInstances]);
+
+  // Reconcile: once locations load, drop any saved cropInstances whose locationId
+  // no longer exists (happens when weatherLocations was cleared by a cache version bump).
+  // Run only once after first load.
+  const hasReconciledRef = React.useRef(false);
+  useEffect(() => {
+    if (hasReconciledRef.current) return;
+    if (availableLocations.length === 0) return;
+    hasReconciledRef.current = true;
+
+    const validIds = new Set(availableLocations.map(l => l.id));
+    const validInstances = cropInstances.filter(inst => inst.locationId && validIds.has(inst.locationId));
+    if (validInstances.length !== cropInstances.length) {
+      // Some instances had stale locationIds — drop them and clean up selectedCrops too
+      const remainingCropIds = new Set(validInstances.map(i => i.cropId));
+      setCropInstances(validInstances);
+      setSelectedCrops(prev => prev.filter(id => remainingCropIds.has(id)));
+    }
+  }, [availableLocations.length]);
 
   // Persist current view tab so refresh restores the same tab
   useEffect(() => {
