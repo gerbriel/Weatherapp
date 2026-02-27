@@ -1194,12 +1194,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     };
                     
-                    // Comma-separated day numbers for forecast column header (e.g. "26, 27, 28, 1, 2")
-                    const forecastDaysList = forecastDates.map((d: string) => new Date(d + 'T12:00:00').getDate()).join(', ');
-                    const actualsDaysList = actualDates.map((d: string) => new Date(d + 'T12:00:00').getDate()).join(', ');
-
-                    dateRangeText = forecastDates.length > 0 ? forecastDaysList : 'N/A';
-                    actualsDateRangeText = actualDates.length > 0 ? actualsDaysList : 'N/A';
+                    // Date range format for column headers: "Feb 26 – Mar 4"
+                    dateRangeText = forecastDates.length > 0
+                      ? `${formatDate(forecastStartDate)} – ${formatDate(forecastEndDate)}`
+                      : 'N/A';
+                    actualsDateRangeText = actualDates.length > 0
+                      ? `${formatDate(actualsStartDate)} – ${formatDate(actualsEndDate)}`
+                      : 'N/A';
                   }
 
                   return (
@@ -1472,10 +1473,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               // Format ET₀ forecast display - split by month when Kc differs across months
                               let et0_forecast_display = et0_forecast_sum.toFixed(2);
                               if (kc_values_array.length > 1 && et0_forecast_by_month.size > 1) {
-                                // Show ET₀ per month in order
-                                const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                                // Just show the per-month values comma-separated, no month label
                                 const sortedMonths = Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]);
-                                et0_forecast_display = sortedMonths.map(([month, val]) => `${monthNames[month - 1]}: ${val.toFixed(2)}`).join(', ');
+                                et0_forecast_display = sortedMonths.map(([, val]) => val.toFixed(2)).join(', ');
                               }
                               
                               // Format ETc actual display - show as range if multiple Kc values
