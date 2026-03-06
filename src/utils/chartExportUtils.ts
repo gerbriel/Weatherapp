@@ -1277,6 +1277,8 @@ export async function exportChartsAsHTML(
                 let etc_forecast_sum = 0; // Sum of daily ETc forecast
                 let kc_values_set = new Set<number>(); // Track unique Kc values
                 let et0_forecast_by_month = new Map<number, number>(); // month → ET₀ forecast sum
+                // Per-period details for row splitting: kc → {et0, etc, firstDate, lastDate}
+                let kc_period_details = new Map<number, {et0: number; etc: number; firstDate: string; lastDate: string}>();
 
                 // Get crop data for monthly Kc lookup
                 const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropInstance.cropId);
@@ -1297,7 +1299,10 @@ export async function exportChartsAsHTML(
                              cropInstance.currentStage === 1 ? 0.70 : 0.50;
                   }
                   
-                  kc_values_set.add(dailyKc); // Track Kc values used
+                  // Track Kc values used — forecast-only to avoid past-month bleed
+                  if (day.date && day.date >= referenceDate) {
+                    kc_values_set.add(dailyKc);
+                  }
                   
                   // Sum forecast ET₀ and ETc for FUTURE dates (>= reference date)
                   if (day.date && day.date >= referenceDate) {
@@ -1309,6 +1314,19 @@ export async function exportChartsAsHTML(
                     // Track ET₀ by month for split display when Kc differs across months
                     const dayMonth = new Date(day.date + 'T12:00:00').getMonth() + 1;
                     et0_forecast_by_month.set(dayMonth, (et0_forecast_by_month.get(dayMonth) || 0) + et0_forecast_inches);
+
+                    // Track per-Kc-period details for row splitting
+                    const existingPeriod = kc_period_details.get(dailyKc);
+                    if (existingPeriod) {
+                      kc_period_details.set(dailyKc, {
+                        et0: existingPeriod.et0 + et0_forecast_inches,
+                        etc: existingPeriod.etc + dailyEtc,
+                        firstDate: existingPeriod.firstDate < day.date ? existingPeriod.firstDate : day.date,
+                        lastDate: existingPeriod.lastDate > day.date ? existingPeriod.lastDate : day.date,
+                      });
+                    } else {
+                      kc_period_details.set(dailyKc, { et0: et0_forecast_inches, etc: dailyEtc, firstDate: day.date, lastDate: day.date });
+                    }
                   }
 
                   // Sum actual ET₀ and ETc for dates BEFORE the reference date (past days from CIMIS)
@@ -1338,38 +1356,74 @@ export async function exportChartsAsHTML(
 
                 const hasActualData = actualDaysCount > 0;
 
-                // Determine water need category based on weekly forecast ETc
-                let waterNeedCategory = 'Low';
-                let waterNeedColor = '#10B981';
-                let waterNeedBg = '#D1FAE5';
-                
-                if (etc_forecast_sum > 3.5) {
-                  waterNeedCategory = 'High';
-                  waterNeedColor = '#EF4444';
-                  waterNeedBg = '#FEE2E2';
-                } else if (etc_forecast_sum >= 2.1) {
-                  waterNeedCategory = 'Med';
-                  waterNeedColor = '#F59E0B';
-                  waterNeedBg = '#FEF3C7';
+                // Helper: water need color/label
+                const getWaterNeed = (etc: number) => {
+                  if (etc > 3.5) return { cat: 'High', color: '#EF4444', bg: '#FEE2E2' };
+                  if (etc >= 2.1) return { cat: 'Med', color: '#F59E0B', bg: '#FEF3C7' };
+                  return { cat: 'Low', color: '#10B981', bg: '#D1FAE5' };
+                };
+
+                // Helper: format "YYYY-MM-DD" → "Mon D" (e.g. "Mar 6")
+                const fmtShortExport = (d: string) => {
+                  const dt = new Date(d + 'T12:00:00');
+                  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                };
+
+                const rowBg = locIdx % 2 === 0 ? '#FFFFFF' : '#F3F4F6';
+
+                // Sorted Kc periods (by chronological first date)
+                const sortedKcPeriods = Array.from(kc_period_details.entries()).sort((a, b) => a[1].firstDate.localeCompare(b[1].firstDate));
+
+                if (sortedKcPeriods.length <= 1) {
+                  // ── Single Kc period: original single-row layout ──────────────
+                  const wn = getWaterNeed(etc_forecast_sum);
+                  return `
+                    <tr style="background-color: ${rowBg};">
+                      <td style="font-weight: 600; color: #353750; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD;">
+                        ${loc.name}
+                      </td>
+                      <td style="color: #353750; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
+                      <td style="color: #0A7DD6; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
+                      <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${kc_display}</td>
+                      <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_display}</td>
+                      <td style="color: #0EA5E9; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${etc_forecast_sum.toFixed(2)}</td>
+                      <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
+                        <span style="background-color: ${wn.bg}; color: ${wn.color}; padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
+                          ${wn.cat}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
                 }
 
-                return `
-                  <tr style="background-color: ${locIdx % 2 === 0 ? '#FFFFFF' : '#F3F4F6'};">
-                    <td style="font-weight: 600; color: #353750; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD;">
+                // ── Multiple Kc periods: one sub-row per period ───────────────
+                const rowSpanCount = sortedKcPeriods.length;
+                return sortedKcPeriods.map(([kc, period], kcIdx) => {
+                  const wn = getWaterNeed(period.etc);
+                  const locCells = kcIdx === 0 ? `
+                    <td rowspan="${rowSpanCount}" style="font-weight: 600; color: #353750; font-size: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; padding: 12px; border: 1px solid #E5E7EB; background-color: #E3F2FD; vertical-align: middle;">
                       ${loc.name}
                     </td>
-                    <td style="color: #353750; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
-                    <td style="color: #0A7DD6; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
-                    <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${kc_display}</td>
-                    <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${et0_forecast_display}</td>
-                    <td style="color: #0EA5E9; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${etc_forecast_sum.toFixed(2)}</td>
-                    <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
-                      <span style="background-color: ${waterNeedBg}; color: ${waterNeedColor}; padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
-                        ${waterNeedCategory}
-                      </span>
-                    </td>
-                  </tr>
-                `;
+                    <td rowspan="${rowSpanCount}" style="color: #353750; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; vertical-align: middle;">${hasActualData ? et0_actual_sum.toFixed(2) : '—'}</td>
+                    <td rowspan="${rowSpanCount}" style="color: #0A7DD6; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; vertical-align: middle;">${hasActualData ? etc_actual_sum.toFixed(2) : '—'}</td>
+                  ` : '';
+                  return `
+                    <tr style="background-color: ${rowBg};">
+                      ${locCells}
+                      <td style="color: #6B7280; font-size: 18px; font-family: 'Courier New', monospace; padding: 8px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">
+                        <div style="font-weight: 700;">Kc ${kc.toFixed(2)}</div>
+                        <div style="font-size: 15px; color: #9CA3AF;">${fmtShortExport(period.firstDate)}–${fmtShortExport(period.lastDate)}</div>
+                      </td>
+                      <td style="color: #6B7280; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 600; font-style: italic;">${period.et0.toFixed(2)}</td>
+                      <td style="color: #0EA5E9; font-size: 20px; font-family: 'Courier New', monospace; padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center; font-weight: 700; font-style: italic;">${period.etc.toFixed(2)}</td>
+                      <td style="padding: 10px 12px; border: 1px solid #E5E7EB; text-align: center;">
+                        <span style="background-color: ${wn.bg}; color: ${wn.color}; padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; display: inline-block;">
+                          ${wn.cat}
+                        </span>
+                      </td>
+                    </tr>
+                  `;
+                }).join('');
               }).join('')}
             </table>
           </td>
