@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { LocationWithWeather } from '../types/weather';
 import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
+import { getKcForDate } from './kcUtils';
 
 /**
  * Chart Export Utilities
@@ -1282,25 +1283,13 @@ export async function exportChartsAsHTML(
                 let etc_actual_by_kc = new Map<number, number>(); // kc → ETc actual sum
                 let et0_actual_by_kc = new Map<number, number>(); // kc → ET₀ actual sum
 
-                // Get crop data for monthly Kc lookup
+                // Get crop data for Kc lookup
                 const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropInstance.cropId);
 
                 locForecast.forEach((day) => {
-                  // Get Kc for this specific day
-                  const dateMonth = new Date(day.date + 'T12:00:00').getMonth() + 1;
-                  const customKc = cropInstance?.customKcValues?.[dateMonth];
-                  let dailyKc = 1.0;
-                  
-                  if (customKc !== undefined) {
-                    dailyKc = customKc;
-                  } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                    const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                    dailyKc = monthData?.kc !== undefined ? monthData.kc : 1.0;
-                  } else {
-                    dailyKc = cropInstance.currentStage === 2 ? 1.15 : 
-                             cropInstance.currentStage === 1 ? 0.70 : 0.50;
-                  }
-                  
+                  // Get Kc for this specific day — kcSchedule → monthlyKc → stage fallback
+                  const dailyKc = getKcForDate(day.date, cropData, cropInstance?.customKcValues);
+
                   // Track forecast Kc values (forecast-only to avoid past-month bleed)
                   if (day.date && day.date >= referenceDate) {
                     kc_values_set.add(dailyKc);
@@ -1430,18 +1419,7 @@ export async function exportChartsAsHTML(
           // Filter for PAST dates only (before today)
           locForecast.filter(day => day.date && day.date < today).slice(0, 7).forEach(day => {
             const et0_inches = Number(day.et0) || 0;
-            const dateMonth = day.date ? new Date(day.date + 'T12:00:00').getMonth() + 1 : new Date().getMonth() + 1;
-            const customKc = cropInstance.customKcValues?.[dateMonth];
-            let kc: number;
-            if (customKc !== undefined) {
-              kc = customKc;
-            } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-              const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-              kc = monthData?.kc !== undefined ? monthData.kc : 1.0;
-            } else {
-              kc = cropInstance.currentStage === 2 ? 1.15 :
-                   cropInstance.currentStage === 1 ? 0.70 : 0.50;
-            }
+            const kc = getKcForDate(day.date, cropData, cropInstance.customKcValues);
             const etc_inches = et0_inches * kc;
             
             const existing = dateMap.get(day.formattedDate) || { total: 0, count: 0 };
