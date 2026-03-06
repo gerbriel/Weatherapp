@@ -1467,34 +1467,32 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const hasCmisFailed = failedCmisLocations.has(location.id);
                               
                               // Format Kc values for display
-                              const kc_values_array = Array.from(kc_values_used);
-                              const kc_display = kc_values_array.length > 1 
-                                ? kc_values_array.map((v: number) => v.toFixed(2)).join(', ')
-                                : kc_values_array[0]?.toFixed(2) || '—';
-                              
-                              // Format ETc forecast display - show as comma-separated if multiple Kc values
-                              let etc_forecast_display = etc_forecast_sum.toFixed(2);
-                              if (kc_values_array.length > 1 && etc_forecast_by_kc.size > 1) {
-                                const sortedKcs = kc_values_array.sort((a, b) => a - b);
-                                const etcValues = sortedKcs.map(kc => etc_forecast_by_kc.get(kc) || 0);
-                                etc_forecast_display = etcValues.map(v => v.toFixed(2)).join(', ');
-                              }
-                              
-                              // Format ET₀ forecast display - split by month when Kc differs across months
-                              let et0_forecast_display = et0_forecast_sum.toFixed(2);
-                              if (kc_values_array.length > 1 && et0_forecast_by_month.size > 1) {
-                                // Just show the per-month values comma-separated, no month label
-                                const sortedMonths = Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]);
-                                et0_forecast_display = sortedMonths.map(([, val]) => val.toFixed(2)).join(', ');
-                              }
-                              
-                              // Format ETc actual display - show as comma-separated if multiple Kc values
-                              let etc_actual_display = etc_actual_sum.toFixed(2);
-                              if (kc_values_array.length > 1 && etc_actual_by_kc.size > 1) {
-                                const sortedKcs = kc_values_array.sort((a, b) => a - b);
-                                const etcValues = sortedKcs.map(kc => etc_actual_by_kc.get(kc) || 0);
-                                etc_actual_display = etcValues.map(v => v.toFixed(2)).join(', ');
-                              }
+                              const kc_values_array = Array.from(kc_values_used).sort((a, b) => a - b);
+                              const kc_lines: string[] = kc_values_array.length > 0
+                                ? kc_values_array.map((v: number) => v.toFixed(2))
+                                : ['—'];
+                              const kc_display = kc_lines.join(', ');
+
+                              // ETc forecast lines — one per Kc value
+                              const sortedKcsForDisplay = [...kc_values_array].sort((a, b) => a - b);
+                              const etc_forecast_lines: string[] = sortedKcsForDisplay.length > 1 && etc_forecast_by_kc.size > 1
+                                ? sortedKcsForDisplay.map(kc => (etc_forecast_by_kc.get(kc) || 0).toFixed(2))
+                                : [etc_forecast_sum.toFixed(2)];
+
+                              // ET₀ forecast lines — one per month when Kc differs
+                              const et0_forecast_lines: string[] = kc_values_array.length > 1 && et0_forecast_by_month.size > 1
+                                ? Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]).map(([, v]) => v.toFixed(2))
+                                : [et0_forecast_sum.toFixed(2)];
+
+                              // ETc actual lines — one per Kc value
+                              const etc_actual_lines: string[] = kc_values_array.length > 1 && etc_actual_by_kc.size > 1
+                                ? sortedKcsForDisplay.map(kc => (etc_actual_by_kc.get(kc) || 0).toFixed(2))
+                                : [etc_actual_sum.toFixed(2)];
+
+                              // Legacy string for comma display (export/etc)
+                              const etc_forecast_display = etc_forecast_lines.join(', ');
+                              const et0_forecast_display = et0_forecast_lines.join(', ');
+                              const etc_actual_display = etc_actual_lines.join(', ');
                               
                               // Determine water need category based on weekly forecast ETc
                               let waterNeedCategory = 'Low';
@@ -1526,6 +1524,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
                               const rowBg = locIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50';
 
+                              // Helper: render stacked lines inside a cell
+                              const stackedLines = (lines: string[]) => (
+                                <div className="flex flex-col items-center gap-0.5">
+                                  {lines.map((v, i) => <div key={i}>{v}</div>)}
+                                </div>
+                              );
+
                               return (
                                 <tr
                                   key={`${location.id}-${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`}
@@ -1551,7 +1556,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     ) : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
                                   </td>
 
-                                  {/* ETc Actual */}
+                                  {/* ETc Actual — stacked per Kc period */}
                                   <td className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
                                     {isLoadingCmis ? (
                                       <div className="flex items-center justify-center"><div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div></div>
@@ -1560,10 +1565,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                         Retry
                                       </button>
-                                    ) : hasActualData ? etc_actual_display : '—'}
+                                    ) : hasActualData ? stackedLines(etc_actual_lines) : '—'}
                                   </td>
 
-                                  {/* Kc Values */}
+                                  {/* Kc Values — stacked per period */}
                                   <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono">
                                     {isLoadingCmis ? (
                                       <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
@@ -1572,17 +1577,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                         Retry
                                       </button>
-                                    ) : kc_display}
+                                    ) : stackedLines(kc_lines)}
                                   </td>
 
-                                  {/* ET₀ Forecast */}
+                                  {/* ET₀ Forecast — stacked per period */}
                                   <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                    {et0_forecast_display}
+                                    {stackedLines(et0_forecast_lines)}
                                   </td>
 
-                                  {/* ETc Forecast */}
+                                  {/* ETc Forecast — stacked per period */}
                                   <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
-                                    {etc_forecast_display}
+                                    {stackedLines(etc_forecast_lines)}
                                   </td>
 
                                   {/* Water Need */}
