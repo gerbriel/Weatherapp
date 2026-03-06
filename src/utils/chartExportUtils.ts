@@ -1288,7 +1288,12 @@ export async function exportChartsAsHTML(
 
                 locForecast.forEach((day) => {
                   // Get Kc for this specific day — kcSchedule → monthlyKc → stage fallback
-                  const dailyKc = getKcForDate(day.date, cropData, cropInstance?.customKcValues);
+                  let dailyKc = getKcForDate(day.date, cropData, cropInstance?.customKcValues);
+                  // Stage-based fallback when crop has no schedule/monthly data (mirrors ReportView)
+                  if (!cropData?.kcSchedule?.length && !cropData?.monthlyKc?.length) {
+                    dailyKc = cropInstance.currentStage === 2 ? 1.15 :
+                              cropInstance.currentStage === 1 ? 0.70 : 0.50;
+                  }
 
                   // Track forecast Kc values (forecast-only to avoid past-month bleed)
                   if (day.date && day.date >= referenceDate) {
@@ -1419,7 +1424,12 @@ export async function exportChartsAsHTML(
           // Filter for PAST dates only (before today)
           locForecast.filter(day => day.date && day.date < today).slice(0, 7).forEach(day => {
             const et0_inches = Number(day.et0) || 0;
-            const kc = getKcForDate(day.date, cropData, cropInstance.customKcValues);
+            let kc = getKcForDate(day.date, cropData, cropInstance.customKcValues);
+            // Stage-based fallback when crop has no schedule/monthly data
+            if (!cropData?.kcSchedule?.length && !cropData?.monthlyKc?.length) {
+              kc = cropInstance.currentStage === 2 ? 1.15 :
+                   cropInstance.currentStage === 1 ? 0.70 : 0.50;
+            }
             const etc_inches = et0_inches * kc;
             
             const existing = dateMap.get(day.formattedDate) || { total: 0, count: 0 };
@@ -1518,15 +1528,9 @@ export async function exportChartsAsHTML(
           // Filter for FUTURE dates only (today and after)
           locForecast.filter(day => day.date && day.date >= today).slice(0, 7).forEach(day => {
             const et0_inches = Number(day.et0) || 0;
-            const dateMonth = day.date ? new Date(day.date + 'T12:00:00').getMonth() + 1 : new Date().getMonth() + 1;
-            const customKc = cropInstance.customKcValues?.[dateMonth];
-            let kc: number;
-            if (customKc !== undefined) {
-              kc = customKc;
-            } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-              const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-              kc = monthData?.kc !== undefined ? monthData.kc : 1.0;
-            } else {
+            let kc = getKcForDate(day.date, cropData, cropInstance.customKcValues);
+            // Stage-based fallback when crop has no schedule/monthly data
+            if (!cropData?.kcSchedule?.length && !cropData?.monthlyKc?.length) {
               kc = cropInstance.currentStage === 2 ? 1.15 :
                    cropInstance.currentStage === 1 ? 0.70 : 0.50;
             }

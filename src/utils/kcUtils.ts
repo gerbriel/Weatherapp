@@ -6,10 +6,11 @@ import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
  * customKcValues (keyed by month 1-12) always takes highest priority.
  */
 export function getKcForDate(
-  dateStr: string,
+  dateStr: string | undefined | null,
   cropData: ReturnType<typeof COMPREHENSIVE_CROP_DATABASE.find>,
   customKcValues?: { [key: number]: number }
 ): number {
+  if (!dateStr) return 1.0;
   const dateMonth = new Date(dateStr + 'T12:00:00').getMonth() + 1;
 
   // 1. Custom per-month override wins
