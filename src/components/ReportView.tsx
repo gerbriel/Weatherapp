@@ -1397,6 +1397,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
                               // Per-period details for row splitting: kc → {et0, etc, firstDate, lastDate}
                               let kc_period_details = new Map<number, {et0: number; etc: number; firstDate: string; lastDate: string}>();
+                              // Same for actuals
+                              let kc_actual_period_details = new Map<number, {et0: number; etc: number; firstDate: string; lastDate: string}>();
                               
                               const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                               
@@ -1465,6 +1467,19 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     etc_actual_by_kc.set(dailyKc, (etc_actual_by_kc.get(dailyKc) || 0) + dailyEtc);
                                     actualDaysCount++;
                                     actualDates.push(date);
+
+                                    // Track per-Kc-period details for actuals row splitting
+                                    const existingActual = kc_actual_period_details.get(dailyKc);
+                                    if (existingActual) {
+                                      kc_actual_period_details.set(dailyKc, {
+                                        et0: existingActual.et0 + cimisDay.etc_actual,
+                                        etc: existingActual.etc + dailyEtc,
+                                        firstDate: existingActual.firstDate < date ? existingActual.firstDate : date,
+                                        lastDate: existingActual.lastDate > date ? existingActual.lastDate : date,
+                                      });
+                                    } else {
+                                      kc_actual_period_details.set(dailyKc, { et0: cimisDay.etc_actual, etc: dailyEtc, firstDate: date, lastDate: date });
+                                    }
                                   }
                                 }
                               }
@@ -1540,153 +1555,162 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 );
                               };
 
+                              // Build sorted period arrays
                               const sortedKcPeriods = Array.from(kc_period_details.entries()).sort((a, b) => a[1].firstDate.localeCompare(b[1].firstDate));
-                              const rowSpanCount = sortedKcPeriods.length || 1;
+                              const sortedActualPeriods = Array.from(kc_actual_period_details.entries()).sort((a, b) => a[1].firstDate.localeCompare(b[1].firstDate));
+
+                              // Determine whether to split each side
+                              const splitForecast = sortedKcPeriods.length > 1;
+                              const splitActuals = hasActualData && sortedActualPeriods.length > 1;
+
+                              // Number of sub-rows = max of the two sides (at least 1)
+                              const rowSpanCount = Math.max(sortedKcPeriods.length, sortedActualPeriods.length, 1);
                               const rowBg = locIdx % 2 === 0 ? 'bg-white dark:bg-gray-800' : 'bg-gray-50 dark:bg-gray-800/50';
 
-                              // Shared location cell (spans all Kc-period sub-rows)
-                              const locationCell = (
-                                <td
-                                  rowSpan={rowSpanCount}
-                                  className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white sticky left-0 bg-blue-50 dark:bg-blue-900/20 border-r border-gray-300 dark:border-gray-600 align-middle"
+                              // Retry button helper
+                              const retryBtn = (
+                                <button
+                                  onClick={() => retryLocationCMIS(location.id)}
+                                  className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                  title="Click to retry loading CIMIS data"
                                 >
-                                  <div className="flex items-center">
-                                    <MapPin className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                                    <span>{location.name}</span>
-                                  </div>
-                                </td>
+                                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  Retry
+                                </button>
                               );
 
-                              // Shared ET₀ actual cell (spans all sub-rows)
-                              const et0ActualCell = (
-                                <td rowSpan={rowSpanCount} className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono align-middle">
-                                  {isLoadingCmis ? (
-                                    <div className="flex items-center justify-center">
-                                      <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                                    </div>
-                                  ) : hasCmisFailed ? (
-                                    <button
-                                      onClick={() => retryLocationCMIS(location.id)}
-                                      className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                                      title="Click to retry loading CIMIS data"
-                                    >
-                                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                      </svg>
-                                      Retry
-                                    </button>
-                                  ) : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
-                                </td>
-                              );
-
-                              // Shared ETc actual cell (spans all sub-rows)
-                              const etcActualCell = (
-                                <td rowSpan={rowSpanCount} className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold align-middle">
-                                  {isLoadingCmis ? (
-                                    <div className="flex items-center justify-center">
-                                      <div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div>
-                                    </div>
-                                  ) : hasCmisFailed ? (
-                                    <button
-                                      onClick={() => retryLocationCMIS(location.id)}
-                                      className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                                      title="Click to retry loading CIMIS data"
-                                    >
-                                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                      </svg>
-                                      Retry
-                                    </button>
-                                  ) : hasActualData ? etc_actual_display : '—'}
-                                </td>
-                              );
-
-                              if (sortedKcPeriods.length <= 1) {
-                                // ── Single Kc period: original single-row layout ──────────────────
+                              if (!splitForecast && !splitActuals) {
+                                // ── Single Kc period on both sides: original single-row layout ──
                                 return (
                                   <tr
                                     key={`${location.id}-${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`}
                                     className={rowBg}
                                   >
-                                    {locationCell}
-                                    {et0ActualCell}
-                                    {etcActualCell}
-
+                                    {/* Location */}
+                                    <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white sticky left-0 bg-blue-50 dark:bg-blue-900/20 border-r border-gray-300 dark:border-gray-600 align-middle">
+                                      <div className="flex items-center">
+                                        <MapPin className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                        <span>{location.name}</span>
+                                      </div>
+                                    </td>
+                                    {/* ET₀ Actual */}
+                                    <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
+                                      {isLoadingCmis ? <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
+                                        : hasCmisFailed ? retryBtn
+                                        : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
+                                    </td>
+                                    {/* ETc Actual */}
+                                    <td className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold">
+                                      {isLoadingCmis ? <div className="flex items-center justify-center"><div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div></div>
+                                        : hasCmisFailed ? retryBtn
+                                        : hasActualData ? etc_actual_display : '—'}
+                                    </td>
                                     {/* Kc */}
                                     <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono">
-                                      {isLoadingCmis ? (
-                                        <div className="flex items-center justify-center">
-                                          <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
-                                        </div>
-                                      ) : hasCmisFailed ? (
-                                        <button
-                                          onClick={() => retryLocationCMIS(location.id)}
-                                          className="flex items-center justify-center gap-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                                          title="Click to retry loading CIMIS data"
-                                        >
-                                          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                          </svg>
-                                          Retry
-                                        </button>
-                                      ) : kc_display}
+                                      {isLoadingCmis ? <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
+                                        : hasCmisFailed ? retryBtn : kc_display}
                                     </td>
-
                                     {/* ET₀ Forecast */}
-                                    <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                      {et0_forecast_display}
-                                    </td>
-
+                                    <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">{et0_forecast_display}</td>
                                     {/* ETc Forecast */}
-                                    <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
-                                      {etc_forecast_display}
-                                    </td>
-
+                                    <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">{etc_forecast_display}</td>
                                     {/* Water Need */}
-                                    <td className="px-4 py-3 text-sm text-center font-semibold">
-                                      <WaterNeedBadge etc={etc_forecast_sum} />
-                                    </td>
+                                    <td className="px-4 py-3 text-sm text-center font-semibold"><WaterNeedBadge etc={etc_forecast_sum} /></td>
                                   </tr>
                                 );
                               }
 
-                              // ── Multiple Kc periods: split into one sub-row per period ────────
+                              // ── One or both sides split: render sub-rows ─────────────────────
+                              // Build a unified row index based on the longer side
+                              const subRowCount = Math.max(sortedKcPeriods.length || 1, sortedActualPeriods.length || 1);
+
                               return (
                                 <React.Fragment key={`${location.id}-${cropId}-${reportMode}-${forecastPreset}-${futureStartDate}`}>
-                                  {sortedKcPeriods.map(([kc, period], kcIdx) => (
-                                    <tr
-                                      key={`${location.id}-kc-${kc}-${kcIdx}`}
-                                      className={rowBg}
-                                    >
-                                      {/* Location + actuals only on the first sub-row (rowSpan covers the rest) */}
-                                      {kcIdx === 0 && locationCell}
-                                      {kcIdx === 0 && et0ActualCell}
-                                      {kcIdx === 0 && etcActualCell}
+                                  {Array.from({ length: subRowCount }).map((_, rowIdx) => {
+                                    const actualPeriodEntry = sortedActualPeriods[rowIdx];
+                                    const forecastPeriodEntry = sortedKcPeriods[rowIdx];
 
-                                      {/* Kc value with date range label */}
-                                      <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono">
-                                        <div className="font-semibold">Kc {kc.toFixed(2)}</div>
-                                        <div className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap">
-                                          {fmtShort(period.firstDate)}–{fmtShort(period.lastDate)}
-                                        </div>
-                                      </td>
+                                    return (
+                                      <tr key={`${location.id}-row-${rowIdx}`} className={rowBg}>
 
-                                      {/* ET₀ Forecast for this period */}
-                                      <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
-                                        {period.et0.toFixed(2)}
-                                      </td>
+                                        {/* Location — always rowSpan the full count, first row only */}
+                                        {rowIdx === 0 && (
+                                          <td
+                                            rowSpan={subRowCount}
+                                            className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white sticky left-0 bg-blue-50 dark:bg-blue-900/20 border-r border-gray-300 dark:border-gray-600 align-middle"
+                                          >
+                                            <div className="flex items-center">
+                                              <MapPin className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                                              <span>{location.name}</span>
+                                            </div>
+                                          </td>
+                                        )}
 
-                                      {/* ETc Forecast for this period */}
-                                      <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
-                                        {period.etc.toFixed(2)}
-                                      </td>
+                                        {/* ET₀ Actual — split or rowspan depending on splitActuals */}
+                                        {splitActuals ? (
+                                          actualPeriodEntry ? (
+                                            <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono align-middle">
+                                              {isLoadingCmis ? <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
+                                                : hasCmisFailed ? retryBtn
+                                                : <><div className="font-semibold">{actualPeriodEntry[1].et0.toFixed(2)}</div><div className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap">Kc {actualPeriodEntry[0].toFixed(2)} · {fmtShort(actualPeriodEntry[1].firstDate)}–{fmtShort(actualPeriodEntry[1].lastDate)}</div></>}
+                                            </td>
+                                          ) : <td className="px-4 py-3 text-sm text-center text-gray-400 font-mono">—</td>
+                                        ) : rowIdx === 0 ? (
+                                          <td rowSpan={subRowCount} className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono align-middle">
+                                            {isLoadingCmis ? <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
+                                              : hasCmisFailed ? retryBtn
+                                              : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
+                                          </td>
+                                        ) : null}
 
-                                      {/* Water Need for this period */}
-                                      <td className="px-4 py-3 text-sm text-center font-semibold">
-                                        <WaterNeedBadge etc={period.etc} />
-                                      </td>
-                                    </tr>
-                                  ))}
+                                        {/* ETc Actual — split or rowspan */}
+                                        {splitActuals ? (
+                                          actualPeriodEntry ? (
+                                            <td className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold align-middle">
+                                              {isLoadingCmis ? <div className="flex items-center justify-center"><div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div></div>
+                                                : hasCmisFailed ? retryBtn
+                                                : actualPeriodEntry[1].etc.toFixed(2)}
+                                            </td>
+                                          ) : <td className="px-4 py-3 text-sm text-center text-gray-400 font-mono">—</td>
+                                        ) : rowIdx === 0 ? (
+                                          <td rowSpan={subRowCount} className="px-4 py-3 text-sm text-center text-blue-600 dark:text-blue-400 font-mono font-semibold align-middle">
+                                            {isLoadingCmis ? <div className="flex items-center justify-center"><div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div></div>
+                                              : hasCmisFailed ? retryBtn
+                                              : hasActualData ? etc_actual_display : '—'}
+                                          </td>
+                                        ) : null}
+
+                                        {/* Kc + forecast period label */}
+                                        {forecastPeriodEntry ? (
+                                          <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono">
+                                            <div className="font-semibold">Kc {forecastPeriodEntry[0].toFixed(2)}</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-500 whitespace-nowrap">
+                                              {fmtShort(forecastPeriodEntry[1].firstDate)}–{fmtShort(forecastPeriodEntry[1].lastDate)}
+                                            </div>
+                                          </td>
+                                        ) : (
+                                          <td className="px-4 py-3 text-sm text-center text-gray-400 font-mono">—</td>
+                                        )}
+
+                                        {/* ET₀ Forecast */}
+                                        <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400 font-mono italic">
+                                          {forecastPeriodEntry ? forecastPeriodEntry[1].et0.toFixed(2) : '—'}
+                                        </td>
+
+                                        {/* ETc Forecast */}
+                                        <td className="px-4 py-3 text-sm text-center text-sky-500 dark:text-sky-400 font-mono font-semibold italic">
+                                          {forecastPeriodEntry ? forecastPeriodEntry[1].etc.toFixed(2) : '—'}
+                                        </td>
+
+                                        {/* Water Need */}
+                                        <td className="px-4 py-3 text-sm text-center font-semibold">
+                                          {forecastPeriodEntry ? <WaterNeedBadge etc={forecastPeriodEntry[1].etc} /> : '—'}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
                                 </React.Fragment>
                               );
                             })}
