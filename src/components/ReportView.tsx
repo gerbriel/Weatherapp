@@ -19,6 +19,42 @@ import { isLocationInCalifornia } from '../utils/locationUtils';
 import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 import type { CMISETCData } from '../services/cmisService';
 
+/**
+ * Look up the precise Kc for a given date string (YYYY-MM-DD) from a crop's kcSchedule,
+ * falling back to monthlyKc, then to a default of 1.0.
+ * customKcValues (keyed by month 1-12) always takes highest priority.
+ */
+function getKcForDate(
+  dateStr: string,
+  cropData: ReturnType<typeof COMPREHENSIVE_CROP_DATABASE.find>,
+  customKcValues?: {[key: number]: number}
+): number {
+  const dateMonth = new Date(dateStr + 'T12:00:00').getMonth() + 1;
+
+  // 1. Custom per-month override wins
+  if (customKcValues?.[dateMonth] !== undefined) {
+    return customKcValues[dateMonth];
+  }
+
+  // 2. Bi-monthly kcSchedule (most precise)
+  if (cropData?.kcSchedule && cropData.kcSchedule.length > 0) {
+    // dateStr is YYYY-MM-DD; schedule entries use MM-DD
+    const mmdd = dateStr.slice(5); // "MM-DD"
+    const entry = cropData.kcSchedule.find(s => mmdd >= s.startDate && mmdd <= s.endDate);
+    if (entry !== undefined) {
+      return entry.kc;
+    }
+  }
+
+  // 3. Monthly average fallback
+  if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
+    const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
+    if (monthData?.kc !== undefined) return monthData.kc;
+  }
+
+  return 1.0;
+}
+
 interface CropInstance {
   id: string;
   cropId: string;
@@ -1374,26 +1410,21 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               for (let i = startIdx; i < endIdx; i++) {
                                 const date = weather.daily.time[i];
                                 
-                                // Get Kc for this specific day
+                                // Get Kc for this specific day — uses kcSchedule (bi-monthly precision)
+                                // then monthlyKc, then stage fallback
                                 const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
-                                const customKc = locationInstances[0]?.customKcValues?.[dateMonth];
-                                let dailyKc = 1.0;
-                                
-                                if (customKc !== undefined) {
-                                  dailyKc = customKc;
-                                } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                                  const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                                  dailyKc = monthData?.kc !== undefined ? monthData.kc : 1.0;
-                                } else {
-                                  dailyKc = locationInstances[0].currentStage === 2 ? 1.15 : 
-                                           locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
+                                let dailyKc = getKcForDate(date, cropData, locationInstances[0]?.customKcValues);
+                                // Stage-based fallback if no crop data at all
+                                if (!cropData?.kcSchedule?.length && !cropData?.monthlyKc?.length) {
+                                  dailyKc = locationInstances[0].currentStage === 2 ? 1.15 :
+                                            locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
                                 }
-                                
-                                // Track unique Kc values used
-                                kc_values_used.add(dailyKc);
                                 
                                 // Sum OpenMeteo forecast ET₀ for FUTURE dates (>= reference date)
                                 if (date >= referenceDate) {
+                                  // Track unique Kc values used — forecast only, so the Kc column
+                                  // reflects the upcoming period and doesn't bleed in past-month values
+                                  kc_values_used.add(dailyKc);
                                   const et0_forecast = weather.daily.et0_fao_evapotranspiration?.[i] || 0;
                                   et0_forecast_sum += et0_forecast;
                                   const dailyEtc = et0_forecast * dailyKc;
@@ -1637,16 +1668,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                             // Get month from date (1-12)
                             const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
                             
-                            // Calculate Kc - check custom values first, then monthly, then stage-based fallback
-                            let kc = 1.0;
-                            const customKc = locationInstances[0]?.customKcValues?.[dateMonth];
-                            if (customKc !== undefined) {
-                              kc = customKc;
-                            } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-                              const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-                              kc = monthData?.kc !== undefined ? monthData.kc : 1.0;
-                            } else {
-                              kc = locationInstances[0].currentStage === 2 ? 1.15 : 
+                            // Calculate Kc — uses kcSchedule (bi-monthly precision) then monthlyKc then stage fallback
+                            let kc = getKcForDate(date, cropData, locationInstances[0]?.customKcValues);
+                            if (!cropData?.kcSchedule?.length && !cropData?.monthlyKc?.length) {
+                              kc = locationInstances[0].currentStage === 2 ? 1.15 :
                                    locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
                             }
                             
