@@ -45,12 +45,16 @@ class CMISService {
       // Use Vite proxy in development
       this.baseUrl = '/api/cmis';
     } else {
-      // Use Supabase Edge Function proxy in production to avoid CORS
+      // In production: prefer the Vercel serverless proxy (avoids Supabase IP blocks from CIMIS)
+      // Falls back to Supabase Edge Function if VITE_VERCEL_URL is not set
+      const vercelUrl = import.meta.env.VITE_VERCEL_URL;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      if (supabaseUrl) {
+      if (vercelUrl) {
+        this.baseUrl = `${vercelUrl}/api/cmis-proxy`;
+      } else if (supabaseUrl) {
         this.baseUrl = `${supabaseUrl}/functions/v1/cmis-proxy`;
       } else {
-        // Fallback to direct URL (will fail with CORS on GitHub Pages)
+        // Last resort fallback (will fail with CORS on GitHub Pages)
         this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/api/data';
       }
     }
