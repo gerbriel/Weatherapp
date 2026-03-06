@@ -1843,7 +1843,8 @@ export const Dashboard: React.FC = () => {
                                       const initialKcValues: {[key: number]: number} = {};
                                       crop.monthlyKc.forEach(month => {
                                         // Use custom Kc if it exists in the instance, otherwise use default
-                                        initialKcValues[month.month] = instance.customKcValues?.[month.month] || month.kc;
+                                        // NOTE: use ?? not || so that a custom Kc of 0 is preserved
+                                        initialKcValues[month.month] = instance.customKcValues?.[month.month] ?? month.kc;
                                       });
                                       setEditingKcValues(initialKcValues);
                                     }
