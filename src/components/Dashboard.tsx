@@ -1804,11 +1804,15 @@ export const Dashboard: React.FC = () => {
                         // Get current month and corresponding Kc value
                         const currentDate = new Date();
                         const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+                        const todayStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
                         
-                        // Find monthly Kc data for current month
+                        // Find Kc for today using kcSchedule (bi-monthly precision) first,
+                        // then monthlyKc, honouring any per-month custom override
                         const currentMonthData = crop.monthlyKc?.find(m => m.month === currentMonth);
-                        // Use custom Kc value if available, otherwise use default monthly Kc
-                        const displayKc = instance.customKcValues?.[currentMonth] ?? currentMonthData?.kc ?? crop.stages[0]?.kc ?? 0.4;
+                        const todayMmdd = todayStr.slice(5); // "MM-DD"
+                        const scheduleEntry = crop.kcSchedule?.find(s => todayMmdd >= s.startDate && todayMmdd <= s.endDate);
+                        const baseKc = scheduleEntry?.kc ?? currentMonthData?.kc ?? crop.stages[0]?.kc ?? 0.4;
+                        const displayKc = instance.customKcValues?.[currentMonth] ?? baseKc;
                         const displayMonth = currentMonthData?.monthName || new Date().toLocaleString('default', { month: 'long' });
                         const isCustomKc = instance.customKcValues?.[currentMonth] !== undefined;
                         
