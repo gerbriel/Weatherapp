@@ -3,6 +3,7 @@ import { X, Users, Search, Edit, Trash2, Shield, Building2, Calendar, Mail, User
 import { useAuth } from '../contexts/AuthContextSimple';
 import { supabase } from '../lib/supabase';
 import { AdminCropSelector } from './AdminCropSelector';
+import { sanitizeName, sanitizeNotes, sanitizeText } from '../utils/sanitize';
 
 interface UserManagementPanelProps {
   isOpen: boolean;
@@ -675,14 +676,14 @@ export const UserManagementPanel: React.FC<UserManagementPanelProps> = ({ isOpen
       const { error } = await supabase
         .from('location_crops')
         .update({
-          crop_name: cropFormData.crop_name,
-          crop_variety: cropFormData.crop_variety || null,
+          crop_name: sanitizeName(cropFormData.crop_name),
+          crop_variety: cropFormData.crop_variety ? sanitizeName(cropFormData.crop_variety) : null,
           planting_date: cropFormData.planting_date,
           harvest_date: cropFormData.harvest_date || null,
           area_acres: cropFormData.area_acres ? parseFloat(cropFormData.area_acres) : null,
           irrigation_method: cropFormData.irrigation_method,
-          soil_type: cropFormData.soil_type || null,
-          notes: cropFormData.notes || null,
+          soil_type: cropFormData.soil_type ? sanitizeText(cropFormData.soil_type, 100) : null,
+          notes: cropFormData.notes ? sanitizeNotes(cropFormData.notes) : null,
           status: cropFormData.status,
           updated_at: new Date().toISOString()
         })

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Building2, X, AlertCircle, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { sanitizeName, sanitizeText, sanitizeSlug } from '../utils/sanitize';
 
 interface CreateOrganizationModalProps {
   onClose: () => void;
@@ -35,9 +36,9 @@ export function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizati
     try {
       // Call the database function to create org and make user admin
       const { data, error: rpcError } = await supabase.rpc('create_organization_with_admin', {
-        org_name: formData.name,
-        org_slug: formData.slug,
-        org_description: formData.description || null
+        org_name: sanitizeName(formData.name),
+        org_slug: sanitizeSlug(formData.slug),
+        org_description: formData.description ? sanitizeText(formData.description, 500) : null
       });
 
       if (rpcError) throw rpcError;
@@ -47,8 +48,8 @@ export function CreateOrganizationModal({ onClose, onSuccess }: CreateOrganizati
         const { error: updateError } = await supabase
           .from('organizations')
           .update({
-            industry: formData.industry || null,
-            website: formData.website || null
+            industry: formData.industry ? sanitizeName(formData.industry, 100) : null,
+            website: formData.website ? sanitizeText(formData.website, 200) : null
           })
           .eq('id', data);
 

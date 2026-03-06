@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Eye, EyeOff, Mail, Lock, User, UserPlus, Building } from 'lucide-react';
+import { sanitizeEmail, sanitizeName } from '../../utils/sanitize';
 
 interface SignupFormProps {
   onSuccess?: () => void;
@@ -48,11 +49,11 @@ export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, onSwitchToLog
     }
 
     try {
-      const { error } = await signUp(formData.email, formData.password, {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        display_name: `${formData.firstName} ${formData.lastName}`.trim(),
-        organization_name: formData.organizationName
+      const { error } = await signUp(sanitizeEmail(formData.email), formData.password, {
+        first_name: sanitizeName(formData.firstName),
+        last_name: sanitizeName(formData.lastName),
+        display_name: `${sanitizeName(formData.firstName)} ${sanitizeName(formData.lastName)}`.trim(),
+        organization_name: sanitizeName(formData.organizationName)
       });
       
       if (error) {

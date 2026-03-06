@@ -12,6 +12,7 @@ import { CreateOrganizationModal } from './CreateOrganizationModal';
 import { supabase } from '../lib/supabase';
 import { useFrostWarnings, FROST_THRESHOLDS } from '../utils/frostWarnings';
 import { useAuth } from '../contexts/AuthContextSimple';
+import { sanitizeNotes, sanitizeKc } from '../utils/sanitize';
 
 import { OrganizationSwitcher } from './OrganizationSwitcher';
 import { ReportView } from './ReportView';
@@ -2660,7 +2661,7 @@ export const Dashboard: React.FC = () => {
               onSubmit={(e) => {
                 e.preventDefault();
                 const formData = new FormData(e.target as HTMLFormElement);
-                const notes = formData.get('notes') as string;
+                const notes = sanitizeNotes(formData.get('notes') as string || '');
                 
                 // Filter out Kc values that match the default - only save actual custom values
                 const crop = availableCrops.find(c => c.id === editingCropInstance.cropId);
@@ -2669,10 +2670,12 @@ export const Dashboard: React.FC = () => {
                 if (crop?.monthlyKc) {
                   Object.entries(editingKcValues).forEach(([monthStr, kcValue]) => {
                     const month = parseInt(monthStr);
+                    const sanitized = sanitizeKc(kcValue);
+                    if (isNaN(sanitized)) return;
                     const defaultKc = crop.monthlyKc?.find(m => m.month === month)?.kc;
                     // Only save if different from default
-                    if (defaultKc !== undefined && Math.abs(kcValue - defaultKc) > 0.001) {
-                      filteredCustomKcValues[month] = kcValue;
+                    if (defaultKc !== undefined && Math.abs(sanitized - defaultKc) > 0.001) {
+                      filteredCustomKcValues[month] = sanitized;
                     }
                   });
                 }

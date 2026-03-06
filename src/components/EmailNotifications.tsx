@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Plus, MapPin, CheckCircle, AlertCircle, CalendarDays, Repeat, Send, Square, CheckSquare } from 'lucide-react';
 import { useLocations } from '../contexts/LocationsContext';
 import { EmailSubscriptionService, LocationService } from '../services/supabaseService';
+import { sanitizeEmail, sanitizeName } from '../utils/sanitize';
 
 // One-time email sender component
 const OneTimeEmailSender: React.FC = () => {
@@ -396,6 +397,8 @@ export const EmailNotifications: React.FC = () => {
       
       const subscriptionData = {
         ...newSubscription,
+        name: sanitizeName(newSubscription.name),
+        email: sanitizeEmail(newSubscription.email),
         selected_location_ids: supabaseLocationIds, // Use Supabase UUIDs
         scheduled_at: newSubscription.is_recurring ? undefined : new Date(newSubscription.scheduled_at).toISOString(),
         schedule_day_of_week: newSubscription.is_recurring ? newSubscription.schedule_day_of_week : undefined,

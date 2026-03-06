@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Mail, Phone, Briefcase, Building, Save, MapPin, Plus, Trash2, Star } from 'lucide-react';
+import { sanitizeName, sanitizeText, sanitizeLatitude, sanitizeLongitude } from '../utils/sanitize';
 
 export const UserProfile: React.FC = () => {
   const { 
@@ -38,7 +39,13 @@ export const UserProfile: React.FC = () => {
   const handleProfileUpdate = async () => {
     setLoading(true);
     try {
-      await updateProfile(profileData);
+      await updateProfile({
+        first_name: sanitizeName(profileData.first_name),
+        last_name: sanitizeName(profileData.last_name),
+        phone: sanitizeText(profileData.phone, 30),
+        job_title: sanitizeName(profileData.job_title, 100),
+        department: sanitizeName(profileData.department, 100),
+      });
       setEditingProfile(false);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -57,7 +64,14 @@ export const UserProfile: React.FC = () => {
     try {
       await addLocation({
         ...newLocation,
-        is_default: locations.length === 0, // First location becomes default
+        name: sanitizeName(newLocation.name),
+        description: sanitizeText(newLocation.description, 200),
+        address: sanitizeText(newLocation.address, 200),
+        city: sanitizeName(newLocation.city, 100),
+        state: sanitizeName(newLocation.state, 100),
+        latitude: sanitizeLatitude(newLocation.latitude),
+        longitude: sanitizeLongitude(newLocation.longitude),
+        is_default: locations.length === 0,
         is_active: true,
         is_favorite: false,
         sort_order: locations.length,
