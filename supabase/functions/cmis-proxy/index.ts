@@ -6,6 +6,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Fetch with timeout helper
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
+// Retry helper with exponential backoff
+async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  let lastError: Error = new Error('Unknown error');
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      if (attempt > 0) {
+        await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
+      }
+      const response = await fetchWithTimeout(url, options, 12000);
+      return response;
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      console.warn(`CIMIS attempt ${attempt + 1} failed: ${lastError.message}`);
+    }
+  }
+  throw lastError;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -47,12 +79,15 @@ serve(async (req) => {
 
     console.log('Proxying CIMIS request:', cmisUrl.toString());
 
-    // Make request to CIMIS API with proper headers
-    const cmisResponse = await fetch(cmisUrl.toString(), {
+    // Make request to CIMIS API — retry up to 3 times on network errors
+    const cmisResponse = await fetchWithRetry(cmisUrl.toString(), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'WeatherApp/1.0 (Supabase Edge Function)',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        'User-Agent': 'Mozilla/5.0 (compatible; WeatherApp/1.0)',
+        'Referer': 'https://cimis.water.ca.gov/',
       },
     });
 
@@ -62,7 +97,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: `CIMIS API error: ${cmisResponse.status}`,
-          details: errorText.substring(0, 200) // Limit error text length
+          details: errorText.substring(0, 200)
         }),
         { 
           status: cmisResponse.status,
