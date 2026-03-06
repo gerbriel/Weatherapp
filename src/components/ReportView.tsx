@@ -1386,11 +1386,14 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let etc_actual_sum = 0; // Track actual ETc (ET₀ × Kc per day)
                               let etc_forecast_sum = 0; // Track forecast ETc (ET₀ × Kc per day)
                               let actualDaysCount = 0;
-                              let kc_values_used = new Set<number>();
+                              let kc_values_used = new Set<number>();       // forecast Kc values
+                              let kc_actual_values_used = new Set<number>(); // actuals Kc values
                               
-                              // Track ETc sums per Kc value for comma-separated display
+                              // Track ETc sums per Kc value for stacked display
                               let etc_forecast_by_kc = new Map<number, number>();
                               let etc_actual_by_kc = new Map<number, number>();
+                              // Track ET₀ actual sums per Kc value for stacked display
+                              let et0_actual_by_kc = new Map<number, number>();
                               
                               // Track ET₀ forecast sums per month
                               let et0_forecast_by_month = new Map<number, number>(); // month → et0 sum
@@ -1446,7 +1449,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     et0_actual_sum += cimisDay.etc_actual;
                                     const dailyEtc = cimisDay.etc_actual * dailyKc;
                                     etc_actual_sum += dailyEtc;
+                                    kc_actual_values_used.add(dailyKc);
                                     etc_actual_by_kc.set(dailyKc, (etc_actual_by_kc.get(dailyKc) || 0) + dailyEtc);
+                                    et0_actual_by_kc.set(dailyKc, (et0_actual_by_kc.get(dailyKc) || 0) + cimisDay.etc_actual);
                                     actualDaysCount++;
                                     actualDates.push(date);
                                   }
@@ -1466,15 +1471,18 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const isLoadingCmis = loadingCmisLocations.has(location.id);
                               const hasCmisFailed = failedCmisLocations.has(location.id);
                               
-                              // Format Kc values for display
+                              // Format Kc values for display — union of actuals + forecast Kc for the Kc column
                               const kc_values_array = Array.from(kc_values_used).sort((a, b) => a - b);
-                              const kc_lines: string[] = kc_values_array.length > 0
-                                ? kc_values_array.map((v: number) => v.toFixed(2))
+                              const kc_actual_array = Array.from(kc_actual_values_used).sort((a, b) => a - b);
+                              // All unique Kc values across both periods, sorted
+                              const kc_all_unique = Array.from(new Set([...kc_actual_array, ...kc_values_array])).sort((a, b) => a - b);
+                              const kc_lines: string[] = kc_all_unique.length > 0
+                                ? kc_all_unique.map((v: number) => v.toFixed(2))
                                 : ['—'];
                               const kc_display = kc_lines.join(', ');
 
-                              // ETc forecast lines — one per Kc value
-                              const sortedKcsForDisplay = [...kc_values_array].sort((a, b) => a - b);
+                              // ETc forecast lines — one per forecast Kc value
+                              const sortedKcsForDisplay = [...kc_values_array];
                               const etc_forecast_lines: string[] = sortedKcsForDisplay.length > 1 && etc_forecast_by_kc.size > 1
                                 ? sortedKcsForDisplay.map(kc => (etc_forecast_by_kc.get(kc) || 0).toFixed(2))
                                 : [etc_forecast_sum.toFixed(2)];
@@ -1484,9 +1492,14 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 ? Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]).map(([, v]) => v.toFixed(2))
                                 : [et0_forecast_sum.toFixed(2)];
 
-                              // ETc actual lines — one per Kc value
-                              const etc_actual_lines: string[] = kc_values_array.length > 1 && etc_actual_by_kc.size > 1
-                                ? sortedKcsForDisplay.map(kc => (etc_actual_by_kc.get(kc) || 0).toFixed(2))
+                              // ET₀ actual lines — one per actuals Kc value
+                              const et0_actual_lines: string[] = kc_actual_array.length > 1 && et0_actual_by_kc.size > 1
+                                ? kc_actual_array.map(kc => (et0_actual_by_kc.get(kc) || 0).toFixed(2))
+                                : [et0_actual_sum.toFixed(2)];
+
+                              // ETc actual lines — one per actuals Kc value
+                              const etc_actual_lines: string[] = kc_actual_array.length > 1 && etc_actual_by_kc.size > 1
+                                ? kc_actual_array.map(kc => (etc_actual_by_kc.get(kc) || 0).toFixed(2))
                                 : [etc_actual_sum.toFixed(2)];
 
                               // Legacy string for comma display (export/etc)
@@ -1544,7 +1557,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                     </div>
                                   </td>
 
-                                  {/* ET₀ Actual */}
+                                  {/* ET₀ Actual — stacked per Kc period */}
                                   <td className="px-4 py-3 text-sm text-center text-gray-900 dark:text-white font-mono">
                                     {isLoadingCmis ? (
                                       <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
@@ -1553,7 +1566,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                         Retry
                                       </button>
-                                    ) : hasActualData ? et0_actual_sum.toFixed(2) : '—'}
+                                    ) : hasActualData ? stackedLines(et0_actual_lines) : '—'}
                                   </td>
 
                                   {/* ETc Actual — stacked per Kc period */}
