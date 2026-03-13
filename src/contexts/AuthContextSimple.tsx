@@ -496,7 +496,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }));
   };
 
-  // Load locations from localStorage
+  // Build a lookup map: cimisStationId → canonical city name
+  // Used to repair locations where name was saved as the CIMIS station name
+  const CANONICAL_CITY_BY_STATION_ID: Record<string, string> = {
+    '125': 'Bakersfield',
+    '80':  'Fresno',
+    '71':  'Modesto',
+    '250': 'Colusa',
+    '77':  'Napa',
+    '214': 'Salinas',
+    '202': 'Santa Maria',
+    '258': 'Exeter',
+    '2':   'Five Points',
+    '273': 'Elk Grove',
+  };
+
+  // Repair a list of locations: wherever name === weatherstation (station name leaked in),
+  // replace with the canonical city name. Returns [fixedList, wereAnyRepaired].
+  const repairLocationNames = (locs: UserLocation[]): [UserLocation[], boolean] => {
+    let repaired = false;
+    const fixed = locs.map(loc => {
+      const stationId = loc.weatherstation_id || (loc as any).metadata?.cimisStationId;
+      const canonicalCity = stationId ? CANONICAL_CITY_BY_STATION_ID[stationId] : undefined;
+      if (canonicalCity && loc.name !== canonicalCity) {
+        repaired = true;
+        return { ...loc, name: canonicalCity, city: canonicalCity };
+      }
+      return loc;
+    });
+    return [fixed, repaired];
+  };
+
+
   const loadLocations = (userId: string): UserLocation[] => {
     const stored = localStorage.getItem(`userLocations_${userId}`);
     if (stored) {
@@ -511,18 +542,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Repair stale locations where name was saved as the CIMIS station name
-      // instead of the city name. If name === weatherstation and city differs, use city.
-      const fresh = createDefaultUserLocations(userId);
-      const freshById = new Map(fresh.map(l => [l.id, l]));
-      let repaired = false;
-      const fixed = parsed.map(loc => {
-        const canonical = freshById.get(loc.id);
-        if (canonical && loc.name === loc.weatherstation && canonical.city) {
-          repaired = true;
-          return { ...loc, name: canonical.city, city: canonical.city };
-        }
-        return loc;
-      });
+      // instead of the city name.
+      const [fixed, repaired] = repairLocationNames(parsed);
       if (repaired) {
         localStorage.setItem(`userLocations_${userId}`, JSON.stringify(fixed));
       }
@@ -814,9 +835,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const locs = loadLocations(user.id);
           setLocations(locs);
         } else if (dbLocations && dbLocations.length > 0) {
-          setLocations(dbLocations as UserLocation[]);
+          // Repair any locations where name was saved as the CIMIS station name
+          const [fixed, repaired] = repairLocationNames(dbLocations as UserLocation[]);
+          setLocations(fixed);
           // Sync to localStorage as cache
-          localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(dbLocations));
+          localStorage.setItem(`userLocations_${user.id}`, JSON.stringify(fixed));
+          // Write corrected names back to DB (one-time fix)
+          if (repaired) {
+            const updates = fixed
+              .filter((loc, i) => loc.name !== (dbLocations as UserLocation[])[i].name)
+              .map(loc => ({ id: loc.id, name: loc.name, city: loc.city }));
+            for (const u of updates) {
+              supabase.from('user_locations').update({ name: u.name, city: u.city }).eq('id', u.id);
+            }
+          }
         } else {
           // No locations in database, create defaults
           const locs = loadLocations(user.id);
