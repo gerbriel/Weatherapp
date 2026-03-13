@@ -511,13 +511,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     '273': 'Elk Grove',
   };
 
-  // Repair a list of locations: wherever name === weatherstation (station name leaked in),
-  // replace with the canonical city name. Returns [fixedList, wereAnyRepaired].
+  // Also match by weatherstation name (for old DB rows that lack weatherstation_id)
+  const CANONICAL_CITY_BY_STATION_NAME: Record<string, string> = {
+    'Arvin-Edison':    'Bakersfield',
+    'Fresno State':    'Fresno',
+    'Modesto':         'Modesto',
+    'Williams':        'Colusa',
+    'Oakville':        'Napa',
+    'Salinas South II':'Salinas',
+    'Nipomo':          'Santa Maria',
+    'Lemon Cove':      'Exeter',
+    'Five Points':     'Five Points',
+    'FivePoints':      'Five Points',
+    'WildHawk':        'Elk Grove',
+  };
+
+  // Repair a list of locations: wherever name is a CIMIS station name instead of
+  // the city name, replace it with the canonical city name.
+  // Returns [fixedList, wereAnyRepaired].
   const repairLocationNames = (locs: UserLocation[]): [UserLocation[], boolean] => {
     let repaired = false;
     const fixed = locs.map(loc => {
+      // Try by station ID first, then by station name
       const stationId = loc.weatherstation_id || (loc as any).metadata?.cimisStationId;
-      const canonicalCity = stationId ? CANONICAL_CITY_BY_STATION_ID[stationId] : undefined;
+      const canonicalCity =
+        (stationId ? CANONICAL_CITY_BY_STATION_ID[stationId] : undefined) ||
+        (loc.weatherstation ? CANONICAL_CITY_BY_STATION_NAME[loc.weatherstation] : undefined) ||
+        CANONICAL_CITY_BY_STATION_NAME[loc.name]; // name itself is a station name
       if (canonicalCity && loc.name !== canonicalCity) {
         repaired = true;
         return { ...loc, name: canonicalCity, city: canonicalCity };
