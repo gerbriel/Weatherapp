@@ -100,7 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
-  const [locations, setLocations] = useState<UserLocation[]>([]);
+  const [locations, setLocationsRaw] = useState<UserLocation[]>([]);
+  // Always run the name repair before storing locations in state
+  const setLocations = (locs: UserLocation[]) => {
+    const [fixed] = repairLocationNames(locs);
+    setLocationsRaw(fixed);
+  };
   const [loading, setLoading] = useState(true);
 
   // Fetch user profile from database
