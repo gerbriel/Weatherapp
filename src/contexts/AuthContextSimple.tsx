@@ -500,7 +500,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadLocations = (userId: string): UserLocation[] => {
     const stored = localStorage.getItem(`userLocations_${userId}`);
     if (stored) {
-      const parsed = JSON.parse(stored);
+      const parsed: UserLocation[] = JSON.parse(stored);
       
       // If we have less than 10 locations, it's old/incomplete data - regenerate
       if (parsed.length < 10) {
@@ -509,8 +509,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saveDefaultLocationsToDatabase(userId, defaultLocations);
         return defaultLocations;
       }
-      
-      return parsed;
+
+      // Repair stale locations where name was saved as the CIMIS station name
+      // instead of the city name. If name === weatherstation and city differs, use city.
+      const fresh = createDefaultUserLocations(userId);
+      const freshById = new Map(fresh.map(l => [l.id, l]));
+      let repaired = false;
+      const fixed = parsed.map(loc => {
+        const canonical = freshById.get(loc.id);
+        if (canonical && loc.name === loc.weatherstation && canonical.city) {
+          repaired = true;
+          return { ...loc, name: canonical.city, city: canonical.city };
+        }
+        return loc;
+      });
+      if (repaired) {
+        localStorage.setItem(`userLocations_${userId}`, JSON.stringify(fixed));
+      }
+      return fixed;
     } else {
       // Create and save default locations for new users
       const defaultLocations = createDefaultUserLocations(userId);
