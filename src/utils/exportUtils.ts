@@ -3,6 +3,7 @@ import type { LocationWithWeather } from '../types/weather';
 import type { CMISETCData } from '../services/cmisService';
 import { exportChartsToExcel, exportChartsAsHTML } from './chartExportUtils';
 import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
+import { getKcForDate } from './kcUtils';
 
 // Basic weather export data (existing)
 export interface DetailedExportData {
@@ -432,21 +433,21 @@ export function prepareCropExportData(
         // Get month from date (1-12)
         const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
         
-        // Calculate Kc - check custom values first, then monthly, then stage-based fallback
-        let kcValue = 1.0; // Default fallback
-        
-        // Priority 1: Check if this crop instance has custom Kc for this month
+        // Calculate Kc - uses kcSchedule (bi-monthly precision) first, then monthlyKc, then stage fallback
+        let kcValue: number;
         const customKc = cropInstance?.customKcValues?.[dateMonth];
         if (customKc !== undefined) {
+          // Priority 1: per-month custom override
           kcValue = customKc;
-        } else if (cropData?.monthlyKc && cropData.monthlyKc.length > 0) {
-          // Priority 2: Use monthly Kc values from crop database
-          const monthData = cropData.monthlyKc.find(m => m.month === dateMonth);
-          kcValue = monthData?.kc || 1.0;
+        } else if (cropData?.kcSchedule?.length || cropData?.monthlyKc?.length) {
+          // Priority 2: precise date-based lookup via kcSchedule → monthlyKc
+          kcValue = getKcForDate(date, cropData, cropInstance?.customKcValues);
         } else if (cropInstance) {
           // Priority 3: Fallback to stage-based Kc (old method)
-          kcValue = cropInstance.currentStage === 2 ? 1.15 : 
+          kcValue = cropInstance.currentStage === 2 ? 1.15 :
                     cropInstance.currentStage === 1 ? 0.70 : 0.50;
+        } else {
+          kcValue = 1.0;
         }
         
         // Use CMIS actual ET₀ data when available (for California locations)

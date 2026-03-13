@@ -1361,7 +1361,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let et0_actual_by_kc = new Map<number, number>();
                               
                               // Track ET₀ forecast sums per month
-                              let et0_forecast_by_month = new Map<number, number>(); // month → et0 sum
+                              let et0_forecast_by_month = new Map<number, number>(); // kc → et0 sum (repurposed key: Kc value for aligned stacked display)
                               
                               const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                               
@@ -1401,8 +1401,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                   // Track ETc by Kc value for comma-separated display
                                   etc_forecast_by_kc.set(dailyKc, (etc_forecast_by_kc.get(dailyKc) || 0) + dailyEtc);
                                   
-                                  // Track ET₀ by month
-                                  et0_forecast_by_month.set(dateMonth, (et0_forecast_by_month.get(dateMonth) || 0) + et0_forecast);
+                                  // Track ET₀ by Kc value (for aligned stacked display)
+                                  et0_forecast_by_month.set(dailyKc, (et0_forecast_by_month.get(dailyKc) || 0) + et0_forecast);
                                   
                                   forecastDates.push(date);
                                 }
@@ -1452,9 +1452,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 ? sortedKcsForDisplay.map(kc => (etc_forecast_by_kc.get(kc) || 0).toFixed(2))
                                 : [etc_forecast_sum.toFixed(2)];
 
-                              // ET₀ forecast lines — one per month when Kc differs
+                              // ET₀ forecast lines — one per Kc period (aligned with ETc rows)
                               const et0_forecast_lines: string[] = kc_values_array.length > 1 && et0_forecast_by_month.size > 1
-                                ? Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]).map(([, v]) => v.toFixed(2))
+                                ? kc_values_array.map(kc => (et0_forecast_by_month.get(kc) || 0).toFixed(2))
                                 : [et0_forecast_sum.toFixed(2)];
 
                               // ET₀ actual lines — one per actuals Kc value
