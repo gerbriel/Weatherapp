@@ -2,6 +2,52 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { LocationData, LocationWithWeather } from '../types/weather';
 import { weatherService } from '../services/weatherService';
 
+// Map CIMIS station names → canonical city names
+const CANONICAL_CITY_BY_STATION_NAME: Record<string, string> = {
+  'Arvin-Edison': 'Bakersfield',
+  'Fresno State': 'Fresno',
+  'Modesto': 'Modesto',
+  'Williams': 'Colusa',
+  'Oakville': 'Napa',
+  'Salinas South II': 'Salinas',
+  'Nipomo': 'Santa Maria',
+  'Lemon Cove': 'Exeter',
+  'Five Points': 'Five Points',
+  'FivePoints': 'Five Points',
+  'WildHawk': 'Elk Grove',
+};
+
+// Map CIMIS station IDs → canonical city names (belt-and-suspenders)
+const CANONICAL_CITY_BY_STATION_ID: Record<string, string> = {
+  '125': 'Bakersfield',
+  '80': 'Fresno',
+  '71': 'Modesto',
+  '250': 'Colusa',
+  '77': 'Napa',
+  '214': 'Salinas',
+  '202': 'Santa Maria',
+  '258': 'Exeter',
+  '2': 'Five Points',
+  '273': 'Elk Grove',
+};
+
+/** Returns a repaired copy of the locations array (station name → city name). */
+function repairLocationNames(locs: any[]): any[] {
+  return locs.map(loc => {
+    const byId = loc.weatherstationID
+      ? CANONICAL_CITY_BY_STATION_ID[String(loc.weatherstationID)]
+      : undefined;
+    const byName = loc.weatherstation
+      ? CANONICAL_CITY_BY_STATION_NAME[loc.weatherstation]
+      : undefined;
+    const canonical = byId || byName;
+    if (canonical && loc.name !== canonical) {
+      return { ...loc, name: canonical };
+    }
+    return loc;
+  });
+}
+
 interface LocationsContextType {
   locations: LocationWithWeather[];
   favorites: LocationWithWeather[];
@@ -45,7 +91,7 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
 
   // Check and upgrade cache version for hourly data
   useEffect(() => {
-    const CACHE_VERSION = '2.2'; // Bumped: fixed Elk Grove coordinates, unified to LocationsContext
+    const CACHE_VERSION = '2.3'; // Bumped: repair station names → city names
     const currentVersion = localStorage.getItem('weatherCacheVersion');
     
     if (currentVersion !== CACHE_VERSION) {
@@ -57,8 +103,8 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
       if (savedLocations) {
         try {
           const locs = JSON.parse(savedLocations);
-          // Strip stale weather data but keep IDs, names, coordinates
-          const stripped = locs.map((loc: any) => ({
+          // Strip stale weather data, keep IDs/coordinates, and repair station names → city names
+          const stripped = repairLocationNames(locs).map((loc: any) => ({
             ...loc,
             weatherData: undefined,
             loading: false,
@@ -83,7 +129,9 @@ export const LocationsProvider: React.FC<LocationsProviderProps> = ({ children }
     if (savedLocations) {
       try {
         const parsedLocations = JSON.parse(savedLocations);
-        setLocations(parsedLocations);
+        // Repair station names → city names on every load
+        const repairedLocations = repairLocationNames(parsedLocations);
+        setLocations(repairedLocations);
         setDefaultsInitialized(true);
       } catch (error) {
         console.error('Error parsing saved locations:', error);
