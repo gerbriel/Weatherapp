@@ -301,8 +301,9 @@ class CMISService {
           const response = await fetch(apiUrl);
           
           if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`CMIS API error: ${response.status} - ${errorText.substring(0, 200)}`);
+            // Proxy failed (e.g. Supabase paused / Vercel not configured) —
+            // fall through to direct CIMIS API call below
+            throw new Error(`Proxy error ${response.status}`);
           }
           
           const data = await response.json();
@@ -314,14 +315,38 @@ class CMISService {
             error: result.error,
             isCaliforniaLocation: true
           };
-        } catch (networkError) {
-          
-          return {
-            success: false,
-            data: [],
-            error: networkError instanceof Error ? networkError.message : 'Failed to fetch CMIS data',
-            isCaliforniaLocation: true
-          };
+        } catch (proxyError) {
+          // Proxy unavailable — try calling CIMIS API directly.
+          // et.water.ca.gov supports CORS for GET requests.
+          try {
+            const directUrl = new URL('https://et.water.ca.gov/api/data');
+            directUrl.searchParams.set('appKey', this.apiKey);
+            directUrl.searchParams.set('targets', stationId);
+            directUrl.searchParams.set('startDate', startDateStr);
+            directUrl.searchParams.set('endDate', endDateStr);
+            directUrl.searchParams.set('dataItems', 'day-asce-eto');
+            directUrl.searchParams.set('unitOfMeasure', 'E');
+
+            const directResponse = await fetch(directUrl.toString());
+            if (!directResponse.ok) {
+              throw new Error(`CIMIS direct error: ${directResponse.status}`);
+            }
+            const data = await directResponse.json();
+            const result = this.parseETCResponse(data);
+            return {
+              success: result.success,
+              data: result.data,
+              error: result.error,
+              isCaliforniaLocation: true
+            };
+          } catch (directError) {
+            return {
+              success: false,
+              data: [],
+              error: directError instanceof Error ? directError.message : 'Failed to fetch CIMIS data',
+              isCaliforniaLocation: true
+            };
+          }
         }
       } else {
         // Return error when no API key is available (no mock data fallback)
