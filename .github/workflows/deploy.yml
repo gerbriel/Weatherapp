@@ -61,12 +61,14 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         VITE_CMIS_API_KEY: ${{ secrets.VITE_CMIS_API_KEY }}
+        VITE_VERCEL_URL: ${{ secrets.VITE_VERCEL_URL }}
 
     - name: Build application
       env:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         VITE_CMIS_API_KEY: ${{ secrets.VITE_CMIS_API_KEY }}
+        VITE_VERCEL_URL: ${{ secrets.VITE_VERCEL_URL }}
       run: |
         echo "🔨 Building application with Vite..."
         echo "📍 Base URL will be: /Weatherapp/"
