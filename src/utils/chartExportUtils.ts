@@ -806,17 +806,16 @@ export async function exportChartsAsHTML(
           font-size: inherit !important;
         }
         .hero {
-          background: url('https://image.email.netafim.com/lib/fe3a11717564047b751776/m/1/7cee6a62-4ac9-433b-9c17-94bae07295f7.png');
-          background-size: 100% auto;
-          background-repeat: no-repeat;
-          background-position: center top;
           padding: 0;
           margin: 0;
-          text-align: center;
-          color: #FFFFFF;
           width: 100%;
-          min-height: 280px;
+          display: block;
+          line-height: 0;
+        }
+        .hero img {
+          width: 100%;
           height: auto;
+          display: block;
         }
         .hero h2 {
           font-size: 32px;
@@ -1055,7 +1054,7 @@ export async function exportChartsAsHTML(
         const CA_NUT_CROPS = ['almonds', 'almond', 'pistachios', 'pistachio', 'walnuts', 'walnut'];
         const hasNutCrop = selectedCrops.some(c => CA_NUT_CROPS.includes(c.toLowerCase()));
         const hasTargetLocation = locations.some(loc => loc.weatherstationID && NETAFIM_STATION_IDS.has(loc.weatherstationID));
-        return (hasNutCrop && hasTargetLocation) ? '<div class="hero"></div>' : '';
+        return (hasNutCrop && hasTargetLocation) ? '<div class="hero"><img src="https://image.email.netafim.com/lib/fe3a11717564047b751776/m/1/7cee6a62-4ac9-433b-9c17-94bae07295f7.png" alt="Netafim Weekly Irrigation Update" /></div>' : '';
       })()}
       ${additionalData?.waterUseNotes ? `
       <div style="max-width: 800px; margin: 12px auto 16px; padding: 0;">

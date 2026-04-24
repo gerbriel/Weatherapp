@@ -719,16 +719,6 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   const handleComprehensiveExport = (options: ComprehensiveExportOptions) => {
-    // Capture any unsaved textarea values before exporting
-    const textareas = document.querySelectorAll('textarea[id^="weekly-summary-"]');
-    const updatedSummaries = { ...cropWeeklySummaries };
-    textareas.forEach((textarea: any) => {
-      const cropId = textarea.id.replace('weekly-summary-', '');
-      if (textarea.value) {
-        updatedSummaries[cropId] = textarea.value;
-      }
-    });
-    
     // Merge report mode settings into options
     const exportOptions: ComprehensiveExportOptions = {
       ...options,
@@ -747,7 +737,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       selectedLocation,
       fieldBlocks: [], // Field blocks are managed by FieldBlocksManager
       insights: getCombinedInsights(),
-      cropWeeklySummaries: updatedSummaries,
+      cropWeeklySummaries,
       waterUseNotes,
       closingMessage
     });
