@@ -205,6 +205,22 @@ export const TrialDashboard: React.FC = () => {
     general: string;
   }>>(new Map());
 
+  // Crop weekly summaries — persisted to localStorage
+  const [cropWeeklySummaries, setCropWeeklySummaries] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('cropWeeklySummaries');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    if (Object.keys(cropWeeklySummaries).length > 0) {
+      localStorage.setItem('cropWeeklySummaries', JSON.stringify(cropWeeklySummaries));
+    }
+  }, [cropWeeklySummaries]);
+
   // Visual feedback states for crop application
   const [appliedLocations, setAppliedLocations] = useState<Set<string>>(new Set());
   const [isApplyingToAll, setIsApplyingToAll] = useState(false);
@@ -1902,6 +1918,8 @@ export const TrialDashboard: React.FC = () => {
                   onReportSelectedLocationIdsChange={setReportSelectedLocationIds}
                   reportInsights={reportInsights}
                   onReportInsightsChange={setReportInsights}
+                  cropWeeklySummaries={cropWeeklySummaries}
+                  onCropWeeklySummariesChange={setCropWeeklySummaries}
                 />
               </>
             ) : null}
