@@ -19,18 +19,19 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
   minHeight = '120px'
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    // Use <br> for line breaks instead of <div> to prevent browser-default
-    // block indentation wrapping the first line of text
     document.execCommand('defaultParagraphSeparator', false, 'br');
   }, []);
 
+  // Only set innerHTML on first mount — never overwrite while user is typing
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value;
+    if (!isInitialized.current && editorRef.current) {
+      editorRef.current.innerHTML = value ?? '';
+      isInitialized.current = true;
     }
-  }, [value]);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInput = () => {
     if (editorRef.current) {
