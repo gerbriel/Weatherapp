@@ -807,7 +807,7 @@ export async function exportChartsAsHTML(
         }
         .hero {
           background: url('https://image.email.netafim.com/lib/fe3a11717564047b751776/m/1/7cee6a62-4ac9-433b-9c17-94bae07295f7.png');
-          background-size: contain;
+          background-size: 100% auto;
           background-repeat: no-repeat;
           background-position: center top;
           padding: 0;
@@ -815,7 +815,7 @@ export async function exportChartsAsHTML(
           text-align: center;
           color: #FFFFFF;
           width: 100%;
-          min-height: 400px;
+          min-height: 280px;
           height: auto;
         }
         .hero h2 {
@@ -1053,11 +1053,11 @@ export async function exportChartsAsHTML(
       <div class="hero">
       </div>
       ${additionalData?.waterUseNotes ? `
-      <div style="max-width: 800px; margin: 30px auto 20px; padding: 0;">
+      <div style="max-width: 800px; margin: 12px auto 16px; padding: 0;">
         <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">${sanitizeRichText(additionalData.waterUseNotes)}</div>
       </div>
       ` : ''}
-      <div style="max-width: 800px; margin: 40px auto; padding: 0;">
+      <div style="max-width: 800px; margin: 24px auto 20px; padding: 0;">
         <h2 style="font-size: 24px; font-weight: 600; color: #1F2937; margin: 0 0 12px 0;">${(() => {
           // Get the date range from the first location's forecast data
           const firstLocation = locations[0];
@@ -1649,6 +1649,31 @@ export async function exportChartsAsHTML(
         <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">${sanitizeRichText(additionalData.closingMessage)}</div>
       </div>
       ` : ''}
+
+      <div style="max-width: 800px; margin: 24px auto 20px; padding: 0;">
+        <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+          <p style="margin: 0 0 12px; font-size: 18px; color: #353750; line-height: 1.5; text-align: center;">
+            <b>Know someone who would benefit from this ET update?</b> Share this newsletter and send them to our signup page.
+          </p>
+          <p style="margin: 0 0 20px; text-align: center;">
+            <a href="https://www.netafimusa.com/agriculture/solutions-for-your-crop/almonds/?utm_source=Referral&utm_medium=Email&utm_campaign=Central+Valley+Crop+Report"
+               style="display: inline-block; background: #0A7DD6; color: #FFFFFF; text-decoration: none; font-size: 17px; font-weight: 600; padding: 12px 22px; border-radius: 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+              Refer A Grower
+            </a>
+          </p>
+          <p style="margin: 0 0 12px; font-size: 18px; color: #353750; line-height: 1.5;">
+            You can reach us at <b><a href="mailto:DL_Crop_Info@netafim.orbia.com" style="color: #0A7DD6;">DL_Crop_Info@netafim.orbia.com</a></b> with any questions or feedback.
+          </p>
+        </div>
+      </div>
+
+      <div style="max-width: 800px; margin: 24px auto 30px; padding: 0 10px;">
+        <p style="margin: 0 0 12px; font-size: 18px; color: #353750; line-height: 1.5; text-align: left;">
+          Best,<br>
+          Netafim North America
+        </p>
+      </div>
+
       </div>
     </body>
     </html>
