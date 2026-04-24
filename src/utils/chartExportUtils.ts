@@ -1612,12 +1612,10 @@ export async function exportChartsAsHTML(
       <!-- Weekly Summary for this Crop -->
       ${additionalData?.cropWeeklySummaries?.[cropId] ? `
         <div style="margin: 20px 0; padding: 20px; background-color: #F0FDF4; border: 1px solid #86EFAC; border-radius: 8px;">
-          <h4 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #166534; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
+          <h4 style="margin: 0 0 6px 0; font-size: 18px; font-weight: 700; color: #166534; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">
             Weekly Summary - ${cropName}
           </h4>
-          <p style="margin: 0; font-size: 18px; color: #166534; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; white-space: pre-wrap;">
-            ${additionalData.cropWeeklySummaries[cropId]}
-          </p>
+          <div style="margin: 0; font-size: 18px; font-weight: 400; color: #166534; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;">${additionalData.cropWeeklySummaries[cropId].split('\n').map((line: string) => line.trimStart()).join('\n').replace(/\n/g, '<br>')}</div>
         </div>
       ` : ''}
     `;
