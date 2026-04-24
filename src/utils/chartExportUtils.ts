@@ -1050,8 +1050,13 @@ export async function exportChartsAsHTML(
       </style>
     </head>
     <body>
-      <div class="hero">
-      </div>
+      ${(() => {
+        const NETAFIM_STATION_IDS = new Set(['125', '80', '71', '250', '258', '2', '273']);
+        const CA_NUT_CROPS = ['almonds', 'almond', 'pistachios', 'pistachio', 'walnuts', 'walnut'];
+        const hasNutCrop = selectedCrops.some(c => CA_NUT_CROPS.includes(c.toLowerCase()));
+        const hasTargetLocation = locations.some(loc => loc.weatherstationID && NETAFIM_STATION_IDS.has(loc.weatherstationID));
+        return (hasNutCrop && hasTargetLocation) ? '<div class="hero"></div>' : '';
+      })()}
       ${additionalData?.waterUseNotes ? `
       <div style="max-width: 800px; margin: 12px auto 16px; padding: 0;">
         <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">${sanitizeRichText(additionalData.waterUseNotes)}</div>
@@ -1649,10 +1654,11 @@ export async function exportChartsAsHTML(
       ` : ''}
 
       ${(() => {
+        const NETAFIM_STATION_IDS = new Set(['125', '80', '71', '250', '258', '2', '273']);
         const CA_NUT_CROPS = ['almonds', 'almond', 'pistachios', 'pistachio', 'walnuts', 'walnut'];
         const hasNutCrop = selectedCrops.some(c => CA_NUT_CROPS.includes(c.toLowerCase()));
-        const hasDefaultCALocation = locations.some(loc => loc.id.startsWith('cimis-'));
-        if (!hasNutCrop || !hasDefaultCALocation) return '';
+        const hasTargetLocation = locations.some(loc => loc.weatherstationID && NETAFIM_STATION_IDS.has(loc.weatherstationID));
+        if (!hasNutCrop || !hasTargetLocation) return '';
         return `
       <div style="max-width: 800px; margin: 24px auto 20px; padding: 28px 32px; background: #F5F5F5; border-radius: 10px;">
         <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
