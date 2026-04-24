@@ -1648,7 +1648,7 @@ export async function exportChartsAsHTML(
       </div>
       ` : ''}
 
-      <div style="max-width: 800px; margin: 24px auto 20px; padding: 0;">
+      <div style="max-width: 800px; margin: 24px auto 20px; padding: 28px 32px; background: #F5F5F5; border-radius: 10px;">
         <div style="font-size: 20px; color: #353750; line-height: 1.7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
           <p style="margin: 0 0 12px; font-size: 18px; color: #353750; line-height: 1.5; text-align: center;">
             <b>Know someone who would benefit from this ET update?</b> Share this newsletter and send them to our signup page.
