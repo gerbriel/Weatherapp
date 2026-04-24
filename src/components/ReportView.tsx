@@ -1731,54 +1731,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
                       
                       {/* Weekly Summary Input Field */}
                       <div className="p-3 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-600">
-                        <label 
-                          htmlFor={`weekly-summary-${cropId}`}
-                          className="block text-xs font-medium text-gray-900 dark:text-white mb-1"
-                        >
-                          Weekly Summary
-                        </label>
-                        <textarea
-                          id={`weekly-summary-${cropId}`}
-                          data-version="3.0"
-                          defaultValue={cropWeeklySummaries?.[cropId] ?? ''}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Tab') {
-                              e.preventDefault();
-                              const target = e.target as HTMLTextAreaElement;
-                              const start = target.selectionStart;
-                              const end = target.selectionEnd;
-                              const indent = '    '; // 4 spaces
-                              if (e.shiftKey) {
-                                // Shift+Tab: remove leading 4 spaces from current line
-                                const lineStart = target.value.lastIndexOf('\n', start - 1) + 1;
-                                if (target.value.substring(lineStart, lineStart + 4) === indent) {
-                                  target.value = target.value.substring(0, lineStart) + target.value.substring(lineStart + 4);
-                                  target.selectionStart = Math.max(lineStart, start - 4);
-                                  target.selectionEnd = Math.max(lineStart, end - 4);
-                                }
-                              } else {
-                                // Tab: insert 4 spaces at cursor
-                                target.value = target.value.substring(0, start) + indent + target.value.substring(end);
-                                target.selectionStart = target.selectionEnd = start + 4;
-                              }
-                              // Trigger onChange so parent state updates
-                              const updatedSummaries = {
-                                ...cropWeeklySummaries,
-                                [cropId]: target.value
-                              };
-                              onCropWeeklySummariesChange(updatedSummaries);
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const updatedSummaries = {
-                              ...cropWeeklySummaries,
-                              [cropId]: e.target.value
-                            };
+                        <RichTextEditor
+                          value={cropWeeklySummaries?.[cropId] ?? ''}
+                          onChange={(val) => {
+                            const updatedSummaries = { ...cropWeeklySummaries, [cropId]: val };
                             onCropWeeklySummariesChange(updatedSummaries);
                           }}
+                          label="Weekly Summary"
                           placeholder={`Add your weekly insights and observations for ${cropName}...`}
-                          className="w-full h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm resize-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-800 dark:text-white dark:placeholder-gray-400"
-                          rows={4}
+                          minHeight="96px"
                         />
                       </div>
                     </div>

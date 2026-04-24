@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Bold, Italic, List, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { Bold, Italic, List, AlignLeft, AlignCenter, AlignRight, Link } from 'lucide-react';
 
 interface RichTextEditorProps {
   value: string;
@@ -59,6 +59,23 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
     editorRef.current?.focus();
   };
 
+  const handleInsertLink = () => {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString().trim();
+    const url = window.prompt('Enter URL:', 'https://');
+    if (!url || url === 'https://') return;
+    if (selectedText) {
+      document.execCommand('createLink', false, url);
+      // Make sure the link opens in a new tab
+      const links = editorRef.current?.querySelectorAll('a');
+      links?.forEach(a => { if (a.href === url || a.getAttribute('href') === url) { a.target = '_blank'; a.rel = 'noopener noreferrer'; } });
+    } else {
+      document.execCommand('insertHTML', false, `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
+    }
+    if (editorRef.current) onChange(editorRef.current.innerHTML);
+    editorRef.current?.focus();
+  };
+
   const toolbarButtons = [
     { icon: Bold, command: 'bold', title: 'Bold' },
     { icon: Italic, command: 'italic', title: 'Italic' },
@@ -89,6 +106,16 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({
             <btn.icon className="h-4 w-4" />
           </button>
         ))}
+
+        {/* Link Button */}
+        <button
+          type="button"
+          onClick={handleInsertLink}
+          title="Insert Link"
+          className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+        >
+          <Link className="h-4 w-4" />
+        </button>
         
         {/* Font Size Selector */}
         <select
