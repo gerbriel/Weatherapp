@@ -21,7 +21,21 @@ export const WeatherDashboard: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [currentView, setCurrentView] = useState<'location' | 'report' | 'emails' | 'crops' | 'profile'>('location');
-  const [cropWeeklySummaries, setCropWeeklySummaries] = useState<Record<string, string>>({});
+  const [cropWeeklySummaries, setCropWeeklySummaries] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('cropWeeklySummaries');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Persist weekly summaries to localStorage whenever they change
+  useEffect(() => {
+    if (Object.keys(cropWeeklySummaries).length > 0) {
+      localStorage.setItem('cropWeeklySummaries', JSON.stringify(cropWeeklySummaries));
+    }
+  }, [cropWeeklySummaries]);
   
   const userMenuRef = useRef<HTMLDivElement>(null);
 
