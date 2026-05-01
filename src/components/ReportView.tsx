@@ -674,7 +674,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       insights: getCombinedInsights(),
       cropWeeklySummaries: updatedSummaries,
       waterUseNotes,
-      closingMessage
+      closingMessage,
+      manualCmisOverrides
     });
   };
 
@@ -717,7 +718,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       insights: getCombinedInsights(),
       cropWeeklySummaries: updatedSummaries,
       waterUseNotes,
-      closingMessage
+      closingMessage,
+      manualCmisOverrides
     });
   };
 
@@ -742,7 +744,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
       insights: getCombinedInsights(),
       cropWeeklySummaries,
       waterUseNotes,
-      closingMessage
+      closingMessage,
+      manualCmisOverrides
     });
   };
 

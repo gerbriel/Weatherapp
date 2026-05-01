@@ -743,6 +743,7 @@ export async function exportChartsAsHTML(
       endDate: string;
     };
     cmisData?: Map<string, any[]>;
+    manualCmisOverrides?: Map<string, { et0: string[]; etc: string[] }>;
   }
 ) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -1335,6 +1336,18 @@ export async function exportChartsAsHTML(
                   }
                 });
 
+                // ── Apply manual overrides if CIMIS failed ──
+                const manualKey = `${loc.id}-${cropId}`;
+                const manualOverride = additionalData?.manualCmisOverrides?.get(manualKey);
+                const hasManualEt0 = manualOverride?.et0.some(v => v !== '');
+                const hasManualEtc = manualOverride?.etc.some(v => v !== '');
+                if (hasManualEt0 && manualOverride) {
+                  et0_actual_sum = manualOverride.et0.reduce((s, v) => s + (parseFloat(v) || 0), 0);
+                }
+                if (hasManualEtc && manualOverride) {
+                  etc_actual_sum = manualOverride.etc.reduce((s, v) => s + (parseFloat(v) || 0), 0);
+                }
+
                 // ── Build display variables (mirrors ReportView.tsx logic) ──
 
                 // Kc column: union of actuals + forecast Kc values
@@ -1343,13 +1356,17 @@ export async function exportChartsAsHTML(
                 const kc_all_unique = Array.from(new Set([...kc_actual_array, ...kc_values_array])).sort((a, b) => a - b);
                 const kc_lines = kc_all_unique.length > 0 ? kc_all_unique.map(v => v.toFixed(2)) : ['—'];
 
-                // ET₀ actual lines — stacked per actuals Kc
-                const et0_actual_lines: string[] = kc_actual_array.length > 1 && et0_actual_by_kc.size > 1
+                // ET₀ actual lines — stacked per actuals Kc (or manual override)
+                const et0_actual_lines: string[] = hasManualEt0 && manualOverride?.et0.some(v => v !== '')
+                  ? manualOverride!.et0.map(v => v !== '' ? parseFloat(v).toFixed(2) : '—')
+                  : kc_actual_array.length > 1 && et0_actual_by_kc.size > 1
                   ? kc_actual_array.map(kc => (et0_actual_by_kc.get(kc) || 0).toFixed(2))
                   : [et0_actual_sum.toFixed(2)];
 
-                // ETc actual lines — stacked per actuals Kc
-                const etc_actual_lines: string[] = kc_actual_array.length > 1 && etc_actual_by_kc.size > 1
+                // ETc actual lines — stacked per actuals Kc (or manual override)
+                const etc_actual_lines: string[] = hasManualEtc && manualOverride?.etc.some(v => v !== '')
+                  ? manualOverride!.etc.map(v => v !== '' ? parseFloat(v).toFixed(2) : '—')
+                  : kc_actual_array.length > 1 && etc_actual_by_kc.size > 1
                   ? kc_actual_array.map(kc => (etc_actual_by_kc.get(kc) || 0).toFixed(2))
                   : [etc_actual_sum.toFixed(2)];
 

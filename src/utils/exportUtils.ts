@@ -559,6 +559,7 @@ export function exportComprehensiveData(
     cropWeeklySummaries?: Record<string, string>;
     waterUseNotes?: string;
     closingMessage?: string;
+    manualCmisOverrides?: Map<string, { et0: string[]; etc: string[] }>;
   } = {}
 ) {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -573,7 +574,8 @@ export function exportComprehensiveData(
     insights,
     cropWeeklySummaries,
     waterUseNotes,
-    closingMessage
+    closingMessage,
+    manualCmisOverrides
   } = additionalData;
 
   // Handle special chart export formats
@@ -595,7 +597,8 @@ export function exportComprehensiveData(
       futureStartDate: options.futureStartDate,
       forecastPreset: options.forecastPreset,
       dateRange: options.dateRange,
-      cmisData
+      cmisData,
+      manualCmisOverrides
     });
     return;
   }
