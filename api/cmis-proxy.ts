@@ -43,6 +43,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    const contentType = cmisResponse.headers.get('content-type') || '';
+    if (!contentType.includes('application/json') && !contentType.includes('text/json')) {
+      const body = await cmisResponse.text();
+      console.error('CIMIS non-JSON response:', cmisResponse.status, body.substring(0, 500));
+      return res.status(502).json({
+        error: 'CIMIS returned non-JSON response (likely an error page)',
+        details: body.substring(0, 300),
+      });
+    }
+
     const data = await cmisResponse.json();
     return res.status(200).json(data);
   } catch (error) {
