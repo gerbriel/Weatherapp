@@ -1,16 +1,12 @@
 /**
  * CMIS (California Irrigation Management Information System) API Service
- * Provides actual ETC (Evapotranspiration of Crop) dat      // If we have a real API key, use the actual CMIS API
-      if (this.apiKey) {
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
-        
-        try {
-          // CIMIS API format: unitOfMeasure should be 'E' for English units
-          const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;arison with projected ET₀
+ * Reads ET₀ data from the Supabase cimis_et0_cache table (populated nightly
+ * by the fetch-cimis-data edge function). Falls back to direct CIMIS API only
+ * if cache is empty for the requested range.
  * NOTE: CMIS data is only available for California locations
  */
 
+import { createClient } from '@supabase/supabase-js';
 import { environmentValidator } from '../utils/environmentValidator';
 import { isLocationInCalifornia, getCMISUnavailableMessage } from '../utils/locationUtils';
 
@@ -40,10 +36,36 @@ class CMISService {
   private apiKey: string | null = null;
   private requestQueue: Promise<void> = Promise.resolve();
 
+  private supabase = createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY
+  );
+
+  /** Read ET₀ data from the Supabase cache table */
+  private async fetchFromCache(stationId: string, startDate: Date, endDate: Date): Promise<CMISETCData[] | null> {
+    const start = startDate.toISOString().split('T')[0];
+    const end   = endDate.toISOString().split('T')[0];
+
+    const { data, error } = await this.supabase
+      .from('cimis_et0_cache')
+      .select('date, et0_inches')
+      .eq('station_id', stationId)
+      .gte('date', start)
+      .lte('date', end)
+      .order('date');
+
+    if (error || !data || data.length === 0) return null;
+
+    return data.map((row: { date: string; et0_inches: number }) => ({
+      date:       row.date,
+      etc_actual: row.et0_inches, // ET₀ stored as et0_inches; Kc multiplication happens in caller
+      station_id: stationId,
+    }));
+  }
+
   /** Throttle: queue requests so CIMIS never receives more than 1 concurrent call */
   private enqueue<T>(fn: () => Promise<T>): Promise<T> {
     const next = this.requestQueue.then(() => fn()).finally(() => {
-      // 300ms gap between requests to avoid CIMIS rate-limiting
       return new Promise(resolve => setTimeout(resolve, 300));
     });
     this.requestQueue = next.then(() => {}, () => {});
@@ -56,8 +78,6 @@ class CMISService {
       // Use Vite proxy in development
       this.baseUrl = '/api/cmis';
     } else {
-      // In production: prefer the Vercel serverless proxy (avoids Supabase IP blocks from CIMIS)
-      // Falls back to Supabase Edge Function if VITE_VERCEL_URL is not set
       const vercelUrl = import.meta.env.VITE_VERCEL_URL;
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       if (vercelUrl) {
@@ -65,18 +85,16 @@ class CMISService {
       } else if (supabaseUrl) {
         this.baseUrl = `${supabaseUrl}/functions/v1/cmis-proxy`;
       } else {
-        // Last resort fallback (will fail with CORS on GitHub Pages)
         this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/api/data';
       }
     }
     this.apiKey = import.meta.env.VITE_CMIS_API_KEY || null;
-    
-    // Validate environment setup - use info level since missing key is expected in dev
+
     const cmisValidation = environmentValidator.validateCMIS();
     if (!cmisValidation.isValid) {
       console.info('CMIS API Configuration:', cmisValidation.message);
     }
-    
+
     // Log environment status in development
     if (import.meta.env.DEV) {
       environmentValidator.logStatus();
@@ -304,16 +322,20 @@ class CMISService {
 
   private async _fetchETCData(stationId: string, startDate: Date, endDate: Date): Promise<CMISResponse> {
     try {
+      // ── 1. Try Supabase cache first (fastest, no CIMIS rate-limit risk) ──
+      const cached = await this.fetchFromCache(stationId, startDate, endDate);
+      if (cached && cached.length > 0) {
+        return { success: true, data: cached, isCaliforniaLocation: true };
+      }
 
-      // If we have a real API key, use the actual CMIS API
+      // ── 2. Cache miss — fall back to CIMIS API via proxy ──
       if (this.apiKey) {
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
-        
+
         try {
-          // CIMIS API format: unitOfMeasure should be 'E' for English units
           const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
-          
+
           // Retry once on 500 (handles Vercel cold-start)
           let response = await fetch(apiUrl);
           if (!response.ok && response.status === 500) {

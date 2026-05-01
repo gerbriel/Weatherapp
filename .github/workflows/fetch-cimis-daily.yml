@@ -1,0 +1,37 @@
+name: Daily CIMIS Data Fetch
+
+on:
+  schedule:
+    # Run every day at 8:00 AM UTC (1:00 AM PST / 2:00 AM PDT)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  fetch-cimis:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+    - name: Trigger CIMIS fetch edge function
+      run: |
+        echo "🌱 Triggering daily CIMIS data fetch..."
+        
+        RESPONSE=$(curl -s -w "\n%{http_code}" \
+          -X POST \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+          -H "Content-Type: application/json" \
+          "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/fetch-cimis-data")
+        
+        HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+        BODY=$(echo "$RESPONSE" | head -1)
+        
+        echo "Response: $BODY"
+        echo "HTTP Status: $HTTP_CODE"
+        
+        if [ "$HTTP_CODE" -ge 400 ]; then
+          echo "❌ CIMIS fetch failed with status $HTTP_CODE"
+          exit 1
+        fi
+        
+        echo "✅ CIMIS data fetch completed"
