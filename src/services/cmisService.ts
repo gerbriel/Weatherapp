@@ -298,7 +298,12 @@ class CMISService {
           // CIMIS API format: unitOfMeasure should be 'E' for English units
           const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
           
-          const response = await fetch(apiUrl);
+          // Retry once on 500 (handles Vercel cold-start)
+          let response = await fetch(apiUrl);
+          if (!response.ok && response.status === 500) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            response = await fetch(apiUrl);
+          }
           
           if (!response.ok) {
             // Proxy failed (e.g. Supabase paused / Vercel not configured) —
