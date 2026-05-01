@@ -1177,8 +1177,8 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
                     const etc_inches = et0_inches * kc;
 
                     let waterNeedCategory = 'Low';
-                    if (etc_inches > 0.25) waterNeedCategory = 'High';
-                    else if (etc_inches >= 0.15) waterNeedCategory = 'Med';
+                    if (etc_inches > 0.214) waterNeedCategory = 'High';
+                    else if (etc_inches >= 0.164) waterNeedCategory = 'Moderate';
 
                     dateRows.push({
                       date,
@@ -1231,7 +1231,7 @@ export const CropETCCharts: React.FC<CropETCChartsProps> = ({
                           <td className="px-4 py-2 text-sm text-center font-semibold">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               row.waterNeed === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                              row.waterNeed === 'Med' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                              row.waterNeed === 'Moderate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
                               'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                             }`}>
                               {row.waterNeed}

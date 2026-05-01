@@ -1464,10 +1464,10 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               
                               // Determine water need category based on weekly forecast ETc
                               let waterNeedCategory = 'Low';
-                              if (etc_forecast_sum > 3.5) {
+                              if (etc_forecast_sum > 1.5) {
                                 waterNeedCategory = 'High';
-                              } else if (etc_forecast_sum >= 2.1) {
-                                waterNeedCategory = 'Med';
+                              } else if (etc_forecast_sum >= 1.15) {
+                                waterNeedCategory = 'Moderate';
                               }
 
                               // Helper: format a date string "YYYY-MM-DD" → "Mon D" (e.g. "Mar 6")
@@ -1479,12 +1479,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               // Helper: water need badge JSX
                               const WaterNeedBadge = ({ etc }: { etc: number }) => {
                                 let cat = 'Low';
-                                if (etc > 3.5) cat = 'High';
-                                else if (etc >= 2.1) cat = 'Med';
+                                if (etc > 1.5) cat = 'High';
+                                else if (etc >= 1.15) cat = 'Moderate';
                                 return (
                                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                     cat === 'High' ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
-                                    cat === 'Med' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                                    cat === 'Moderate' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :
                                     'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                   }`}>{cat}</span>
                                 );
