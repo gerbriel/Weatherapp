@@ -333,68 +333,32 @@ class CMISService {
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
 
-        try {
-          const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
+        const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
 
-          // Retry once on 500 (handles Vercel cold-start)
-          let response = await fetch(apiUrl);
-          if (!response.ok && response.status === 500) {
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            response = await fetch(apiUrl);
-          }
-          
-          if (!response.ok) {
-            // Proxy failed (e.g. Supabase paused / Vercel not configured) —
-            // fall through to direct CIMIS API call below
-            throw new Error(`Proxy error ${response.status}`);
-          }
-          
-          const data = await response.json();
-          const result = this.parseETCResponse(data);
-          
+        const response = await fetch(apiUrl);
+
+        if (!response.ok) {
           return {
-            success: result.success,
-            data: result.data,
-            error: result.error,
+            success: false,
+            data: [],
+            error: `CIMIS proxy returned ${response.status}`,
             isCaliforniaLocation: true
           };
-        } catch (proxyError) {
-          // Proxy unavailable — try calling CIMIS API directly.
-          // et.water.ca.gov supports CORS for GET requests.
-          try {
-            const directUrl = new URL('https://et.water.ca.gov/api/data');
-            directUrl.searchParams.set('appKey', this.apiKey);
-            directUrl.searchParams.set('targets', stationId);
-            directUrl.searchParams.set('startDate', startDateStr);
-            directUrl.searchParams.set('endDate', endDateStr);
-            directUrl.searchParams.set('dataItems', 'day-asce-eto');
-            directUrl.searchParams.set('unitOfMeasure', 'E');
-
-            const directResponse = await fetch(directUrl.toString());
-            if (!directResponse.ok) {
-              throw new Error(`CIMIS direct error: ${directResponse.status}`);
-            }
-            const data = await directResponse.json();
-            const result = this.parseETCResponse(data);
-            return {
-              success: result.success,
-              data: result.data,
-              error: result.error,
-              isCaliforniaLocation: true
-            };
-          } catch (directError) {
-            return {
-              success: false,
-              data: [],
-              error: directError instanceof Error ? directError.message : 'Failed to fetch CIMIS data',
-              isCaliforniaLocation: true
-            };
-          }
         }
+
+        const data = await response.json();
+        const result = this.parseETCResponse(data);
+
+        return {
+          success: result.success,
+          data: result.data,
+          error: result.error,
+          isCaliforniaLocation: true
+        };
       } else {
         // Return error when no API key is available (no mock data fallback)
         console.warn(`CMIS API key not configured for station ${stationId}`);
-        
+
         return {
           success: false,
           data: [],

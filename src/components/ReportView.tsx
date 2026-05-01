@@ -344,7 +344,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   // Fetch CMIS data for a specific location with retry logic
-  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 2) => {
+  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 0) => {
     const location = displayLocations.find(loc => loc.id === locationId);
     if (!location) return;
     
@@ -449,7 +449,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       return newMap;
     });
     // Fetch with retries
-    fetchLocationCMISData(locationId, 0, 2);
+    fetchLocationCMISData(locationId, 0, 0);
   };
 
   // Toggle location collapse state and fetch CMIS data when expanding
