@@ -1374,9 +1374,9 @@ export async function exportChartsAsHTML(
 
                 // Helper: water need color/label
                 const getWaterNeed = (etc: number) => {
-                  if (etc > 3.5) return { cat: 'High', color: '#EF4444', bg: '#FEE2E2' };
-                  if (etc >= 2.1) return { cat: 'Med', color: '#F59E0B', bg: '#FEF3C7' };
-                  return { cat: 'Low', color: '#10B981', bg: '#D1FAE5' };
+                  if (etc > 1.5)  return { cat: 'High',     color: '#EF4444', bg: '#FEE2E2' };
+                  if (etc >= 1.15) return { cat: 'Moderate', color: '#F59E0B', bg: '#FEF3C7' };
+                  return           { cat: 'Low',      color: '#10B981', bg: '#D1FAE5' };
                 };
 
                 const rowBg = locIdx % 2 === 0 ? '#FFFFFF' : '#F3F4F6';
