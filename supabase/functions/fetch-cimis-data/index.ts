@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   // Allow manual GET trigger as well as scheduled POST
   const apiKey   = Deno.env.get('VITE_CMIS_API_KEY');
   const sbUrl    = Deno.env.get('SUPABASE_URL')!;
-  const sbKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const sbKey    = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!; // auto-injected by Supabase
 
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'VITE_CMIS_API_KEY not set' }), { status: 500 });
