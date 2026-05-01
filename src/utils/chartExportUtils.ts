@@ -1442,8 +1442,16 @@ export async function exportChartsAsHTML(
           
           const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
           
+          // Check if this location has a manual ETc override for the past period
+          const manualKey = `${loc.id}-${cropId}`;
+          const manualOverride = additionalData?.manualCmisOverrides?.get(manualKey);
+          const manualEtcTotal = manualOverride?.etc.some(v => v !== '')
+            ? manualOverride!.etc.reduce((s, v) => s + (parseFloat(v) || 0), 0)
+            : null;
+
           // Filter for PAST dates only (before today)
-          locForecast.filter(day => day.date && day.date < today).slice(0, 7).forEach(day => {
+          const pastDays = locForecast.filter(day => day.date && day.date < today).slice(0, 7);
+          pastDays.forEach(day => {
             const et0_inches = Number(day.et0) || 0;
             let kc = getKcForDate(day.date, cropData, cropInstance.customKcValues);
             // Stage-based fallback when crop has no schedule/monthly data
@@ -1451,7 +1459,10 @@ export async function exportChartsAsHTML(
               kc = cropInstance.currentStage === 2 ? 1.15 :
                    cropInstance.currentStage === 1 ? 0.70 : 0.50;
             }
-            const etc_inches = et0_inches * kc;
+            // Use manual ETc override (distributed evenly) if available; otherwise weather-based
+            const etc_inches = manualEtcTotal !== null
+              ? manualEtcTotal / Math.max(pastDays.length, 1)
+              : et0_inches * kc;
             
             const existing = dateMap.get(day.formattedDate) || { total: 0, count: 0 };
             dateMap.set(day.formattedDate, {

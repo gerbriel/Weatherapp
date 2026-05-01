@@ -1698,12 +1698,17 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           const cropData = COMPREHENSIVE_CROP_DATABASE.find(c => c.id === cropId);
                           
                           // Aggregate ETc values by date
+                          // Check if this location has a manual ETc override
+                          const manualKey = `${location.id}-${cropId}`;
+                          const manualOverride = manualCmisOverrides.get(manualKey);
+                          const manualEtcTotal = manualOverride?.etc.some(v => v !== '')
+                            ? manualOverride!.etc.reduce((s, v) => s + (parseFloat(v) || 0), 0)
+                            : null;
+                          const today = new Date().toISOString().split('T')[0];
+
                           for (let i = startIdx; i < endIdx; i++) {
                             const date = weather.daily.time[i];
                             const et0_inches = weather.daily.et0_fao_evapotranspiration?.[i] || 0; // API already returns in inches
-                            
-                            // Get month from date (1-12)
-                            const dateMonth = new Date(date + 'T12:00:00').getMonth() + 1;
                             
                             // Calculate Kc — uses kcSchedule (bi-monthly precision) then monthlyKc then stage fallback
                             let kc = getKcForDate(date, cropData, locationInstances[0]?.customKcValues);
@@ -1712,7 +1717,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                    locationInstances[0].currentStage === 1 ? 0.70 : 0.50;
                             }
                             
-                            const etc_inches = et0_inches * kc;
+                            // For past dates: use manual ETc override (distributed evenly) if available
+                            let etc_inches: number;
+                            if (date < today && manualEtcTotal !== null) {
+                              etc_inches = manualEtcTotal / 7;
+                            } else {
+                              etc_inches = et0_inches * kc;
+                            }
                             
                             const existing = dateMap.get(date) || { totalEtc: 0, count: 0 };
                             dateMap.set(date, {
