@@ -18,6 +18,7 @@ import { weatherService } from '../services/weatherService';
 import { isLocationInCalifornia } from '../utils/locationUtils';
 import { COMPREHENSIVE_CROP_DATABASE } from '../data/crops';
 import { getKcForDate } from '../utils/kcUtils';
+import { parseCimisCSV, buildCimisOverrides, getActualsWindow } from '../utils/parseCimisCSV';
 import type { CMISETCData } from '../services/cmisService';
 
 interface CropInstance {
@@ -128,6 +129,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
   // Manual overrides for locations where CIMIS fails — key: `${locationId}-${cropId}`
   // Arrays are indexed by Kc period (0…n-1) to match stacked rows
   const [manualCmisOverrides, setManualCmisOverrides] = useState<Map<string, { et0: string[]; etc: string[] }>>(new Map());
+  // Toast shown after a CSV import
+  const [csvImportResult, setCsvImportResult] = useState<{ matched: number; unmatched: string[] } | null>(null);
 
   // State for dynamic reports
   const [reportMode, setReportMode] = useState<'current' | 'historical' | 'future'>('current');
@@ -638,6 +641,65 @@ export const ReportView: React.FC<ReportViewProps> = ({
     
     // Clear progress
     setCmisLoadingProgress({ current: 0, total: 0, currentLocation: '' });
+  };
+
+  // Handle CIMIS CSV file upload — parses the file and populates manualCmisOverrides
+  const handleCimisCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // allow re-uploading same file
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      if (!text) return;
+
+      try {
+        const rows = parseCimisCSV(text);
+        if (rows.length === 0) {
+          setCsvImportResult({ matched: 0, unmatched: ['No valid data rows found in file'] });
+          return;
+        }
+
+        const { start, end } = getActualsWindow(reportMode, futureStartDate);
+        const { overrides, summary } = buildCimisOverrides(rows, displayLocations, cropInstances, start, end);
+
+        if (overrides.size > 0) {
+          // Mark all matched locations as "failed" (shows values rather than dashes)
+          // and merge in the new overrides
+          const matchedLocationIds = new Set(
+            summary.matched.map(m => displayLocations.find(l => l.name === m.locationName)?.id).filter(Boolean)
+          );
+          setFailedCmisLocations(prev => {
+            const next = new Set(prev);
+            matchedLocationIds.forEach(id => next.add(id as string));
+            return next;
+          });
+          // Mark as attempted so cmisData.has() returns true (prevents reload spinner)
+          setCmisData(prev => {
+            const next = new Map(prev);
+            matchedLocationIds.forEach(id => { if (!next.has(id as string)) next.set(id as string, []); });
+            return next;
+          });
+          setManualCmisOverrides(prev => {
+            const next = new Map(prev);
+            overrides.forEach((v, k) => next.set(k, v));
+            return next;
+          });
+        }
+
+        setCsvImportResult({
+          matched: summary.matched.length,
+          unmatched: summary.unmatched.map(u => `${u.stationName} (Stn ${u.stationId})`)
+        });
+        // Auto-dismiss after 8 seconds
+        setTimeout(() => setCsvImportResult(null), 8000);
+      } catch (err) {
+        setCsvImportResult({ matched: 0, unmatched: ['Failed to parse CSV — make sure it is a CIMIS daily export'] });
+        setTimeout(() => setCsvImportResult(null), 6000);
+      }
+    };
+    reader.readAsText(file);
   };
 
   // Show message when no locations are selected - dropdown is always visible at top
@@ -1218,6 +1280,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                           </h3>
                           
                           {/* Load CIMIS Data Button */}
+                          <div className="flex items-center gap-2 flex-wrap">
                           {!loadedCropCmisData.has(cropId) && cmisData.size === 0 ? (
                             <button
                               onClick={() => loadCmisDataForCrop(cropId)}
@@ -1244,6 +1307,21 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               CIMIS Data Already Loaded
                             </div>
                           )}
+
+                          {/* Upload CIMIS CSV — always visible as an alternative */}
+                          <label className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm cursor-pointer select-none">
+                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            Upload CIMIS CSV
+                            <input
+                              type="file"
+                              accept=".csv,text/csv"
+                              className="hidden"
+                              onChange={handleCimisCSVUpload}
+                            />
+                          </label>
+                          </div>
                         </div>
                         
                         {/* Loading Progress Bar */}
@@ -1264,6 +1342,31 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 Currently loading: {cmisLoadingProgress.currentLocation}
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {/* CSV Import Result Toast */}
+                        {csvImportResult && (
+                          <div className={`mt-3 flex items-start justify-between gap-3 px-4 py-3 rounded-lg border text-sm ${
+                            csvImportResult.matched > 0
+                              ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200'
+                              : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-800 dark:text-red-200'
+                          }`}>
+                            <div>
+                              {csvImportResult.matched > 0 && (
+                                <p className="font-semibold">✓ CIMIS CSV imported — {csvImportResult.matched} location{csvImportResult.matched !== 1 ? 's' : ''} matched</p>
+                              )}
+                              {csvImportResult.unmatched.length > 0 && (
+                                <p className="mt-0.5">
+                                  {csvImportResult.matched === 0 ? '✗ ' : '⚠ '}
+                                  Stations not matched: {csvImportResult.unmatched.join(', ')}
+                                </p>
+                              )}
+                              {csvImportResult.matched === 0 && csvImportResult.unmatched.length === 0 && (
+                                <p>No stations matched to your locations.</p>
+                              )}
+                            </div>
+                            <button onClick={() => setCsvImportResult(null)} className="shrink-0 opacity-60 hover:opacity-100">✕</button>
                           </div>
                         )}
                       </div>
