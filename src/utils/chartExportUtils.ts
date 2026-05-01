@@ -1381,7 +1381,7 @@ export async function exportChartsAsHTML(
                   ? Array.from(et0_forecast_by_month.entries()).sort((a, b) => a[0] - b[0]).map(([, v]) => v.toFixed(2))
                   : [et0_forecast_sum.toFixed(2)];
 
-                const hasActualData = actualDaysCount > 0;
+                const hasActualData = actualDaysCount > 0 || hasManualEt0 || hasManualEtc;
 
                 // Helper: render stacked lines as <div> blocks inside a cell
                 const stackedHtml = (lines: string[]) =>
