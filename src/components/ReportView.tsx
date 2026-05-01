@@ -344,12 +344,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
   };
 
   // Fetch CMIS data for a specific location with retry logic
-  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 0) => {
+  const fetchLocationCMISData = async (locationId: string, retryCount = 0, maxRetries = 0): Promise<boolean> => {
     const location = displayLocations.find(loc => loc.id === locationId);
-    if (!location) return;
+    if (!location) return false;
     
     // If already has data and not manually retrying, skip
-    if (cmisData.has(locationId) && retryCount === 0) return;
+    if (cmisData.has(locationId) && retryCount === 0) return true;
     
     // Set loading state and clear failed state if retrying
     setLoadingCmisLocations(prev => new Set(prev).add(locationId));
@@ -361,9 +361,9 @@ export const ReportView: React.FC<ReportViewProps> = ({
       });
     }
     
-    // Add timeout to prevent hanging (15 seconds)
+    // Add timeout to prevent hanging (6 seconds — proxy either works or fails fast)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('CIMIS request timeout')), 15000)
+      setTimeout(() => reject(new Error('CIMIS request timeout')), 6000)
     );
     
     try {
@@ -410,6 +410,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             newSet.delete(locationId);
             return newSet;
           });
+          return true;
         } else {
           throw new Error(response.error || 'No data returned');
         }
@@ -436,6 +437,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
           newSet.delete(locationId);
           return newSet;
         });
+        return false;
       }
     }
   };
@@ -603,9 +605,32 @@ export const ReportView: React.FC<ReportViewProps> = ({
         currentLocation: location.name
       });
       
-      await fetchLocationCMISData(location.id);
+      const success = await fetchLocationCMISData(location.id);
       
-      // Wait between requests
+      // If the first real attempt fails, the proxy is down — fast-fail all remaining locations
+      if (!success) {
+        const remaining = locationsToFetch.slice(i + 1);
+        if (remaining.length > 0) {
+          setCmisData(prev => {
+            const newMap = new Map(prev);
+            remaining.forEach(loc => newMap.set(loc.id, []));
+            return newMap;
+          });
+          setFailedCmisLocations(prev => {
+            const newSet = new Set(prev);
+            remaining.forEach(loc => newSet.add(loc.id));
+            return newSet;
+          });
+          setLoadingCmisLocations(prev => {
+            const newSet = new Set(prev);
+            remaining.forEach(loc => newSet.delete(loc.id));
+            return newSet;
+          });
+        }
+        break; // Stop the loop — no point trying the rest
+      }
+      
+      // Wait between successful requests to be polite to the API
       if (i < locationsToFetch.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 1500));
       }
