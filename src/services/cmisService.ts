@@ -38,6 +38,17 @@ interface CMISResponse {
 class CMISService {
   private baseUrl: string;
   private apiKey: string | null = null;
+  private requestQueue: Promise<void> = Promise.resolve();
+
+  /** Throttle: queue requests so CIMIS never receives more than 1 concurrent call */
+  private enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.requestQueue.then(() => fn()).finally(() => {
+      // 300ms gap between requests to avoid CIMIS rate-limiting
+      return new Promise(resolve => setTimeout(resolve, 300));
+    });
+    this.requestQueue = next.then(() => {}, () => {});
+    return next;
+  }
 
   constructor() {
     // Use appropriate URL based on environment
@@ -278,16 +289,21 @@ class CMISService {
    * Returns error for non-California locations
    */
   async getETCData(stationId: string, startDate: Date, endDate: Date, locationInfo?: { latitude?: number; longitude?: number; state?: string; region?: string; name?: string }): Promise<CMISResponse> {
+    // Check non-CA locations immediately without queuing
+    if (locationInfo && !isLocationInCalifornia(locationInfo)) {
+      return {
+        success: false,
+        data: [],
+        error: getCMISUnavailableMessage(locationInfo),
+        isCaliforniaLocation: false
+      };
+    }
+    // Throttle all CIMIS API calls through a serial queue
+    return this.enqueue(() => this._fetchETCData(stationId, startDate, endDate));
+  }
+
+  private async _fetchETCData(stationId: string, startDate: Date, endDate: Date): Promise<CMISResponse> {
     try {
-      // Check if location is in California if location info is provided
-      if (locationInfo && !isLocationInCalifornia(locationInfo)) {
-        return {
-          success: false,
-          data: [],
-          error: getCMISUnavailableMessage(locationInfo),
-          isCaliforniaLocation: false
-        };
-      }
 
       // If we have a real API key, use the actual CMIS API
       if (this.apiKey) {
@@ -372,7 +388,7 @@ class CMISService {
         success: false,
         data: [],
         error: error instanceof Error ? error.message : 'Failed to fetch CMIS data',
-        isCaliforniaLocation: locationInfo ? isLocationInCalifornia(locationInfo) : true
+        isCaliforniaLocation: true
       };
     }
   }
