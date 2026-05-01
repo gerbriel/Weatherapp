@@ -126,7 +126,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
   const [cmisLoadingProgress, setCmisLoadingProgress] = useState({ current: 0, total: 0, currentLocation: '' });
   const [loadedCropCmisData, setLoadedCropCmisData] = useState<Set<string>>(new Set());
   // Manual overrides for locations where CIMIS fails — key: `${locationId}-${cropId}`
-  const [manualCmisOverrides, setManualCmisOverrides] = useState<Map<string, { et0: string; etc: string }>>(new Map());
+  // Arrays are indexed by Kc period (0…n-1) to match stacked rows
+  const [manualCmisOverrides, setManualCmisOverrides] = useState<Map<string, { et0: string[]; etc: string[] }>>(new Map());
 
   // State for dynamic reports
   const [reportMode, setReportMode] = useState<'current' | 'historical' | 'future'>('current');
@@ -1432,10 +1433,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               const manualKey = `${location.id}-${cropId}`;
                               const manualOverride = manualCmisOverrides.get(manualKey);
                               const hasManualOverride = hasCmisFailed && manualOverride &&
-                                (manualOverride.et0 !== '' || manualOverride.etc !== '');
+                                (manualOverride.et0.some(v => v !== '') || manualOverride.etc.some(v => v !== ''));
                               if (hasManualOverride && manualOverride) {
-                                if (manualOverride.et0 !== '') et0_actual_sum = parseFloat(manualOverride.et0) || 0;
-                                if (manualOverride.etc !== '') etc_actual_sum = parseFloat(manualOverride.etc) || 0;
+                                const et0Total = manualOverride.et0.reduce((s, v) => s + (parseFloat(v) || 0), 0);
+                                const etcTotal = manualOverride.etc.reduce((s, v) => s + (parseFloat(v) || 0), 0);
+                                if (manualOverride.et0.some(v => v !== '')) et0_actual_sum = et0Total;
+                                if (manualOverride.etc.some(v => v !== '')) etc_actual_sum = etcTotal;
                               }
                               
                               // Format Kc values for display — union of actuals + forecast Kc for the Kc column
@@ -1460,15 +1463,15 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 : [et0_forecast_sum.toFixed(2)];
 
                               // ET₀ actual lines — one per actuals Kc value (or manual override)
-                              const et0_actual_lines: string[] = hasManualOverride && manualOverride?.et0 !== ''
-                                ? [et0_actual_sum.toFixed(2)]
+                              const et0_actual_lines: string[] = hasManualOverride && manualOverride?.et0.some(v => v !== '')
+                                ? manualOverride.et0.map(v => v !== '' ? parseFloat(v).toFixed(2) : '—')
                                 : kc_actual_array.length > 1 && et0_actual_by_kc.size > 1
                                 ? kc_actual_array.map(kc => (et0_actual_by_kc.get(kc) || 0).toFixed(2))
                                 : [et0_actual_sum.toFixed(2)];
 
                               // ETc actual lines — one per actuals Kc value (or manual override)
-                              const etc_actual_lines: string[] = hasManualOverride && manualOverride?.etc !== ''
-                                ? [etc_actual_sum.toFixed(2)]
+                              const etc_actual_lines: string[] = hasManualOverride && manualOverride?.etc.some(v => v !== '')
+                                ? manualOverride.etc.map(v => v !== '' ? parseFloat(v).toFixed(2) : '—')
                                 : kc_actual_array.length > 1 && etc_actual_by_kc.size > 1
                                 ? kc_actual_array.map(kc => (etc_actual_by_kc.get(kc) || 0).toFixed(2))
                                 : [etc_actual_sum.toFixed(2)];
@@ -1534,22 +1537,29 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                       <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
                                     ) : hasCmisFailed ? (
                                       <div className="flex flex-col items-center gap-1">
-                                        <input
-                                          type="number"
-                                          step="0.01"
-                                          min="0"
-                                          placeholder="Enter ET₀"
-                                          value={manualCmisOverrides.get(manualKey)?.et0 ?? ''}
-                                          onChange={(e) => {
-                                            setManualCmisOverrides(prev => {
-                                              const next = new Map(prev);
-                                              const cur = next.get(manualKey) ?? { et0: '', etc: '' };
-                                              next.set(manualKey, { ...cur, et0: e.target.value });
-                                              return next;
-                                            });
-                                          }}
-                                          className="w-20 px-1.5 py-1 text-xs border border-amber-300 dark:border-amber-600 rounded bg-amber-50 dark:bg-amber-900/20 text-gray-900 dark:text-white text-center focus:outline-none focus:ring-1 focus:ring-amber-400"
-                                        />
+                                        {(kc_values_array.length > 0 ? kc_values_array : [0]).map((_, periodIdx) => (
+                                          <input
+                                            key={periodIdx}
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            placeholder="Enter ET₀"
+                                            value={manualCmisOverrides.get(manualKey)?.et0[periodIdx] ?? ''}
+                                            onChange={(e) => {
+                                              setManualCmisOverrides(prev => {
+                                                const next = new Map(prev);
+                                                const slots = kc_values_array.length > 0 ? kc_values_array.length : 1;
+                                                const cur = next.get(manualKey) ?? { et0: Array(slots).fill(''), etc: Array(slots).fill('') };
+                                                const newEt0 = [...cur.et0];
+                                                while (newEt0.length < slots) newEt0.push('');
+                                                newEt0[periodIdx] = e.target.value;
+                                                next.set(manualKey, { ...cur, et0: newEt0 });
+                                                return next;
+                                              });
+                                            }}
+                                            className="w-20 px-1.5 py-1 text-xs border border-amber-300 dark:border-amber-600 rounded bg-amber-50 dark:bg-amber-900/20 text-gray-900 dark:text-white text-center focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                          />
+                                        ))}
                                         <button onClick={() => retryLocationCMIS(location.id)} className="flex items-center gap-0.5 text-xs text-blue-500 dark:text-blue-400 hover:underline" title="Retry loading from CIMIS">
                                           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                           retry
@@ -1564,22 +1574,29 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                       <div className="flex items-center justify-center"><div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div></div>
                                     ) : hasCmisFailed ? (
                                       <div className="flex flex-col items-center gap-1">
-                                        <input
-                                          type="number"
-                                          step="0.01"
-                                          min="0"
-                                          placeholder="Enter ETc"
-                                          value={manualCmisOverrides.get(manualKey)?.etc ?? ''}
-                                          onChange={(e) => {
-                                            setManualCmisOverrides(prev => {
-                                              const next = new Map(prev);
-                                              const cur = next.get(manualKey) ?? { et0: '', etc: '' };
-                                              next.set(manualKey, { ...cur, etc: e.target.value });
-                                              return next;
-                                            });
-                                          }}
-                                          className="w-20 px-1.5 py-1 text-xs border border-amber-300 dark:border-amber-600 rounded bg-amber-50 dark:bg-amber-900/20 text-blue-700 dark:text-blue-300 text-center focus:outline-none focus:ring-1 focus:ring-amber-400"
-                                        />
+                                        {(kc_values_array.length > 0 ? kc_values_array : [0]).map((_, periodIdx) => (
+                                          <input
+                                            key={periodIdx}
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            placeholder="Enter ETc"
+                                            value={manualCmisOverrides.get(manualKey)?.etc[periodIdx] ?? ''}
+                                            onChange={(e) => {
+                                              setManualCmisOverrides(prev => {
+                                                const next = new Map(prev);
+                                                const slots = kc_values_array.length > 0 ? kc_values_array.length : 1;
+                                                const cur = next.get(manualKey) ?? { et0: Array(slots).fill(''), etc: Array(slots).fill('') };
+                                                const newEtc = [...cur.etc];
+                                                while (newEtc.length < slots) newEtc.push('');
+                                                newEtc[periodIdx] = e.target.value;
+                                                next.set(manualKey, { ...cur, etc: newEtc });
+                                                return next;
+                                              });
+                                            }}
+                                            className="w-20 px-1.5 py-1 text-xs border border-amber-300 dark:border-amber-600 rounded bg-amber-50 dark:bg-amber-900/20 text-blue-700 dark:text-blue-300 text-center focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                          />
+                                        ))}
                                         <button onClick={() => retryLocationCMIS(location.id)} className="flex items-center gap-0.5 text-xs text-blue-500 dark:text-blue-400 hover:underline" title="Retry loading from CIMIS">
                                           <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                                           retry
