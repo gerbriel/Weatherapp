@@ -12,19 +12,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // API key: prefer server-side env var; fall back to client-provided query param
-    // (The key is already in the browser JS bundle via VITE_CMIS_API_KEY, so
-    //  passing it as a query param to our own proxy doesn't reduce security.)
-    const { stationNbrs, targets, startDate, endDate, dataItems, unitOfMeasure, apiKey: queryApiKey } = req.query;
+    // Key lives server-side only — set CMIS_API_KEY (or VITE_CMIS_API_KEY) in
+    // Vercel Dashboard → Settings → Environment Variables. Never sent by client.
     const apiKey =
-      process.env.VITE_CMIS_API_KEY ||
       process.env.CMIS_API_KEY ||
-      queryApiKey as string || null;
+      process.env.VITE_CMIS_API_KEY || null;
 
-    const stationParam = stationNbrs || targets; // accept both for backwards compat
+    const { stationNbrs, targets, startDate, endDate, dataItems, unitOfMeasure } = req.query;
+    const stationParam = stationNbrs || targets;
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'CIMIS API key not configured. Set VITE_CMIS_API_KEY in Vercel env vars or pass apiKey param.' });
+      return res.status(500).json({ error: 'CIMIS API key not configured. Set CMIS_API_KEY in Vercel env vars.' });
     }
     if (!stationParam || !startDate || !endDate) {
       return res.status(400).json({ error: 'Missing required parameters: stationNbrs, startDate, endDate' });

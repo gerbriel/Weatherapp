@@ -336,16 +336,15 @@ class CMISService {
 
         // Route through baseUrl:
         //   DEV   → Vite proxy (/api/cmis) → et.water.ca.gov with header added by proxy
-        //   Prod  → Vercel/Supabase proxy — pass key as apiKey query param
+        //   Prod  → Vercel/Supabase proxy — key is server-side only, NOT sent by client
         //   Fallback → direct to CIMIS with Ocp-Apim-Subscription-Key header
         const isDirect = !this.baseUrl.startsWith('/') && !this.baseUrl.includes('/api/cmis-proxy') && !this.baseUrl.includes('/functions/v1/cmis-proxy');
-        const keyParam = (!isDirect && !this.baseUrl.startsWith('/api/cmis')) ? `&apiKey=${encodeURIComponent(this.apiKey)}` : '';
-        const apiUrl = `${this.baseUrl}?stationNbrs=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&isHourly=false&unitOfMeasure=E&dataItems=day-asce-eto${keyParam}`;
+        const apiUrl = `${this.baseUrl}?stationNbrs=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&isHourly=false&unitOfMeasure=E&dataItems=day-asce-eto`;
 
         const fetchOptions: RequestInit = {
           headers: {
             'Accept': 'application/json',
-            // Direct CIMIS call: use the official subscription key header
+            // Only attach key for direct CIMIS calls (dev fallback)
             ...(isDirect ? { 'Ocp-Apim-Subscription-Key': this.apiKey } : {}),
           },
         };
