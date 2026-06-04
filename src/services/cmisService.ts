@@ -85,7 +85,8 @@ class CMISService {
       } else if (supabaseUrl) {
         this.baseUrl = `${supabaseUrl}/functions/v1/cmis-proxy`;
       } else {
-        this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/api/data';
+        // New CIMIS REST API base — used only when falling back from cache
+      this.baseUrl = import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/StationWeb/GetDataByStationNumber';
       }
     }
     this.apiKey = import.meta.env.VITE_CMIS_API_KEY || null;
@@ -328,14 +329,28 @@ class CMISService {
         return { success: true, data: cached, isCaliforniaLocation: true };
       }
 
-      // ── 2. Cache miss — fall back to CIMIS API via proxy ──
+        // ── 2. Cache miss — fall back to CIMIS API via proxy ──
       if (this.apiKey) {
         const startDateStr = startDate.toISOString().split('T')[0];
         const endDateStr = endDate.toISOString().split('T')[0];
 
-        const apiUrl = `${this.baseUrl}?appKey=${this.apiKey}&targets=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&dataItems=day-asce-eto&unitOfMeasure=E`;
+        // Route through baseUrl:
+        //   DEV   → Vite proxy (/api/cmis) → et.water.ca.gov with header added by proxy
+        //   Prod  → Vercel/Supabase proxy, which adds the header server-side
+        //   Fallback → direct to CIMIS with header (baseUrl = new endpoint)
+        const isDirect = !this.baseUrl.startsWith('/') && !this.baseUrl.includes('/api/cmis-proxy') && !this.baseUrl.includes('/functions/v1/cmis-proxy');
+        const apiUrl = `${this.baseUrl}?stationNbrs=${stationId}&startDate=${startDateStr}&endDate=${endDateStr}&isHourly=false&unitOfMeasure=E&dataItems=day-asce-eto`;
 
-        const response = await fetch(apiUrl);
+        const fetchOptions: RequestInit = {
+          headers: {
+            'Accept': 'application/json',
+            // Only attach key directly when NOT going through a proxy
+            // (proxies read the key from env server-side)
+            ...(isDirect ? { 'Ocp-Apim-Subscription-Key': this.apiKey } : {}),
+          },
+        };
+
+        const response = await fetch(apiUrl, fetchOptions);
 
         if (!response.ok) {
           return {

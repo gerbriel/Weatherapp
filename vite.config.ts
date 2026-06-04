@@ -15,17 +15,22 @@ export default defineConfig(({ command }) => ({
       port: 5173,
     },
     proxy: {
-      // Proxy CMIS API requests to avoid CORS issues in development
+      // Proxy CIMIS API requests to avoid CORS issues in development.
+      // New CIMIS REST API uses header auth (Ocp-Apim-Subscription-Key).
       '/api/cmis': {
         target: 'https://et.water.ca.gov',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/cmis/, '/api/data'),
+        rewrite: (path) => path.replace(/^\/api\/cmis/, '/StationWeb/GetDataByStationNumber'),
         secure: true,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, _res) => {
             console.log('CMIS Proxy error:', err);
           });
-          proxy.on('proxyReq', (_proxyReq, req, _res) => {
+          proxy.on('proxyReq', (proxyReq, req, _res) => {
+            // Inject the CIMIS subscription key as a header so the key
+            // is never exposed as a query param in the browser.
+            const key = process.env.VITE_CMIS_API_KEY;
+            if (key) proxyReq.setHeader('Ocp-Apim-Subscription-Key', key);
             console.log('→ Proxying:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {

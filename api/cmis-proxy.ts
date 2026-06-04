@@ -11,26 +11,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { appKey, targets, startDate, endDate, dataItems, unitOfMeasure } = req.query;
+    // New CIMIS REST API — key from env, stationNbrs param, fixed endpoint
+    const apiKey = process.env.VITE_CMIS_API_KEY;
+    const { stationNbrs, targets, startDate, endDate, dataItems, unitOfMeasure } = req.query;
+    const stationParam = stationNbrs || targets; // accept both for backwards compat
 
-    if (!appKey || !targets || !startDate || !endDate || !dataItems) {
-      return res.status(400).json({ error: 'Missing required parameters' });
+    if (!apiKey) {
+      return res.status(500).json({ error: 'CIMIS API key not configured on server' });
+    }
+    if (!stationParam || !startDate || !endDate) {
+      return res.status(400).json({ error: 'Missing required parameters: stationNbrs, startDate, endDate' });
     }
 
-    const cmisUrl = new URL('https://et.water.ca.gov/api/data');
-    cmisUrl.searchParams.set('appKey', String(appKey));
-    cmisUrl.searchParams.set('targets', String(targets));
+    const cmisUrl = new URL('https://et.water.ca.gov/StationWeb/GetDataByStationNumber');
+    cmisUrl.searchParams.set('stationNbrs', String(stationParam));
     cmisUrl.searchParams.set('startDate', String(startDate));
     cmisUrl.searchParams.set('endDate', String(endDate));
-    cmisUrl.searchParams.set('dataItems', String(dataItems));
-    if (unitOfMeasure) {
-      cmisUrl.searchParams.set('unitOfMeasure', String(unitOfMeasure));
-    }
+    cmisUrl.searchParams.set('isHourly', 'false');
+    cmisUrl.searchParams.set('dataItems', dataItems ? String(dataItems) : 'day-asce-eto');
+    cmisUrl.searchParams.set('unitOfMeasure', unitOfMeasure ? String(unitOfMeasure) : 'E');
 
     const cmisResponse = await fetch(cmisUrl.toString(), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json, text/plain, */*',
+        'Ocp-Apim-Subscription-Key': apiKey,
+        'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0 (compatible; WeatherApp/1.0)',
       },
     });

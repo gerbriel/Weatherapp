@@ -47,35 +47,37 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     
-    // Get query parameters from the request
-    const appKey = url.searchParams.get('appKey');
-    const targets = url.searchParams.get('targets');
-    const startDate = url.searchParams.get('startDate');
-    const endDate = url.searchParams.get('endDate');
-    const dataItems = url.searchParams.get('dataItems');
-    const unitOfMeasure = url.searchParams.get('unitOfMeasure');
-
-    // Validate required parameters
-    if (!appKey || !targets || !startDate || !endDate || !dataItems) {
+    // New CIMIS REST API — key from Supabase secret, not from caller
+    const apiKey = Deno.env.get('VITE_CMIS_API_KEY');
+    if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: 'CIMIS API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Build CIMIS API URL
-    const cmisUrl = new URL('https://et.water.ca.gov/api/data');
-    cmisUrl.searchParams.set('appKey', appKey);
-    cmisUrl.searchParams.set('targets', targets);
+    // Accept stationNbrs or legacy 'targets' param for backwards compatibility
+    const stationNbrs = url.searchParams.get('stationNbrs') || url.searchParams.get('targets');
+    const startDate = url.searchParams.get('startDate');
+    const endDate = url.searchParams.get('endDate');
+    const dataItems = url.searchParams.get('dataItems') || 'day-asce-eto';
+    const unitOfMeasure = url.searchParams.get('unitOfMeasure') || 'E';
+
+    if (!stationNbrs || !startDate || !endDate) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: stationNbrs, startDate, endDate' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Build new CIMIS REST API URL
+    const cmisUrl = new URL('https://et.water.ca.gov/StationWeb/GetDataByStationNumber');
+    cmisUrl.searchParams.set('stationNbrs', stationNbrs);
     cmisUrl.searchParams.set('startDate', startDate);
     cmisUrl.searchParams.set('endDate', endDate);
+    cmisUrl.searchParams.set('isHourly', 'false');
     cmisUrl.searchParams.set('dataItems', dataItems);
-    if (unitOfMeasure) {
-      cmisUrl.searchParams.set('unitOfMeasure', unitOfMeasure);
-    }
+    cmisUrl.searchParams.set('unitOfMeasure', unitOfMeasure);
 
     console.log('Proxying CIMIS request:', cmisUrl.toString());
 
@@ -83,11 +85,9 @@ serve(async (req) => {
     const cmisResponse = await fetchWithRetry(cmisUrl.toString(), {
       method: 'GET',
       headers: {
-        'Accept': 'application/json, text/plain, */*',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache',
+        'Ocp-Apim-Subscription-Key': apiKey,
+        'Accept': 'application/json',
         'User-Agent': 'Mozilla/5.0 (compatible; WeatherApp/1.0)',
-        'Referer': 'https://cimis.water.ca.gov/',
       },
     });
 

@@ -18,7 +18,7 @@ class EnvironmentValidator {
   constructor() {
     this.config = {
       cmisApiKey: import.meta.env.VITE_CMIS_API_KEY || null,
-      cmisBaseUrl: import.meta.env.VITE_CMIS_BASE_URL || 'https://api.cimis.water.ca.gov/api/data',
+      cmisBaseUrl: import.meta.env.VITE_CMIS_BASE_URL || 'https://et.water.ca.gov/StationWeb/GetDataByStationNumber',
       supabaseUrl: import.meta.env.VITE_SUPABASE_URL || null,
       supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || null,
       isDevelopment: import.meta.env.DEV,

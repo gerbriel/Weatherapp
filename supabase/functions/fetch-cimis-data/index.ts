@@ -49,12 +49,17 @@ Deno.serve(async (req) => {
   const results: { inserted: number; errors: string[] } = { inserted: 0, errors: [] };
 
   for (const batch of batches) {
-    const targets = batch.join(',');
-    const url = `https://et.water.ca.gov/api/data?appKey=${apiKey}&targets=${targets}&startDate=${start}&endDate=${end}&dataItems=day-asce-eto&unitOfMeasure=E`;
+    const stationNbrs = batch.join(',');
+    // New CIMIS REST API: key in header, stationNbrs param, fixed endpoint
+    const url = `https://et.water.ca.gov/StationWeb/GetDataByStationNumber?stationNbrs=${stationNbrs}&startDate=${start}&endDate=${end}&isHourly=false&dataItems=day-asce-eto&unitOfMeasure=E`;
 
     try {
       const res = await fetch(url, {
-        headers: { 'Accept': 'application/json', 'User-Agent': 'WeatherApp-Cron/1.0' },
+        headers: {
+          'Ocp-Apim-Subscription-Key': apiKey,
+          'Accept': 'application/json',
+          'User-Agent': 'WeatherApp-Cron/1.0',
+        },
       });
 
       const contentType = res.headers.get('content-type') || '';
