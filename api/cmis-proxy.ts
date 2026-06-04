@@ -11,13 +11,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // New CIMIS REST API — key from env, stationNbrs param, fixed endpoint
-    const apiKey = process.env.VITE_CMIS_API_KEY;
+    // API key: prefer server-side env var; fall back to client-provided header
+    // (The key is already in the browser JS bundle via VITE_CMIS_API_KEY, so
+    //  passing it in a header doesn't meaningfully reduce security.)
+    const apiKey =
+      process.env.VITE_CMIS_API_KEY ||
+      process.env.CMIS_API_KEY ||
+      req.headers['x-cimis-key'] as string || null;
+
     const { stationNbrs, targets, startDate, endDate, dataItems, unitOfMeasure } = req.query;
     const stationParam = stationNbrs || targets; // accept both for backwards compat
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'CIMIS API key not configured on server' });
+      return res.status(500).json({ error: 'CIMIS API key not configured. Set VITE_CMIS_API_KEY in Vercel env vars.' });
     }
     if (!stationParam || !startDate || !endDate) {
       return res.status(400).json({ error: 'Missing required parameters: stationNbrs, startDate, endDate' });

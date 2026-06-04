@@ -1,8 +1,11 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => {
+  // Load env file so vite.config.ts can read VITE_* vars (e.g. for the dev proxy)
+  const env = loadEnv(mode, process.cwd(), '');
+  return ({
   plugins: [react()],
   base: command === 'build' ? '/Weatherapp/' : '/', // Use root for dev, Weatherapp for production build
   server: {
@@ -29,7 +32,7 @@ export default defineConfig(({ command }) => ({
           proxy.on('proxyReq', (proxyReq, req, _res) => {
             // Inject the CIMIS subscription key as a header so the key
             // is never exposed as a query param in the browser.
-            const key = process.env.VITE_CMIS_API_KEY;
+            const key = env.VITE_CMIS_API_KEY;
             if (key) proxyReq.setHeader('Ocp-Apim-Subscription-Key', key);
             console.log('→ Proxying:', req.method, req.url);
           });
@@ -67,4 +70,5 @@ export default defineConfig(({ command }) => ({
       '@': '/src',
     },
   },
-}))
+})
+})

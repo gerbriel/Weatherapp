@@ -344,9 +344,12 @@ class CMISService {
         const fetchOptions: RequestInit = {
           headers: {
             'Accept': 'application/json',
-            // Only attach key directly when NOT going through a proxy
-            // (proxies read the key from env server-side)
-            ...(isDirect ? { 'Ocp-Apim-Subscription-Key': this.apiKey } : {}),
+            // Direct call: use the official CIMIS header
+            // Via proxy: pass key in X-CIMIS-Key so the proxy can use it when
+            // it doesn't have VITE_CMIS_API_KEY set in its own environment
+            ...(isDirect
+              ? { 'Ocp-Apim-Subscription-Key': this.apiKey }
+              : { 'X-CIMIS-Key': this.apiKey }),
           },
         };
 
