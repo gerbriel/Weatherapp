@@ -1282,7 +1282,8 @@ export async function exportChartsAsHTML(
                 let etc_actual_sum = 0; // Sum of daily ETc (ET₀ × Kc per day)
                 let etc_forecast_sum = 0; // Sum of daily ETc forecast
                 let kc_values_set = new Set<number>(); // Track unique forecast Kc values
-                let kc_actual_values_set = new Set<number>(); // Track unique actuals Kc values
+                let kc_actual_values_set = new Set<number>(); // Track unique actuals Kc values (from CIMIS data)
+                let kc_expected_actual_values = new Set<number>(); // Kc per actuals dates from kcSchedule (regardless of CIMIS)
                 let et0_forecast_by_month = new Map<number, number>(); // month → ET₀ forecast sum
                 let etc_forecast_by_kc = new Map<number, number>(); // kc → ETc forecast sum
                 let etc_actual_by_kc = new Map<number, number>(); // kc → ETc actual sum
@@ -1322,6 +1323,9 @@ export async function exportChartsAsHTML(
 
                   // Sum actual ET₀ and ETc for dates BEFORE the reference date (past days from CIMIS)
                   if (day.date && day.date < referenceDate) {
+                    // Always track expected Kc for actuals dates so KC column shows
+                    // correct split-week values even before CIMIS loads.
+                    kc_expected_actual_values.add(dailyKc);
                     const et0_actual_inches = day.et0_actual;
                     if (et0_actual_inches !== null && et0_actual_inches !== undefined) {
                       et0_actual_sum += et0_actual_inches;
@@ -1350,9 +1354,13 @@ export async function exportChartsAsHTML(
 
                 // ── Build display variables (mirrors ReportView.tsx logic) ──
 
-                // Kc column: union of actuals + forecast Kc values
+                // Kc column: union of actuals + forecast Kc values.
+                // If CIMIS hasn't loaded, use kc_expected_actual_values (from kcSchedule per day)
+                // so split-week periods show correctly.
                 const kc_values_array = Array.from(kc_values_set).sort((a, b) => a - b);
-                const kc_actual_array = Array.from(kc_actual_values_set).sort((a, b) => a - b);
+                const kc_actual_array = Array.from(
+                  kc_actual_values_set.size > 0 ? kc_actual_values_set : kc_expected_actual_values
+                ).sort((a, b) => a - b);
                 const kc_all_unique = Array.from(new Set([...kc_actual_array, ...kc_values_array])).sort((a, b) => a - b);
                 const kc_lines = kc_all_unique.length > 0 ? kc_all_unique.map(v => v.toFixed(2)) : ['—'];
 
