@@ -386,9 +386,20 @@ export const ReportView: React.FC<ReportViewProps> = ({
       
       if (station) {
         const endDate = new Date();
-        endDate.setDate(endDate.getDate() - 1);  // Yesterday (Jan 5)
-        const startDate = new Date(endDate.getTime());  // Clone endDate
-        startDate.setDate(startDate.getDate() - 14);  // 14 days before endDate
+        endDate.setDate(endDate.getDate() - 1);  // Yesterday — CIMIS only has past data
+
+        // Use the report's actual start date so split-week KC periods are fully covered.
+        // Cap at 30 days to stay within CIMIS data volume limits.
+        const startDate = new Date(endDate.getTime());
+        if (dateRange.startDate) {
+          const reportStart = new Date(dateRange.startDate + 'T12:00:00');
+          const maxLookback = new Date(endDate.getTime());
+          maxLookback.setDate(maxLookback.getDate() - 30);
+          // Use the later of (reportStart, endDate-30) to avoid huge requests
+          startDate.setTime(Math.max(reportStart.getTime(), maxLookback.getTime()));
+        } else {
+          startDate.setDate(startDate.getDate() - 14);
+        }
         
         const response = await Promise.race([
           cmisService.getETCData(station.id, startDate, endDate, locationInfo),
@@ -1476,7 +1487,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
                               let etc_forecast_sum = 0; // Track forecast ETc (ET₀ × Kc per day)
                               let actualDaysCount = 0;
                               let kc_values_used = new Set<number>();       // forecast Kc values
-                              let kc_actual_values_used = new Set<number>(); // actuals Kc values
+                              let kc_actual_values_used = new Set<number>(); // actuals Kc values from CIMIS data
+                              let kc_expected_actual_values = new Set<number>(); // Kc values that apply to actuals dates (from kcSchedule, regardless of CIMIS)
                               
                               // Track ETc sums per Kc value for stacked display
                               let etc_forecast_by_kc = new Map<number, number>();
@@ -1532,6 +1544,11 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 }
                                 
                                 // Sum CIMIS actual ET₀ for dates BEFORE the reference date (past days)
+                                if (date < referenceDate) {
+                                  // Always track the expected Kc for actuals dates from kcSchedule,
+                                  // so the KC column shows the correct split even before CIMIS loads.
+                                  kc_expected_actual_values.add(dailyKc);
+                                }
                                 if (isCalifornia && date < referenceDate) {
                                   const cimisDay = locationCmisData.find(d => d.date === date);
                                   if (cimisDay && cimisDay.etc_actual !== undefined && cimisDay.etc_actual !== null) {
@@ -1572,9 +1589,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                 if (manualOverride.etc.some(v => v !== '')) etc_actual_sum = etcTotal;
                               }
                               
-                              // Format Kc values for display — union of actuals + forecast Kc for the Kc column
+                              // Format Kc values for display — union of actuals + forecast Kc for the Kc column.
+                              // If CIMIS data hasn't loaded yet, fall back to kc_expected_actual_values
+                              // (computed from kcSchedule per day) so split-week periods show correctly.
                               const kc_values_array = Array.from(kc_values_used).sort((a, b) => a - b);
-                              const kc_actual_array = Array.from(kc_actual_values_used).sort((a, b) => a - b);
+                              const kc_actual_array = Array.from(
+                                kc_actual_values_used.size > 0 ? kc_actual_values_used : kc_expected_actual_values
+                              ).sort((a, b) => a - b);
                               // All unique Kc values across both periods, sorted
                               const kc_all_unique = Array.from(new Set([...kc_actual_array, ...kc_values_array])).sort((a, b) => a - b);
                               const kc_lines: string[] = kc_all_unique.length > 0
