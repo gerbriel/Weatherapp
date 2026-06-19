@@ -1689,7 +1689,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                       <div className="flex items-center justify-center"><div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div></div>
                                     ) : hasCmisFailed ? (
                                       <div className="flex flex-col items-center gap-1">
-                                        {(kc_values_array.length > 0 ? kc_values_array : [0]).map((_, periodIdx) => (
+                                        {(manualOverride?.et0?.length ? manualOverride.et0 : kc_actual_array.length > 0 ? kc_actual_array : [0]).map((_, periodIdx) => (
                                           <input
                                             key={periodIdx}
                                             type="number"
@@ -1700,7 +1700,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                             onChange={(e) => {
                                               setManualCmisOverrides(prev => {
                                                 const next = new Map(prev);
-                                                const slots = kc_values_array.length > 0 ? kc_values_array.length : 1;
+                                                const slots = (manualOverride?.et0?.length || kc_actual_array.length) || 1;
                                                 const cur = next.get(manualKey) ?? { et0: Array(slots).fill(''), etc: Array(slots).fill('') };
                                                 const newEt0 = [...cur.et0];
                                                 while (newEt0.length < slots) newEt0.push('');
@@ -1726,7 +1726,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                       <div className="flex items-center justify-center"><div className="h-4 w-16 bg-blue-200 dark:bg-blue-900 rounded animate-pulse"></div></div>
                                     ) : hasCmisFailed ? (
                                       <div className="flex flex-col items-center gap-1">
-                                        {(kc_values_array.length > 0 ? kc_values_array : [0]).map((_, periodIdx) => (
+                                        {(manualOverride?.etc?.length ? manualOverride.etc : kc_actual_array.length > 0 ? kc_actual_array : [0]).map((_, periodIdx) => (
                                           <input
                                             key={periodIdx}
                                             type="number"
@@ -1737,7 +1737,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                                             onChange={(e) => {
                                               setManualCmisOverrides(prev => {
                                                 const next = new Map(prev);
-                                                const slots = kc_values_array.length > 0 ? kc_values_array.length : 1;
+                                                const slots = (manualOverride?.etc?.length || kc_actual_array.length) || 1;
                                                 const cur = next.get(manualKey) ?? { et0: Array(slots).fill(''), etc: Array(slots).fill('') };
                                                 const newEtc = [...cur.etc];
                                                 while (newEtc.length < slots) newEtc.push('');
