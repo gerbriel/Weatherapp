@@ -65,21 +65,28 @@ Deno.serve(async (req) => {
       const contentType = res.headers.get('content-type') || '';
       if (!contentType.includes('json')) {
         const text = await res.text();
-        results.errors.push(`Batch [${targets}] non-JSON: ${text.substring(0, 200)}`);
+        results.errors.push(`Batch [${stationNbrs}] non-JSON: ${text.substring(0, 200)}`);
         continue;
       }
 
       const json = await res.json();
-      const records = json?.Data?.Providers?.flatMap((p: any) => p.Records ?? []) ?? [];
 
-      const rows = records
-        .filter((r: any) => r.DayAsceEto?.Value != null)
-        .map((r: any) => ({
-          station_id: String(r.Station),
-          date:       r.Date,
-          et0_inches: parseFloat(r.DayAsceEto.Value),
-          fetched_at: new Date().toISOString(),
-        }));
+      // Build rows by iterating providers first so each record retains its station ID.
+      // flatMap loses the provider-level StationNbr, making r.Station undefined.
+      const rows: { station_id: string; date: string; et0_inches: number; fetched_at: string }[] = [];
+      for (const p of json?.Data?.Providers ?? []) {
+        const stationId = String(p.StationNbr ?? p.Station ?? 'unknown');
+        for (const r of p.Records ?? []) {
+          if (r.DayAsceEto?.Value != null) {
+            rows.push({
+              station_id: stationId,
+              date:       r.Date,
+              et0_inches: parseFloat(r.DayAsceEto.Value),
+              fetched_at: new Date().toISOString(),
+            });
+          }
+        }
+      }
 
       if (rows.length > 0) {
         const { error } = await supabase
