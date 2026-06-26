@@ -383,7 +383,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
         cmisService.findNearestStation(location.latitude, location.longitude, locationInfo),
         timeoutPromise
       ]) as any;
-      
+
+      console.log(`[ReportView] location=${location.name} station=`, station);
       if (station) {
         const endDate = new Date();
         endDate.setDate(endDate.getDate() - 1);  // Yesterday — CIMIS only has past data
@@ -401,11 +402,13 @@ export const ReportView: React.FC<ReportViewProps> = ({
           startDate.setDate(startDate.getDate() - 14);
         }
         
+        console.log(`[ReportView] fetching ETC data stationId=${station.id} ${startDate.toISOString().split('T')[0]}→${endDate.toISOString().split('T')[0]}`);
         const response = await Promise.race([
           cmisService.getETCData(station.id, startDate, endDate, locationInfo),
           timeoutPromise
         ]) as any;
-        
+
+        console.log(`[ReportView] ETC response success=${response?.success} rows=${response?.data?.length} error=${response?.error ?? 'none'}`);
         if (response.success && response.data.length > 0) {
           setCmisData(prev => {
             const newMap = new Map(prev);
@@ -432,6 +435,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
         throw new Error('No CIMIS station found');
       }
     } catch (error) {
+      console.error(`[ReportView] fetchLocationCMISData error location=${locationId} retry=${retryCount}:`, error);
       // Retry if we haven't exceeded max retries
       if (retryCount < maxRetries) {
         // Wait before retrying (1s, 2s, ...)

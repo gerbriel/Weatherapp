@@ -54,6 +54,7 @@ class CMISService {
       .lte('date', end)
       .order('date');
 
+    console.log(`[CIMIS cache] station=${stationId} ${start}→${end} rows=${data?.length ?? 0} error=${error?.message ?? 'none'}`);
     if (error || !data || data.length === 0) return null;
 
     return data.map((row: { date: string; et0_inches: number }) => ({
@@ -326,9 +327,11 @@ class CMISService {
       // ── 1. Try Supabase cache first (fastest, no CIMIS rate-limit risk) ──
       const cached = await this.fetchFromCache(stationId, startDate, endDate);
       if (cached && cached.length > 0) {
+        console.log(`[CIMIS] cache hit for station ${stationId}: ${cached.length} rows`);
         return { success: true, data: cached, isCaliforniaLocation: true };
       }
 
+      console.log(`[CIMIS] cache miss for station ${stationId} — falling back to proxy. apiKey present=${!!this.apiKey} baseUrl=${this.baseUrl}`);
         // ── 2. Cache miss — fall back to CIMIS API via proxy ──
       if (this.apiKey) {
         const startDateStr = startDate.toISOString().split('T')[0];
@@ -349,9 +352,13 @@ class CMISService {
           },
         };
 
+        console.log(`[CIMIS] proxy request → ${apiUrl}`);
         const response = await fetch(apiUrl, fetchOptions);
+        console.log(`[CIMIS] proxy response status=${response.status} contentType=${response.headers.get('content-type')}`);
 
         if (!response.ok) {
+          const errText = await response.text().catch(() => '');
+          console.error(`[CIMIS] proxy error ${response.status}:`, errText.substring(0, 300));
           return {
             success: false,
             data: [],
@@ -361,7 +368,9 @@ class CMISService {
         }
 
         const data = await response.json();
+        console.log(`[CIMIS] proxy JSON providers=${data?.Data?.Providers?.length ?? 0}`);
         const result = this.parseETCResponse(data);
+        console.log(`[CIMIS] parsed result success=${result.success} rows=${result.data.length} error=${result.error ?? 'none'}`);
 
         return {
           success: result.success,
